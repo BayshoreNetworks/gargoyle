@@ -65,6 +65,7 @@ volatile sig_atomic_t stop;
 void handle_signal (int signum) {
 	stop = 1;
 	syslog(LOG_INFO | LOG_LOCAL6, "%s", "signal caught, program terminating");
+	exit(0);
 }
 
 
@@ -352,39 +353,40 @@ void run_analysis() {
 	char *l_hosts3 = (char*) malloc(dst_buf_sz+1);
 	
 	resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
-	/*
-	 std::cout << std::endl << resp3 << std::endl;
-	 std::cout << l_hosts3 << std::endl;
-	*/ 
-	token1 = strtok_r(l_hosts3, tok1, &token1_save);
-	while (token1 != NULL) {
-		iter_cnt = 0;
-		//std::cout << token1 << std::endl;
-		token2 = strtok_r(token1, tok2, &token2_save);
-		while (token2 != NULL) {
-			//std::cout << token2 << " - " << iter_cnt << std::endl;
-			if (iter_cnt == 1) {
-				//IPTABLES_ENTRIES.push_back(token2);
-				add_to_iptables_entries(atoi(token2));
+	if (resp3 == 0) {
+		/*
+		 std::cout << std::endl << resp3 << std::endl;
+		 std::cout << l_hosts3 << std::endl;
+		*/ 
+		token1 = strtok_r(l_hosts3, tok1, &token1_save);
+		while (token1 != NULL) {
+			iter_cnt = 0;
+			//std::cout << token1 << std::endl;
+			token2 = strtok_r(token1, tok2, &token2_save);
+			while (token2 != NULL) {
+				//std::cout << token2 << " - " << iter_cnt << std::endl;
+				if (iter_cnt == 1) {
+					//IPTABLES_ENTRIES.push_back(token2);
+					add_to_iptables_entries(atoi(token2));
+				}
+				token2 = strtok_r(NULL, tok2, &token2_save);
+				iter_cnt++;
 			}
-			token2 = strtok_r(NULL, tok2, &token2_save);
-			iter_cnt++;
+			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
-		token1 = strtok_r(NULL, tok1, &token1_save);
+		/*
+		std::cout << std::endl << std::endl;
+		for (std::vector<int>::const_iterator i = IPTABLES_ENTRIES.begin();
+				i != IPTABLES_ENTRIES.end(); ++i)
+			std::cout << *i << ' ';
+	
+		std::cout << std::endl << std::endl;
+		std::cout << exists_in_iptables_entries(31880) << std::endl;
+		std::cout << exists_in_iptables_entries(31881) << std::endl;
+		*/
+		query_for_single_port_hits_last_seen();
+		query_for_multiple_ports_hits_last_seen();
 	}
-	/*
-	std::cout << std::endl << std::endl;
-	for (std::vector<int>::const_iterator i = IPTABLES_ENTRIES.begin();
-			i != IPTABLES_ENTRIES.end(); ++i)
-		std::cout << *i << ' ';
-
-	std::cout << std::endl << std::endl;
-	std::cout << exists_in_iptables_entries(31880) << std::endl;
-	std::cout << exists_in_iptables_entries(31881) << std::endl;
-	*/
-	query_for_single_port_hits_last_seen();
-	query_for_multiple_ports_hits_last_seen();
-
 	free(l_hosts3);
 }
 
