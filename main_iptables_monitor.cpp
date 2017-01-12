@@ -135,7 +135,7 @@ void run_monitor() {
 
 			// we have the ip addr so get the rule ix from iptables
 			rule_ix = iptables_find_rule_in_chain(MONITOR_CHAIN_NAME, host_ip);
-			if (rule_ix > 0) {
+			if (rule_ix > 0 && host_ip) {
 
 				tstamp = 0;
 				// delete rule from chain
