@@ -302,7 +302,11 @@ int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR inserting data: %s\n", sqlite3_errmsg(db));
+		printf("ERROR inserting data from function [add_host_port_hit]: %s\n", sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
 		return -1;
 	}
 
@@ -340,7 +344,11 @@ int add_host(const char *the_ip) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR inserting data: %s\n", sqlite3_errmsg(db));
+		printf("ERROR inserting data from function [add_host]: %s\n", sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
 		return -1;
 	}
 
@@ -377,7 +385,11 @@ int add_detected_host(int ip_addr_ix, int tstamp) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR inserting data: %s\n", sqlite3_errmsg(db));
+		printf("ERROR inserting data from function [add_detected_host]: %s\n", sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
 		return -1;
 	}
 
@@ -408,7 +420,11 @@ int modify_host_set_processed_ix(int the_ix) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR updating data: %s\n", sqlite3_errmsg(db));
+		printf("ERROR updating data from function [modify_host_set_processed_ix]: %s\n", sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
 		return -1;
 	}
 
@@ -441,7 +457,11 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR updating data: %s\n", sqlite3_errmsg(db));
+		printf("ERROR updating data from function [update_host_port_hit]: %s\n", sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
 		return -1;
 	}
 
