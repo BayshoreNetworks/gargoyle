@@ -33,9 +33,7 @@
 #include <string.h>
 
 #include "iptables_wrapper_api.h"
-
-const char *IPTABLES = "iptables";
-const char *NFQUEUE = "NFQUEUE";
+#include "gargoyle_config_vals.h"
 
 /*
  * 

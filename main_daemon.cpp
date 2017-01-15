@@ -50,11 +50,11 @@
 #include "nf_queue.h"
 #include "packet_handler.h"
 #include "singleton.h"
+#include "gargoyle_config_vals.h"
 ///////////////////////////////////////////////////////////////////////////////////
 const char *GARG_CHAIN_NAME = "GARGOYLE_Input_Chain";
 const char *IPTABLES_INPUT_CHAIN = "INPUT";
 const char *NFQUEUE_NUM_LINE = "NFQUEUE num 5";
-const char *NFQUEUE_LINE = "NFQUEUE";
 
 bool IGNORE_LISTENING_PORTS = true;
 bool IGNORE_LOCAL_IP_ADDRS = true;
@@ -109,7 +109,7 @@ void graceful_exit(int signum) {
 	// 1
 
 	size_t rule_ix;
-	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE_LINE, NFQUEUE_NUM_LINE);
+	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE);
 	if (rule_ix > 0) {
 		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, rule_ix);
 	}
@@ -280,7 +280,7 @@ void handle_chain() {
 	 * iptables -A INPUT -j NFQUEUE --queue-num 5
 	 */
 	size_t rule_ix;
-	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE_LINE, NFQUEUE_NUM_LINE);
+	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE);
 	
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_chains3;

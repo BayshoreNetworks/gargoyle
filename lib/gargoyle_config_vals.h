@@ -2,9 +2,9 @@
  *
  * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
  * 
- * Wrapper to iptables as a shared lib
+ * Config values for use across all gargoyle daemons/progs
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017, Bayshore Networks, Inc.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -27,34 +27,21 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef __gargoyleiptableswrapper__H_
-#define __gargoyleiptableswrapper__H_
+#ifndef __gargoyleconfig__H_
+#define __gargoyleconfig__H_
 
-
-#include <stdio.h>
-#include <stdint.h>
-
-#define DEST_BUF_SZ 524288
-#define CMD_BUF_SZ 100
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-size_t iptables_create_new_chain(const char *);
-size_t iptables_flush_chain(const char *);
-size_t iptables_list_chain(const char *, char *, size_t);
-size_t iptables_list_chain_with_line_numbers(const char *, char *, size_t);
-size_t iptables_list_all_with_line_numbers(char *, size_t);
-size_t iptables_list_all(char *, size_t);
-size_t iptables_delete_chain(const char *);
-size_t iptables_delete_rule_from_chain(const char *, size_t);
-size_t iptables_add_drop_rule_to_chain(const char *, const char *);
-size_t iptables_insert_chain_rule_to_chain_at_index(const char *, const char *, const char *);
-size_t iptables_find_rule_in_chain(const char *, const char *);
-size_t iptables_find_rule_in_chain_two_criteria(const char *, const char *, const char *);
-size_t iptables_insert_nfqueue_rule_to_chain_at_index(const char *, size_t);
+
+const char *GARGOYLE_VERSION = "1.0";
+const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
+const char *IPTABLES = "iptables";
+const char *NFQUEUE = "NFQUEUE";
+
 
 
 #ifdef __cplusplus
@@ -62,5 +49,4 @@ size_t iptables_insert_nfqueue_rule_to_chain_at_index(const char *, size_t);
 #endif
 
 
-#endif // __gargoyleiptableswrapper__H_
-
+#endif // __gargoyleconfig__H_
