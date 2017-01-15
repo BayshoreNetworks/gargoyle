@@ -43,13 +43,13 @@ Default install path: /opt/gargoyle_pscand
 
 Required libs
 
-Debian variant:
+	Debian variant:
 
-sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev
+		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev
 
-Fedora:
+	Fedora:
 
-sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel
+		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel
 
 
 
@@ -127,11 +127,11 @@ TODO:
 
 This software ignores certain elements by default so as to not be too agressive or disrupt legitimate functionality:
 
-- any open ports that the system is aware of (data comes from "/proc/net/tcp")
-- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
-- any port dictated by user created process (function "get_my_ports_to_ignore")
-- any ip address bound to the local system (data comes from system call to "ip addr")
-- system default gateway (data comes from "/proc/net/route")
+	- any open ports that the system is aware of (data comes from "/proc/net/tcp")
+	- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
+	- any port dictated by user created process (function "get_my_ports_to_ignore")
+	- any ip address bound to the local system (data comes from system call to "ip addr")
+	- system default gateway (data comes from "/proc/net/route")
 
 
 
