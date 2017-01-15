@@ -9,33 +9,33 @@ Gargoyle is based on the notion of different severity levels where some blocks a
 
 There are numerous run time entities:
 
-1. gargoyle_pscand - runs as the main daemon and expects signal 2 (SIGINT) to be brought down as there is a complex cleanup process upon the reciept of SIGINT.
+	1. gargoyle_pscand - runs as the main daemon and expects signal 2 (SIGINT) to be brought down as there is a complex cleanup process upon the reciept of SIGINT.
 
-This is the main daemon that reads packet data right off the netfilter queue (set up as: "iptables -I INPUT -j NFQUEUE --queue-num 5")
+		This is the main daemon that reads packet data right off the netfilter queue (set up as: "iptables -I INPUT -j NFQUEUE --queue-num 5")
 
-There are multiple layers to this solution (as part of the running main daemon):
+		There are multiple layers to this solution (as part of the running main daemon):
 
-Layer 1 - Immediate rules to block are added to iptables upon detection of blatantly obvious scans (such as FIN/XMAS/NULL scans)
+		Layer 1 - Immediate rules to block are added to iptables upon detection of blatantly obvious scans (such as FIN/XMAS/NULL scans)
 
-Layer 2 - A cycled process takes place with the default value of a cycle every 2 minutes, there are 2 phases here:
+		Layer 2 - A cycled process takes place with the default value of a cycle every 2 minutes, there are 2 phases here:
 
-	- phase 1 creates blocking rules for ip addr's that have been flagged as black listed, this means some anomalous behaviour has been identified
+			- phase 1 creates blocking rules for ip addr's that have been flagged as black listed, this means some anomalous behaviour has been identified
 		
-	- phase 2 has 2 layers of behavior itself:
+			- phase 2 has 2 layers of behavior itself:
 
-		- layer 1 - creates blocking rules when the following conditions are encountered:
+				- layer 1 - creates blocking rules when the following conditions are encountered:
 
-			- one src ip has scanned an anomalous number of ports
+					- one src ip has scanned an anomalous number of ports
 
-			- one src ip has scanned one specific port an anomalous number of times
+					- one src ip has scanned one specific port an anomalous number of times
 
-		- layer 2 - does not create blocking rules but inserts rows with details into a DB table, this means there wasnt enough data to make a blocking decision but the data must be tracked as it be relevant in subsequent analysis
-
-
-2. gargoyle_pscand_monitor - runs as a daemon with an internal timed cycle. The default cycle is a run every 12 hours based off whenever the daemon was started. This prog will analyze the active rules in our iptables chain and clean out the ones who have been jailed past the point set at variable LOCKOUT_TIME. The clean up process also updates records in the DB.
+				- layer 2 - does not create blocking rules but inserts rows with details into a DB table, this means there wasnt enough data to make a blocking decision but the data must be tracked as it be relevant in subsequent analysis
 
 
-3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
+	2. gargoyle_pscand_monitor - runs as a daemon with an internal timed cycle. The default cycle is a run every 12 hours based off whenever the daemon was started. This prog will analyze the active rules in our iptables chain and clean out the ones who have been jailed past the point set at variable LOCKOUT_TIME. The clean up process also updates records in the DB.
+
+
+	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
 
 
 Default install path: /opt/gargoyle_pscand
@@ -138,13 +138,13 @@ This software ignores certain elements by default so as to not be too agressive 
 
 BLOCK_TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
-1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
-2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
-3:'XMAS Scan' (Stealth technique) - sends packets with the URG, PUSH, FIN flags set
-4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response.
-5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection.
-6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
-7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
-8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+	1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
+	2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
+	3:'XMAS Scan' (Stealth technique) - sends packets with the URG, PUSH, FIN flags set
+	4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response.
+	5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection.
+	6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
+	7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
+	8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
 
 
