@@ -125,13 +125,15 @@ size_t iptables_list_chain_with_line_numbers(const char *chain_name, char *dst, 
 	while(fgets(buff, sizeof(buff), in)!=NULL) {
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
-	dest[strlen(dest)] = '\0';
+	
+	size_t dest_len = strlen(dest);
+	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
-	if (strlen(dest)+1 > sz_dst) {
+	if (dest_len+1 > sz_dst) {
 		free(dest);
 		return 1;
 	}
-	memcpy (dst, dest, strlen(dest)+1);
+	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
@@ -163,13 +165,15 @@ size_t iptables_list_chain(const char *chain_name, char *dst, size_t sz_dst) {
 	while(fgets(buff, sizeof(buff), in)!=NULL){
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
-	dest[strlen(dest)] = '\0';
+	
+	size_t dest_len = strlen(dest);
+	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
-	if (strlen(dest)+1 > sz_dst) {
+	if (dest_len+1 > sz_dst) {
 		free(dest);
 		return 1;
 	}
-	memcpy (dst, dest, strlen(dest)+1);
+	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
@@ -201,13 +205,15 @@ size_t iptables_list_all_with_line_numbers(char *dst, size_t sz_dst) {
 	while(fgets(buff, sizeof(buff), in)!=NULL){
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
-	dest[strlen(dest)] = '\0';
+	
+	size_t dest_len = strlen(dest);
+	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
-	if (strlen(dest)+1 > sz_dst) {
+	if (dest_len+1 > sz_dst) {
 		free(dest);
 		return 1;
 	}
-	memcpy (dst, dest, strlen(dest)+1);
+	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
@@ -240,13 +246,15 @@ size_t iptables_list_all(char *dst, size_t sz_dst) {
 	while(fgets(buff, sizeof(buff), in)!=NULL){
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
-	dest[strlen(dest)] = '\0';
+	
+	size_t dest_len = strlen(dest);
+	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
-	if (strlen(dest)+1 > sz_dst) {
+	if (dest_len+1 > sz_dst) {
 		free(dest);
 		return 1;
 	}
-	memcpy (dst, dest, strlen(dest)+1);
+	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
