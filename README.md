@@ -1,9 +1,11 @@
 # gargoyle
 Gargoyle Port Scan Detector
 
-This was written on a Linux platform and is intended to run on Linux. It requires netfilter (kernel level) and iptables (user space).
+This software (Gargoyle) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-This solution is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
+Gargoyle was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle worked off log file data. Gargoyle is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian.
+
+Gargoyle is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 
 There are numerous run time entities:
 
@@ -94,9 +96,11 @@ sudo iptables -D GARGOYLE_Input_Chain <rulenum>
 
 TODO:
 
-- calculate ports for the UDP singleton
+- daemonize gargoyle_pscand_monitor and gargoyle_pscand_analysis so that no cron jobs are necessary (GARG-3)
 
-- daemonize gargoyle_pscand_monitor and gargoyle_pscand_analysis so that no cron jobs are necessary
+- calculate ports for the UDP singleton (GARG-4)
+
+- add timestamp to block syslog line (GARG-5)
 
 - add sync step that synchronizes iptables rules with the DB - part of cleanup process
 
@@ -105,8 +109,6 @@ TODO:
 - cleanup/archive process for the DB (separate code to be cron'd)
 
 - add bool to turn on and off iptables rule addition (allow total passive mode with no block rules added)
-
-- add timestamp to block syslog line
 
 - add support for HOT_PORTS - if these are encountered a block is immediate
 	
@@ -144,3 +146,5 @@ BLOCK_TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+
+
