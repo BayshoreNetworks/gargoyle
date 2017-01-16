@@ -49,6 +49,7 @@ extern "C" {
 #define NFQUEUE_NUM_LINE "NFQUEUE num 5"
 
 //static const char *VIOLATOR_SYSLOG = "violator";
+#define BLOCKED_SYSLOG "blocked"
 #define VIOLATOR_SYSLOG "violator"
 #define DETECTION_TYPE_SYSLOG "detection_type"
 #define TIMESTAMP_SYSLOG "timestamp"

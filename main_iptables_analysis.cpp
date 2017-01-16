@@ -97,7 +97,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 		ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
 
 		syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-				"blocked", VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
+				BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
 				detection_type, TIMESTAMP_SYSLOG, tstamp);
 
 		// add to DB
