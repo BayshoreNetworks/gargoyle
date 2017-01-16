@@ -46,10 +46,11 @@
 #include "iptables_wrapper_api.h"
 #include "sqlite_wrapper_api.h"
 #include "packet_handler.h"
+#include "gargoyle_config_vals.h"
 
 
 int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
-const char *VIOLATOR_SYSLOG = "violator";
+
 const char *DETECTION_TYPE = "detection_type";
 const char *TIMESTAMP_SYSLOG = "timestamp";
 /*

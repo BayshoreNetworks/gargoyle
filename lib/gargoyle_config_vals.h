@@ -37,10 +37,17 @@ extern "C" {
 
 
 
-const char *GARGOYLE_VERSION = "1.0";
-const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
-const char *IPTABLES = "iptables";
-const char *NFQUEUE = "NFQUEUE";
+//const char *GARGOYLE_VERSION = "1.0";
+#define GARGOYLE_VERSION "1.0"
+//const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
+#define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
+//const char *IPTABLES = "iptables";
+#define IPTABLES "iptables"
+//const char *NFQUEUE = "NFQUEUE";
+#define NFQUEUE "NFQUEUE"
+
+//static const char *VIOLATOR_SYSLOG = "violator";
+#define VIOLATOR_SYSLOG "violator"
 
 
 
