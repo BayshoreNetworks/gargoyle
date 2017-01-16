@@ -53,6 +53,8 @@ extern "C" {
 #define VIOLATOR_SYSLOG "violator"
 #define DETECTION_TYPE_SYSLOG "detection_type"
 #define TIMESTAMP_SYSLOG "timestamp"
+#define SIGNAL_CAUGHT_SYSLOG "Signal caught"
+#define PROG_TERM_SYSLOG "program terminating"
 
 
 #ifdef __cplusplus

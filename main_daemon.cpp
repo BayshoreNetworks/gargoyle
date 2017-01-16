@@ -93,7 +93,7 @@ void nfqueue_signal_handler(int signum) {
 void graceful_exit(int signum) {
 	
 	//std::cout << "Signal caught: " << signum << ", destroying queue ..." << std::endl;
-	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", "Signal caught", signum, "destroying queue and shutting down");
+	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s %s", SIGNAL_CAUGHT_SYSLOG, signum, "destroying queue, cleaning up iptables entries and", PROG_TERM_SYSLOG);
 	
 	/*
 	 * 1. delete NFQUEUE rule from INPUT chain

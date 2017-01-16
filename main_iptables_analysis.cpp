@@ -61,7 +61,7 @@ volatile sig_atomic_t stop;
 
 void handle_signal (int signum) {
 	stop = 1;
-	syslog(LOG_INFO | LOG_LOCAL6, "%s", "signal caught, program terminating");
+	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 	exit(0);
 }
 
