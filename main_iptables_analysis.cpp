@@ -56,8 +56,6 @@ size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 // 8 hours
 size_t LAST_SEEN_DELTA = 28800;
 
-const char *ANALYSIS_TIMESTAMP_SYSLOG = "timestamp";
-
 volatile sig_atomic_t stop;
 
 
@@ -100,7 +98,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 
 		syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
 				"blocked", VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
-				detection_type, ANALYSIS_TIMESTAMP_SYSLOG, tstamp);
+				detection_type, TIMESTAMP_SYSLOG, tstamp);
 
 		// add to DB
 		add_detected_host(the_ix, tstamp);

@@ -50,8 +50,6 @@
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
 
-const char *MONITOR_TIMESTAMP_SYSLOG = "timestamp";
-
 volatile sig_atomic_t stop;
 
 
@@ -158,7 +156,7 @@ void run_monitor() {
 						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
 		
 						tstamp = (int) time(NULL);			
-						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, MONITOR_TIMESTAMP_SYSLOG, tstamp);
+						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
 		
 						/*
 						 * update DB set active=0, processed=1

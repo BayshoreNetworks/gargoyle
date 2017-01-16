@@ -51,7 +51,6 @@
 
 int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
 
-const char *TIMESTAMP_SYSLOG = "timestamp";
 /*
  * when ADD_RULES_KNOWN_SCAN_AGGRESSIVE is true
  * automatic blocks will take place when known
