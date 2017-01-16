@@ -52,7 +52,6 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 ///////////////////////////////////////////////////////////////////////////////////
-const char *IPTABLES_INPUT_CHAIN = "INPUT";
 const char *NFQUEUE_NUM_LINE = "NFQUEUE num 5";
 
 bool IGNORE_LISTENING_PORTS = true;

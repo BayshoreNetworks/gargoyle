@@ -41,6 +41,7 @@ extern "C" {
 #define GARGOYLE_VERSION "1.0"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
+#define IPTABLES_INPUT_CHAIN "INPUT"
 //const char *IPTABLES = "iptables";
 #define IPTABLES "iptables"
 //const char *NFQUEUE = "NFQUEUE";
