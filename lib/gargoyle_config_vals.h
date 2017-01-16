@@ -48,7 +48,7 @@ extern "C" {
 
 //static const char *VIOLATOR_SYSLOG = "violator";
 #define VIOLATOR_SYSLOG "violator"
-
+#define DETECTION_TYPE_SYSLOG "detection_type"
 
 
 #ifdef __cplusplus

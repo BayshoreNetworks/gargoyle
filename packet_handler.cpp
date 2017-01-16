@@ -51,7 +51,6 @@
 
 int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
 
-const char *DETECTION_TYPE = "detection_type";
 const char *TIMESTAMP_SYSLOG = "timestamp";
 /*
  * when ADD_RULES_KNOWN_SCAN_AGGRESSIVE is true
@@ -882,24 +881,7 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 			 * something blatantly stupid then block this bitch
 			 */
 			added_host_ix = do_block_actions(the_ip, detection_type);
-			/*
-			iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
-			
-			tstamp = (int)time(NULL);
-			if (detection_type > 0) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-								"blocked", VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE,
-								detection_type, TIMESTAMP_SYSLOG, tstamp);
-			} else {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"",
-								"blocked", VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
-			}
-			
-			added_host_ix = add_ip_to_hosts_table(the_ip);
-			if (added_host_ix > 0) {
-				add_detected_host(added_host_ix, tstamp);
-			}
-			*/
+
 			if (is_in_black_listed_hosts(the_ip) == true) {
 				BLACK_LISTED_HOSTS.erase(the_ip);
 			}
@@ -1245,17 +1227,7 @@ void GargoylePscandHandler::add_block_rules() {
 				if (ip_tables_entries.count(the_ip) == 0) {
 					
 					added_host_ix = do_block_actions(the_ip, 7);
-					/*
-					iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
-					
-					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", 
-							"blocked", VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE, 7, TIMESTAMP_SYSLOG, tstamp);
-					
-					// add to DB
-					if (added_host_ix > 0) {
-						add_detected_host(added_host_ix, tstamp);
-					}
-					*/
+
 					ip_tables_entries.insert(the_ip);
 				}
 			}
@@ -1287,16 +1259,6 @@ void GargoylePscandHandler::add_block_rules() {
 				
 				do_block_actions(loc_ip_it->first, 6);
 				
-				//added_host_ix = add_ip_to_hosts_table(loc_ip_it->first);
-				//tstamp = (int)time(NULL);
-				
-				//iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), (loc_ip_it->first).c_str());
-				//syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", 
-				//							"blocked", VIOLATOR_SYSLOG, (loc_ip_it->first).c_str(), DETECTION_TYPE, 6, TIMESTAMP_SYSLOG, tstamp);
-				
-				//if (added_host_ix > 0) {
-				//	add_detected_host(added_host_ix, tstamp);
-				//}
 				ip_tables_entries.insert(loc_ip_it->first);	
 			}
 		}
@@ -1352,7 +1314,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 		
 		if (detection_type > 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-							"blocked", VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE,
+							"blocked", VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE_SYSLOG,
 							detection_type, TIMESTAMP_SYSLOG, tstamp);
 		} else {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"",
