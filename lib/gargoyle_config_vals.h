@@ -46,6 +46,7 @@ extern "C" {
 #define IPTABLES "iptables"
 //const char *NFQUEUE = "NFQUEUE";
 #define NFQUEUE "NFQUEUE"
+#define NFQUEUE_NUM_LINE "NFQUEUE num 5"
 
 //static const char *VIOLATOR_SYSLOG = "violator";
 #define VIOLATOR_SYSLOG "violator"

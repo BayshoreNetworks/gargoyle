@@ -52,8 +52,6 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 ///////////////////////////////////////////////////////////////////////////////////
-const char *NFQUEUE_NUM_LINE = "NFQUEUE num 5";
-
 bool IGNORE_LISTENING_PORTS = true;
 bool IGNORE_LOCAL_IP_ADDRS = true;
 
