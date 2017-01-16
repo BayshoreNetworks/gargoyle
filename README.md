@@ -96,11 +96,15 @@ sudo iptables -D GARGOYLE_Input_Chain <rulenum>
 
 TODO:
 
-- daemonize gargoyle_pscand_monitor and gargoyle_pscand_analysis so that no cron jobs are necessary (GARG-3)
-
 - calculate ports for the UDP singleton (GARG-4)
 
 - add timestamp to block syslog line (GARG-5)
+
+- add full iptables cleanup upon prog termination (GARG-7)
+
+- add bool to turn on and off iptables rule addition (allow total passive mode with no block rules added) (GARG-8)
+
+- build in support for a config file and we read global values from there (SINGLE_IP_SCAN_THRESHOLD, SINGLE_PORT_SCAN_THRESHOLD, LOCKOUT_TIME, etc) (GARG-10)
 
 - add sync step that synchronizes iptables rules with the DB - part of cleanup process
 
@@ -108,15 +112,7 @@ TODO:
 
 - cleanup/archive process for the DB (separate code to be cron'd)
 
-- add bool to turn on and off iptables rule addition (allow total passive mode with no block rules added)
-
 - add support for HOT_PORTS - if these are encountered a block is immediate
-	
-- move chain name out to one file all entities can read from
-
-- build in support for a config file and we read global value from there (SINGLE_IP_SCAN_THRESHOLD, SINGLE_PORT_SCAN_THRESHOLD, LOCKOUT_TIME, etc)
-
-
 
 
 

@@ -667,7 +667,6 @@ int main()
 	
 	CompoundHandler c_handlers;
 	
-	//GargoylePscandHandler gargoyleHandler = GargoylePscandHandler();
 	GargoylePscandHandler gargoyleHandler;
 	
 	/*
@@ -692,44 +691,6 @@ int main()
 	Queue queue(lib, 5, c_handlers);
 	
 	lib.loop();
-	
-	/*
-	 * this is an example of how this could be used to pipeline
-	 * packets thru multiple handlers
-	try
-	{
-		// Create a packet-handling library bound to the IP address family
-		Library lib;
-		lib.bind(AF_INET);
-		
-		// -- Configure packet handlers --- //
-		CompoundHandler c_handlers;
-		
-		// handle incoming packets
-		// remove any calls to setVerdict, such as:
-		// "queue.setVerdict(id, NF_ACCEPT, 0, NULL);"
-		// and let the last class in the pipeline handle
-		// that call
-		GargoylePscandHandler GargoylePscandHandler("[BEFORE] ");
-		c_handlers.add(GargoylePscandHandler);
-		
-		// Mangle incoming packets
-		StegMangler mangler;
-		MangleHandler mangleHandler(mangler);
-		c_handlers.add(mangleHandler);
-		
-		
-		// Create queue number 5, configured to use the handler stack
-		Queue queue(lib, 5, c_handlers);
-		
-
-	}
-	catch (const char* s)
-	{
-		cerr << s << " (" << nfq_errno << ")" << endl;
-		return -1;
-	}
-	*/
 
 	graceful_exit(SIGINT);
 	
