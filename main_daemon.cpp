@@ -52,7 +52,6 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 ///////////////////////////////////////////////////////////////////////////////////
-const char *GARG_CHAIN_NAME = "GARGOYLE_Input_Chain";
 const char *IPTABLES_INPUT_CHAIN = "INPUT";
 const char *NFQUEUE_NUM_LINE = "NFQUEUE num 5";
 
@@ -101,8 +100,8 @@ void graceful_exit(int signum) {
 	
 	/*
 	 * 1. delete NFQUEUE rule from INPUT chain
-	 * 2. delete GARG_CHAIN_NAME rule from INPUT
-	 * 3. flush (delete any rules that exist in) GARG_CHAIN_NAME
+	 * 2. delete GARGOYLE_CHAIN_NAME rule from INPUT
+	 * 3. flush (delete any rules that exist in) GARGOYLE_CHAIN_NAME
 	 * 4. reset DB items
 	 */
 	///////////////////////////////////////////////////
@@ -129,14 +128,14 @@ void graceful_exit(int signum) {
 		# 2
 		#rule_ix = 0
 		'''
-		rule_ix = _libgarg_iptables.iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARG_CHAIN_NAME)
+		rule_ix = _libgarg_iptables.iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME)
 		if int(rule_ix) > 0:
 			_libgarg_iptables.iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, str(rule_ix))
 		'''
 		###################################################
 		# 3
-		# flush GARG_CHAIN_NAME
-		#_libgarg_iptables.iptables_flush_chain(GARG_CHAIN_NAME)
+		# flush GARGOYLE_CHAIN_NAME
+		#_libgarg_iptables.iptables_flush_chain(GARGOYLE_CHAIN_NAME)
 		###################################################	
 		#4
 		'''
@@ -148,8 +147,8 @@ void graceful_exit(int signum) {
 		'''
 		###################################################
 		#5
-		# delete chain GARG_CHAIN_NAME
-		#_libgarg_iptables.iptables_delete_chain(GARG_CHAIN_NAME)
+		# delete chain GARGOYLE_CHAIN_NAME
+		#_libgarg_iptables.iptables_delete_chain(GARGOYLE_CHAIN_NAME)
 		###################################################
 	
 	
@@ -181,9 +180,9 @@ void graceful_exit(int signum) {
 void handle_chain() {
 
 	/*
-	 * 1. if the chain GARG_CHAIN_NAME doesnt exist create it
+	 * 1. if the chain GARGOYLE_CHAIN_NAME doesnt exist create it
 	 * look for something like this: Chain BSN_test_Chain (1 references)
-	 * 2. add GARG_CHAIN_NAME at index 1 in chain INPUT
+	 * 2. add GARGOYLE_CHAIN_NAME at index 1 in chain INPUT
 	 * 3. add nfqueue rule to chain INPUT ...
 	 * this rule needs to either be last or right above DROP/REJECT rules
 	 * put there at a system level
@@ -205,17 +204,17 @@ void handle_chain() {
 	
 	if (l_chains) {
 		//std::cout << l_chains << std::endl;
-		p_lchains = strstr (l_chains, GARG_CHAIN_NAME);
+		p_lchains = strstr (l_chains, GARGOYLE_CHAIN_NAME);
 		if (!p_lchains) {
 			// create new chain used just for this
-			//std::cout << "CREATING Chain " << GARG_CHAIN_NAME << std::endl;
-			iptables_create_new_chain(GARG_CHAIN_NAME);
+			//std::cout << "CREATING Chain " << GARGOYLE_CHAIN_NAME << std::endl;
+			iptables_create_new_chain(GARGOYLE_CHAIN_NAME);
 			/*
 			 * example out:
 			 * 
 			 * Dec 22 11:55:29 shadow-box gargoyle_pscand[2278]: Creating Chain-GARGOYLE_Input_Chain
 			 */
-			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s", "Creating Chain", GARG_CHAIN_NAME);
+			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s", "Creating Chain", GARGOYLE_CHAIN_NAME);
 		}
 	}
 	///////////////////////////////////////////////////
@@ -238,7 +237,7 @@ void handle_chain() {
 	if (l_chains2) {
 		token1 = strtok_r(l_chains2, tok1, &token1_save);
 		while (token1 != NULL) {
-			p_lchains2 = strstr (token1, GARG_CHAIN_NAME);
+			p_lchains2 = strstr (token1, GARGOYLE_CHAIN_NAME);
 			if (p_lchains2) {
 				s_lchains2 = strstr (token1, "Chain");
 				if (s_lchains2) {
@@ -255,7 +254,7 @@ void handle_chain() {
 
 	if (ADD_CHAIN_TO_INPUT) {
 		// insert this to INPUT chain at specific index 1
-		iptables_insert_chain_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, "1", GARG_CHAIN_NAME);
+		iptables_insert_chain_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, "1", GARGOYLE_CHAIN_NAME);
 	}
 	
 	int drop_ix;
@@ -269,7 +268,7 @@ void handle_chain() {
 	// 3
 	/*
 	 * setup nfqueue rule last as we want the
-	 * blocking rules from Chain (GARG_CHAIN_NAME)
+	 * blocking rules from Chain (GARGOYLE_CHAIN_NAME)
 	 * to be executed before packets get handed
 	 * off to the nfqueue
 	 * 
@@ -683,7 +682,7 @@ int main()
 	gargoyleHandler.set_ignore_local_ip_addrs(IGNORE_LOCAL_IP_ADDRS);
 	gargoyleHandler.set_ephemeral_low(EPHEMERAL_LOW);
 	gargoyleHandler.set_ephemeral_high(EPHEMERAL_HIGH);
-	gargoyleHandler.set_chain_name(GARG_CHAIN_NAME);
+	gargoyleHandler.set_chain_name(GARGOYLE_CHAIN_NAME);
 	/*
 	 * this can be more elegant but works for now
 	 */

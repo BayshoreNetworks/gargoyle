@@ -45,10 +45,10 @@
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "singleton.h"
+#include "gargoyle_config_vals.h"
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
-const char *MONITOR_CHAIN_NAME = "GARGOYLE_Input_Chain";
 const char *MONITOR_VIOLATOR_SYSLOG = "violator";
 const char *MONITOR_TIMESTAMP_SYSLOG = "timestamp";
 
@@ -144,7 +144,7 @@ void run_monitor() {
 					//std::cout << "HOST IP: " << host_ip << std::endl;
 		
 					// we have the ip addr so get the rule ix from iptables
-					rule_ix = iptables_find_rule_in_chain(MONITOR_CHAIN_NAME, host_ip);
+					rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
 					//std::cout << "RULE IX: " << rule_ix << std::endl;
 					if (rule_ix > 0 && host_ip) {
 		
@@ -153,9 +153,9 @@ void run_monitor() {
 						/*
 						char str[15];
 						snprintf (str, 15, "%d", rule_ix);
-						iptables_delete_rule_from_chain(MONITOR_CHAIN_NAME, str);
+						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, str);
 						 */
-						iptables_delete_rule_from_chain(MONITOR_CHAIN_NAME, rule_ix);
+						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
 		
 						tstamp = (int) time(NULL);			
 						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", MONITOR_VIOLATOR_SYSLOG, host_ip, MONITOR_TIMESTAMP_SYSLOG, tstamp);

@@ -46,6 +46,7 @@
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "singleton.h"
+#include "gargoyle_config_vals.h"
 
 //std::vector<std::string> IPTABLES_ENTRIES;
 std::vector<int> IPTABLES_ENTRIES;
@@ -54,7 +55,6 @@ size_t SINGLE_IP_SCAN_THRESHOLD = 6;
 size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 // 8 hours
 size_t LAST_SEEN_DELTA = 28800;
-const char *ANALYSIS_CHAIN_NAME = "GARGOYLE_Input_Chain";
 const char *ANALYSIS_VIOLATOR_SYSLOG = "violator";
 const char *ANALYSIS_DETECTION_TYPE = "detection_type";
 const char *ANALYSIS_TIMESTAMP_SYSLOG = "timestamp";
@@ -97,7 +97,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 		int tstamp;
 		tstamp = (int) time(NULL);
 
-		ret = iptables_add_drop_rule_to_chain(ANALYSIS_CHAIN_NAME, the_ip);
+		ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
 
 		syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
 				"blocked", ANALYSIS_VIOLATOR_SYSLOG, the_ip, ANALYSIS_DETECTION_TYPE,
