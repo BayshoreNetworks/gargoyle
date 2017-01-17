@@ -41,10 +41,10 @@
 #include "gargoyle_config_vals.h"
 
 int main () {
-	
+	/*
 	std::cout << GARGOYLE_VERSION << std::endl;
 	std::cout << GARGOYLE_CHAIN_NAME << std::endl;
-	
+	*/
 	std::map<std::string,int> mymap;
 
 	int scand_ix = 6665;
@@ -116,7 +116,7 @@ int main () {
 	std::ofstream myfile (".gargoyle_config");
 	if (myfile.is_open()) {
 
-		myfile << "gargoyle_chain_name:GARGOYLE_Input_Chain\n";
+		//myfile << "gargoyle_chain_name:GARGOYLE_Input_Chain\n";
 		
 		for (std::map<std::string,int>::iterator mit=mymap.begin(); mit!=mymap.end(); ++mit) {
 			myfile << mit->first << ":" << mit->second << '\n';
