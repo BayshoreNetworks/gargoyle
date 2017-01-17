@@ -54,49 +54,53 @@ Required libs
 
 
 
-To compile and install:
-
+- To compile and install:
+```
 make
 sudo make deploy
-
-Optional environment variables to specify:
+```
+- Optional environment variables to specify:
+``` 
 DESTDIR - for cross compilation. similar to autoconf DESTDIR
 DEPLOY_TO - similar to autoconf '--prefix'
 SYSROOT - path to system root provided by GCC
 CROSS_COMPILE - cross compile prefix
+```
 
-To compile on systems where netfilter is in a non-standard path:
+- To compile on systems where netfilter is in a non-standard path:
+```
 NETFILTER_LIBRARY_PATH=
 NETFILTER_INCLUDE_PATH=
 NETFILTER_LIBS_EXTRA=
-
-To run the main daemon:
+```
+- To run the main daemon:
 
 *** first time setup only [do this once the first time you set this up] ***: sudo cp db/port_scan_detect.db /opt/gargoyle_pscand/db/
 
 
-To run the main daemon:
-
+- To run the main daemon:
+```
 (cd /opt/gargoyle_pscand && sudo LD_LIBRARY_PATH=lib ./gargoyle_pscand)
-
-To test the daemon (from another machine):
-
+```
+- To test the daemon (from another machine):
+```
 sudo nmap -sX <daemon_machine_ip>
-
-To view the blocked IPs,
-
+```
+- To view the blocked IPs:
+```
 sudo iptables -L -n
-
-To clear the blocked IPs,
+```
+- To clear the blocked IPs:
+```
 sudo iptables -D GARGOYLE_Input_Chain <rulenum>
-
-To enable gargle as a systemd service:
-
+```
+- To enable gargle as a systemd service:
+```
 cp etc-init.d-gargoyle /etc/init.d/gargoyle
 chmod +x /etc/init.d/gargoyle
 systemctl enable gargoyle
 service gargoyle start, service gargoyle status, etc
-
+```
 
 
 TODO:
