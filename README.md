@@ -38,10 +38,10 @@ There are numerous run time entities:
 	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
 
 
-Default install path: /opt/gargoyle_pscand
+- Default install path: /opt/gargoyle_pscand
 
 
-Required libs
+- Required libs:
 
 	Debian variant:
 
