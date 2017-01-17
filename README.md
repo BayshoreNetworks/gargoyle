@@ -90,7 +90,7 @@ sudo iptables -L -n
 To clear the blocked IPs,
 sudo iptables -D GARGOYLE_Input_Chain <rulenum>
 
-To enable gargle as a system.d service:
+To enable gargle as a systemd service:
 
 cp etc-init.d-gargoyle /etc/init.d/gargoyle
 chmod +x /etc/init.d/gargoyle
