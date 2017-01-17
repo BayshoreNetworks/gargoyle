@@ -90,7 +90,12 @@ sudo iptables -L -n
 To clear the blocked IPs,
 sudo iptables -D GARGOYLE_Input_Chain <rulenum>
 
+To enable gargle as a system.d service:
 
+cp etc-init.d-gargoyle /etc/init.d/gargoyle
+chmod +x /etc/init.d/gargoyle
+systemctl enable gargoyle
+service gargoyle start, service gargoyle status, etc
 
 
 
@@ -114,7 +119,7 @@ TODO:
 
 - add support for HOT_PORTS - if these are encountered a block is immediate
 
-
+- automate init.d script install
 
 
 
