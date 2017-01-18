@@ -1,5 +1,6 @@
 #!/bin/sh
 
+MYPREFIX=/opt/gargoyle_pscand
 ./autogen.sh
-./configure --prefix=/opt/gargoyle_pscand --bindir=/opt/gargoyle_pscand
+./configure --prefix=$MYPREFIX --bindir=$MYPREFIX
 make clean
