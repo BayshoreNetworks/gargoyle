@@ -57,17 +57,17 @@ Config data
 
 There is a file named “.gargoyle_config” that holds a series of modifiable key/value pairs. The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in. Keys:
 
-	- “enforce” - boolean type, acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
+	- “enforce” - boolean type - acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
 
-	- “port_scan_threshold” - integer representing count, when performing analysis of the activity of each host this value is the threshold count of hits per unique port. If this threshold is surpassed for any one port by any given host Gargoyle_pscand will treat that as malicious activity
+	- “port_scan_threshold” - integer representing count - when performing analysis of the activity of each host this value is the threshold count of hits per unique port. If this threshold is surpassed for any one port by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- “single_ip_scan_threshold” - integer representing count, when performing analysis of the activity of each host this value is the threshold count of ports that were scanned. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
+	- “single_ip_scan_threshold” - integer representing count - when performing analysis of the activity of each host this value is the threshold count of ports that were scanned. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- “overall_port_scan_threshold” - integer representing count, when performing analysis of the activity of each host this value is the threshold count of collective activity. Collective activity is based on combinations of actions, for example if one host hits port 23 four times and ports 80,443,8080,9000,9090 each once. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
+	- “overall_port_scan_threshold” - integer representing count - when performing analysis of the activity of each host this value is the threshold count of collective activity. Collective activity is based on combinations of actions, for example if one host hits port 23 four times and ports 80,443,8080,9000,9090 each once. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- “last_seen_delta” - integer representing seconds,
+	- “last_seen_delta” - integer representing seconds - Gargoyle_pscand’s processes will only block hosts that have been seen within (less than) this value 
 
-	- “lockout_time” - integer representing seconds,
+	- “lockout_time” - integer representing seconds - if a host has been blocked by Gargoyle_pscand for a period longer than this value it will be unblocked
 
 
 
