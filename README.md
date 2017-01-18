@@ -105,6 +105,8 @@ service gargoyle start, service gargoyle status, etc
 
 TODO:
 
+- cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
+
 - calculate ports for the UDP singleton (GARG-4)
 
 - add timestamp to block syslog line (GARG-5)
@@ -115,13 +117,13 @@ TODO:
 
 - build in support for a config file and we read global values from there (SINGLE_IP_SCAN_THRESHOLD, SINGLE_PORT_SCAN_THRESHOLD, LOCKOUT_TIME, etc) (GARG-10)
 
-- add sync step that synchronizes iptables rules with the DB - part of cleanup process
+- add sync step that synchronizes iptables rules with the DB - part of cleanup process (GARG-11)
 
-- add support for -v in iptables query, use the number of hits/bytes in the cleanup decision
+- add support for HOT_PORTS - if these are encountered a block is immediate (GARG-12)
 
-- cleanup/archive process for the DB (separate code to be cron'd)
+- add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
 
-- add support for HOT_PORTS - if these are encountered a block is immediate
+
 
 - automate init.d script install
 

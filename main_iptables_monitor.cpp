@@ -46,6 +46,7 @@
 #include "iptables_wrapper_api.h"
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
+#include "config_variables.h"
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
@@ -182,17 +183,32 @@ void run_monitor() {
 int main() {
 
 	signal(SIGINT, handle_signal);
-
-	SingletonProcess singleton(6699);
-	if (!singleton()) {
-		std::cerr << "process running already. See " << singleton.GetLockFileName() << std::endl;
+	
+	int monitor_port;
+	const char *config_file = ".gargoyle_config";
+	monitor_port = 0;
+	
+	ConfigVariables cv;
+	if (cv.get_vals(config_file) == 0) {
+		monitor_port = cv.get_gargoyle_pscand_monitor_udp_port();
+	} else {
 		return 1;
 	}
 
-	while (!stop) {
-		run_monitor();
-		// every 12 hours
-		sleep(43200);
+	if (monitor_port > 0) {		
+		SingletonProcess singleton(monitor_port);
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	
+		while (!stop) {
+			run_monitor();
+			// every 12 hours by default
+			sleep(43200);
+		}
+	} else {
+		return 1;
 	}
 
 	return 0;

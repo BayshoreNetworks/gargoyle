@@ -1,5 +1,5 @@
 CPPFLAGS=-I. -Ilib
-include_HEADERS = lib/iptables_wrapper_api.h lib/singleton.h lib/sqlite_wrapper_api.h nf_queue.h packet_handler.h
+include_HEADERS = lib/config_variables.h lib/gargoyle_config_vals.h lib/iptables_wrapper_api.h lib/singleton.h lib/sqlite_wrapper_api.h nf_queue.h packet_handler.h
 
 lib_GARGOYLE_PSCAND = lib
 
