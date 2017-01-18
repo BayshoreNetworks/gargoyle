@@ -1,11 +1,11 @@
 # gargoyle
 Gargoyle Port Scan Detector
 
-This software (Gargoyle) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
+This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-Gargoyle was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle worked off log file data. Gargoyle is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian.
+Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian.
 
-Gargoyle is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
+Gargoyle_pscand is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 
 There are numerous run time entities:
 
@@ -38,10 +38,10 @@ There are numerous run time entities:
 	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
 
 
-- Default install path: /opt/gargoyle_pscand
+Default install path: /opt/gargoyle_pscand
 
 
-- Required libs:
+Required libs
 
 	Debian variant:
 
@@ -54,60 +54,35 @@ There are numerous run time entities:
 
 
 
-- To compile and install:
-```
-make
-sudo make deploy
-```
-- Optional environment variables to specify:
-``` 
-DESTDIR - for cross compilation. similar to autoconf DESTDIR
-DEPLOY_TO - similar to autoconf '--prefix'
-SYSROOT - path to system root provided by GCC
-CROSS_COMPILE - cross compile prefix
-```
+To compile and install:
 
-- To compile on systems where netfilter is in a non-standard path:
-```
-NETFILTER_LIBRARY_PATH=
-NETFILTER_INCLUDE_PATH=
-NETFILTER_LIBS_EXTRA=
-```
-- To run the main daemon:
+./build.sh
+sudo make install
+
+
+To run the main daemon:
 
 *** first time setup only [do this once the first time you set this up] ***: sudo cp db/port_scan_detect.db /opt/gargoyle_pscand/db/
 
 
-- To run the main daemon:
-```
-(cd /opt/gargoyle_pscand && sudo LD_LIBRARY_PATH=lib ./gargoyle_pscand)
-```
-- To test the daemon (from another machine):
-```
-sudo nmap -sX <daemon_machine_ip>
-```
-- To view the blocked IPs:
-```
-sudo iptables -L -n
-```
-- To clear the blocked IPs:
-```
-sudo iptables -D GARGOYLE_Input_Chain <rulenum>
-```
-- To enable gargle as a systemd service:
-```
-cp etc-init.d-gargoyle /etc/init.d/gargoyle
-chmod +x /etc/init.d/gargoyle
-systemctl enable gargoyle
-service gargoyle start, service gargoyle status, etc
-```
+To run the main daemon:
+
+cd /opt/gargoyle_pscand && sudo ./gargoyle_pscand
+
+
+
+- To enable Gargoyle_pscand as a systemd service:
+
+cp etc-init.d-gargoyle /etc/init.d/gargoyle_pscand
+chmod +x /etc/init.d/gargoyle_pscand
+systemctl enable gargoyle_pscand
+service gargoyle_pscand start, service gargoyle_pscand status, etc
+
 
 
 TODO:
 
 - cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
-
-- calculate ports for the UDP singleton (GARG-4)
 
 - add timestamp to block syslog line (GARG-5)
 
@@ -123,9 +98,9 @@ TODO:
 
 - add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
 
-
-
 - automate init.d script install
+
+
 
 
 

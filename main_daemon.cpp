@@ -571,7 +571,7 @@ int main()
     signal (SIGSEGV, nfqueue_signal_handler);
     
 	int daemon_port;
-	const char *config_file = ".gargoyle_config";
+	const char *config_file = ".gargoyle_internal_port_config";
 	daemon_port = 0;
 	
 	ConfigVariables cv;

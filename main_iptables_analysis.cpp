@@ -393,7 +393,7 @@ int main() {
 	signal(SIGINT, handle_signal);
 	
 	int analysis_port;
-	const char *config_file = ".gargoyle_config";
+	const char *config_file = ".gargoyle_internal_port_config";
 	analysis_port = 0;
 	
 	ConfigVariables cv;

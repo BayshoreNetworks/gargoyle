@@ -113,7 +113,7 @@ int main () {
 		}
 	}
 
-	std::ofstream myfile (".gargoyle_config");
+	std::ofstream myfile (".gargoyle_internal_port_config");
 	if (myfile.is_open()) {
 
 		//myfile << "gargoyle_chain_name:GARGOYLE_Input_Chain\n";
