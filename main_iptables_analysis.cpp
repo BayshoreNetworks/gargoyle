@@ -391,18 +391,33 @@ void run_analysis() {
 int main() {
 
 	signal(SIGINT, handle_signal);
-
-	SingletonProcess singleton(6666);
-	if (!singleton()) {
-		std::cerr << "process running already. See " << singleton.GetLockFileName() << std::endl;
+	
+	int analysis_port;
+	const char *config_file = ".gargoyle_config";
+	analysis_port = 0;
+	
+	ConfigVariables cv;
+	if (cv.get_vals(config_file) == 0) {
+		analysis_port = cv.get_gargoyle_pscand_analysis_udp_port();
+	} else {
 		return 1;
 	}
 
-	while (!stop) {
-		run_analysis();
-		// every 30 minutes
-		sleep(1800);
-	}
+	if (analysis_port > 0) {		
+		SingletonProcess singleton(analysis_port);
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
 	
+		while (!stop) {
+			run_analysis();
+			// every 30 minutes by default
+			sleep(1800);
+		}
+	} else {
+		return 1;
+	}
+
 	return 0;
 }
