@@ -31,6 +31,8 @@
 #include <fstream>
 #include <map>
 
+#include <stdio.h>
+
 using namespace std;
 
 /*
@@ -73,14 +75,18 @@ public:
 	}
 
 	
-	int get_port_scan_threshold() {
+	size_t get_port_scan_threshold() {
 		
 		string p_threshold = "port_scan_threshold";
+		size_t ret = 0;
+		
 		if ( key_vals.find(p_threshold) == key_vals.end() ) {
-			return 15;
+			ret = 15;
 		} else {
-			return atoi(key_vals[p_threshold].c_str());
+			//return atoi(key_vals[p_threshold].c_str());
+			sscanf(key_vals[p_threshold].c_str(), "%zu", &ret);
 		}
+		return ret;
 	}
 
 
@@ -118,15 +124,19 @@ public:
 	}
 
 	
-	int get_lockout_time() {
+	size_t get_lockout_time() {
 		
 		// return value represents seconds
 		string lck_time = "lockout_time";
+		size_t ret = 0;
+		
 		if ( key_vals.find(lck_time) == key_vals.end() ) {
-			return 32400;
+			ret = 32400;
 		} else {
-			return atoi(key_vals[lck_time].c_str());
+			//return atoi(key_vals[lck_time].c_str());
+			sscanf(key_vals[lck_time].c_str(), "%zu", &ret);
 		}
+		return ret;
 	}
 	
 	

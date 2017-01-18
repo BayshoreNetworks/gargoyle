@@ -201,7 +201,18 @@ int main() {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 			return 1;
 		}
+		
+		// Get config data
+		const char *config_file = ".gargoyle_config";
+		
+		ConfigVariables cv;
+		if (cv.get_vals(config_file) == 0) {
+			LOCKOUT_TIME = cv.get_lockout_time();
+		} else {
+			return 1;
+		}
 	
+		// processing loop
 		while (!stop) {
 			run_monitor();
 			// every 12 hours by default
