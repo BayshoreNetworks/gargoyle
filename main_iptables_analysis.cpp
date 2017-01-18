@@ -418,6 +418,14 @@ int main() {
 		ConfigVariables cv;
 		if (cv.get_vals(config_file) == 0) {
 			ENFORCE = cv.get_enforce_mode();
+			
+			PORT_SCAN_THRESHOLD = cv.get_port_scan_threshold();
+
+			
+			
+			
+			
+			
 		} else {
 			return 1;
 		}
