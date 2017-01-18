@@ -77,16 +77,7 @@ void get_default_gateway_linux();
 
 ///////////////////////////////////////////////////////////////////////////////////
 void nfqueue_signal_handler(int signum) {
-
-	/*
-	printf ("Signal caught, destroying queue ...");
-	nfq_destroy_queue(qh);
-	printf ("Closing handle \n");
-	nfq_close(h);
-	*/
-	
 	graceful_exit(signum);
-	//exit(0);
 }
 
 
@@ -375,7 +366,8 @@ int hex_to_int(const char *hex) {
     }
 
     return res;
-  }
+}
+
 
 void get_ports_to_ignore() {
 	
@@ -463,7 +455,6 @@ void get_ephemeral_range_to_ignore() {
 
 	fp = popen("cat /proc/sys/net/ipv4/ip_local_port_range", "r");
 	if (fp) {
-		//while (fgets(ephemeral_tcp, 20, fp) != NULL) {
 		if (fgets(ephemeral_tcp, 20, fp) != NULL) {
 			//std::cout << "--- " << ephemeral_tcp << " --- " << strlen(ephemeral_tcp) << std::endl;
 			iter_cnt = 0;
@@ -541,23 +532,10 @@ void get_local_ip_addrs() {
 }
 
 
-
-
-
-
-
-
 void get_default_gateway_linux() {
 	
 	FILE *fp;
-	/*
-	char *inet;
 	char *dot;
-	char *f_slash;
-	*/
-	
-	char *dot;
-	
 	char *default_gway;
 	default_gway = (char*) malloc(1024);
 	
@@ -585,36 +563,34 @@ void get_default_gateway_linux() {
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-		
-		
-/*
-// This example shows how to update the TTL of IP packets. These changes to the
-// IP header could be exploited to transport steganographic messages.
-class StegMangler : public PacketMangler
-{
-	public:
-		void manglePacket(struct iphdr& ipHeader)
-		{
-			// Let them know the answer to the Ultimate Question of Life,
-			// the Universe, and Everything.
-			ipHeader.ttl = 42;
-		}
-};
-*/
-
 int main()
 {
-	
-	SingletonProcess singleton(6999);
-	if (!singleton()) {
-		std::cerr << "process running already. See " << singleton.GetLockFileName() << std::endl;
-		return 1;
-	}
 	
     // Set up signal handlers
     signal (SIGINT, nfqueue_signal_handler);
     signal (SIGSEGV, nfqueue_signal_handler);
+    
+	int daemon_port;
+	const char *config_file = ".gargoyle_config";
+	daemon_port = 0;
 	
+	ConfigVariables cv;
+	if (cv.get_vals(config_file) == 0) {
+		daemon_port = cv.get_gargoyle_pscand_udp_port();
+	} else {
+		return 1;
+	}
+
+	if (daemon_port > 0) {		
+		SingletonProcess singleton(daemon_port);
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	} else {
+		return 1;
+	}
+
 	handle_chain();
 
 	get_ephemeral_range_to_ignore();
