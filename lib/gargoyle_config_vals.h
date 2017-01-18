@@ -55,6 +55,7 @@ extern "C" {
 #define TIMESTAMP_SYSLOG "timestamp"
 #define SIGNAL_CAUGHT_SYSLOG "Signal caught"
 #define PROG_TERM_SYSLOG "program terminating"
+#define ALREADY_RUNNING "process already running. See"
 
 
 #ifdef __cplusplus
