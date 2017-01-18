@@ -14,9 +14,9 @@ if [ ! -f $MYPREFIX/.gargoyle_config ]; then
    cp .gargoyle_config $MYPREFIX
 fi
 
-cp etc-init.d-gargoyle /etc/init.d/gargoyle
-chmod 770 /etc/init.d/gargoyle
-systemctl enable gargoyle
+cp etc-init.d-gargoyle /etc/init.d/gargoyle_pscand
+chmod 770 /etc/init.d/gargoyle_pscand
+systemctl enable gargoyle_pscand
 systemctl daemon-reload
 
 make clean
