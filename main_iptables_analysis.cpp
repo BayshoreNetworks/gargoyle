@@ -417,10 +417,10 @@ int main() {
 		
 		ConfigVariables cv;
 		if (cv.get_vals(config_file) == 0) {
-			ENFORCE = cv.get_enforce_mode();
 			
+			ENFORCE = cv.get_enforce_mode();
 			PORT_SCAN_THRESHOLD = cv.get_port_scan_threshold();
-
+			SINGLE_IP_SCAN_THRESHOLD = cv.get_single_ip_scan_threshold();
 			
 			
 			

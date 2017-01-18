@@ -90,13 +90,16 @@ public:
 	}
 
 
-	int get_single_ip_scan_threshold() {
+	size_t get_single_ip_scan_threshold() {
 		
 		string sip_threshold = "single_ip_scan_threshold";
+		size_t ret = 0;
+		
 		if ( key_vals.find(sip_threshold) == key_vals.end() ) {
-			return 6;
+			ret = 6;
 		} else {
-			return atoi(key_vals[sip_threshold].c_str());
+			//return atoi(key_vals[sip_threshold].c_str());
+			sscanf(key_vals[sip_threshold].c_str(), "%zu", &ret);
 		}
 	}
 
@@ -109,6 +112,7 @@ public:
 		} else {
 			return atoi(key_vals[op_threshold].c_str());
 		}
+		return ret;
 	}
 
 	
