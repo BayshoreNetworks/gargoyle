@@ -44,6 +44,7 @@ using namespace std;
  * 	gargoyle_pscand
  * 	gargoyle_pscand_analysis
  * 	gargoyle_pscand_monitor
+ * 	enforce
  * 	
  */
 class ConfigVariables {
