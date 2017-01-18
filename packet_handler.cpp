@@ -122,6 +122,8 @@ int CompoundHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct 
 GargoylePscandHandler::GargoylePscandHandler() {
 	BASE_TIME = (int) time(NULL);
 	ENFORCE = true;
+	PH_SINGLE_IP_SCAN_THRESHOLD = 6;
+	PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
 }
 
 int GargoylePscandHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad)
@@ -1328,6 +1330,20 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 void GargoylePscandHandler::set_enforce_mode(bool b_val) {
 	if (b_val == true || b_val == false)
 		ENFORCE = b_val;
+}
+
+
+void set_single_ip_scan_threshold(size_t t_val) {
+	if (t_val > 0) {
+		PH_SINGLE_IP_SCAN_THRESHOLD = t_val;
+	}
+}
+
+
+void set_single_port_scan_threshold(size_t t_val) {
+	if (t_val > 0) {
+		PH_SINGLE_PORT_SCAN_THRESHOLD = t_val;
+	}
 }
 /////////////////////////////////////////////////////////////////////////////////
 

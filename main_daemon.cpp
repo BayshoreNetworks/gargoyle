@@ -595,11 +595,19 @@ int main()
 	
 	// Get config data
 	bool enforce_mode = true;
+	size_t single_ip_scan_threshold = 0;
+	size_t single_port_scan_threshold = 0;
+	
 	const char *config_file = ".gargoyle_config";
 	
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {
+		
 		enforce_mode = cvv.get_enforce_mode();
+		
+		single_ip_scan_threshold = cvv.get_single_ip_scan_threshold();
+		single_port_scan_threshold = cvv.get_port_scan_threshold();
+		
 	} else {
 		return 1;
 	}
@@ -669,6 +677,11 @@ int main()
 	gargoyleHandler.set_ephemeral_high(EPHEMERAL_HIGH);
 	gargoyleHandler.set_chain_name(GARGOYLE_CHAIN_NAME);
 	gargoyleHandler.set_enforce_mode(enforce_mode);
+	if (single_ip_scan_threshold > 0)
+		gargoyleHandler.set_single_ip_scan_threshold(single_ip_scan_threshold);
+	if (single_port_scan_threshold > 0)
+		gargoyleHandler.set_single_port_scan_threshold(single_port_scan_threshold);
+	
 	/*
 	 * this can be more elegant but works for now
 	 */
