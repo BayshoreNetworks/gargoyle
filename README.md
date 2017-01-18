@@ -59,39 +59,22 @@ There is a file named “.gargoyle_config” that holds a series of modifiable k
 
 	- “enforce” - boolean type, acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
 
+	- “port_scan_threshold” - integer representing count,
 
+	- “single_ip_scan_threshold” - integer representing count,
+
+	- “overall_port_scan_threshold” - integer representing count,
+
+	- “last_seen_delta” - integer representing seconds,
+
+	- “lockout_time” - integer representing seconds,
 
 
 
 To compile and install:
-```
-sudo ./build.sh
-sudo make install
-```
 
-TODO:
-
-- cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
-
-- add full iptables cleanup upon prog termination (GARG-7)
-
-- add bool to turn on and off iptables rule addition (allow total passive mode with no block rules added) (GARG-8)
-
-- build in support for a config file and we read global values from there (SINGLE_IP_SCAN_THRESHOLD, SINGLE_PORT_SCAN_THRESHOLD, LOCKOUT_TIME, etc) (GARG-10)
-
-- add sync step that synchronizes iptables rules with the DB - part of cleanup process (GARG-11)
-
-- add support for HOT_PORTS - if these are encountered a block is immediate (GARG-12)
-
-- add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
-
-
-
-
-
-
-
-
+	sudo ./build.sh
+	sudo make install
 
 
 This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
@@ -105,7 +88,7 @@ This software ignores certain elements by default so as to not be too aggressive
 
 
 
-BLOCK_TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
+BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
 	1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
 	2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
@@ -115,6 +98,23 @@ BLOCK_TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 	6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 	7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 	8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+
+
+
+
+TODO:
+
+- cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
+
+- add full iptables cleanup upon prog termination (GARG-7)
+
+- add sync step that synchronizes iptables rules with the DB - part of cleanup process (GARG-11)
+
+- add support for HOT_PORTS - if these are encountered a block is immediate (GARG-12)
+
+- add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
+
+- automate init.d script install
 
 
 
