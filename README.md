@@ -65,30 +65,9 @@ There is a file named “.gargoyle_config” that holds a series of modifiable k
 
 To compile and install:
 ```
-./build.sh
+sudo ./build.sh
 sudo make install
 ```
-
-To run the main daemon:
-
-*** first time setup only [do this once the first time you set this up] ***: 
-```sudo cp db/port_scan_detect.db /opt/gargoyle_pscand/db/```
-
-
-To run the main daemon:
-```
-cd /opt/gargoyle_pscand && sudo ./gargoyle_pscand
-```
-
-
-- To enable Gargoyle_pscand as a systemd service:
-```
-cp etc-init.d-gargoyle /etc/init.d/gargoyle_pscand
-chmod +x /etc/init.d/gargoyle_pscand
-systemctl enable gargoyle_pscand
-service gargoyle_pscand start, service gargoyle_pscand status, etc
-```
-
 
 TODO:
 
@@ -106,9 +85,6 @@ TODO:
 
 - add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
 
-- automate init.d script install
-
-- add cp of the DB file and .gargoyle_config (if not exists) to $(prefix) in build.sh
 
 
 
