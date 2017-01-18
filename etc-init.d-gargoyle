@@ -48,6 +48,7 @@ case "$1" in
         cd /opt/gargoyle_pscand/
  #       export LD_LIBRARY_PATH=lib 
         ./gargoyle_config & 
+	sleep 1
         ./gargoyle_pscand &
 
 	log_daemon_msg "Starting Gargoyle Portscan analysis daemon" || true
