@@ -51,6 +51,7 @@
 #include "packet_handler.h"
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
+#include "config_variables.h"
 ///////////////////////////////////////////////////////////////////////////////////
 bool IGNORE_LISTENING_PORTS = true;
 bool IGNORE_LOCAL_IP_ADDRS = true;
@@ -570,12 +571,13 @@ int main()
     signal (SIGINT, nfqueue_signal_handler);
     signal (SIGSEGV, nfqueue_signal_handler);
     
+    // Get port config data
 	int daemon_port;
-	const char *config_file = ".gargoyle_internal_port_config";
+	const char *port_config_file = ".gargoyle_internal_port_config";
 	daemon_port = 0;
 	
 	ConfigVariables cv;
-	if (cv.get_vals(config_file) == 0) {
+	if (cv.get_vals(port_config_file) == 0) {
 		daemon_port = cv.get_gargoyle_pscand_udp_port();
 	} else {
 		return 1;
@@ -590,7 +592,18 @@ int main()
 	} else {
 		return 1;
 	}
-
+	
+	// Get config data
+	bool enforce_mode = true;
+	const char *config_file = ".gargoyle_config";
+	
+	ConfigVariables cvv;
+	if (cvv.get_vals(config_file) == 0) {
+		enforce_mode = cvv.get_enforce_mode();
+	} else {
+		return 1;
+	}
+	
 	handle_chain();
 
 	get_ephemeral_range_to_ignore();
@@ -655,6 +668,7 @@ int main()
 	gargoyleHandler.set_ephemeral_low(EPHEMERAL_LOW);
 	gargoyleHandler.set_ephemeral_high(EPHEMERAL_HIGH);
 	gargoyleHandler.set_chain_name(GARGOYLE_CHAIN_NAME);
+	gargoyleHandler.set_enforce_mode(enforce_mode);
 	/*
 	 * this can be more elegant but works for now
 	 */

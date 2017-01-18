@@ -53,6 +53,15 @@ Required libs
 
 
 
+Config data
+
+There is a file named “.gargoyle_config” that holds a series of modifiable key/value pairs. The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in. Keys:
+
+	- “enforce” - boolean type, acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
+
+
+
+
 
 To compile and install:
 
@@ -98,6 +107,9 @@ TODO:
 
 - automate init.d script install
 
+- add cp of the DB file and .gargoyle_config (if not exists) to $(prefix) in build.sh
+
+
 
 
 
@@ -126,5 +138,6 @@ BLOCK_TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 	6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 	7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 	8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+
 
 

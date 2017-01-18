@@ -411,7 +411,18 @@ int main() {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 			return 1;
 		}
-	
+		
+		// Get config data
+		const char *config_file = ".gargoyle_config";
+		
+		ConfigVariables cv;
+		if (cv.get_vals(config_file) == 0) {
+			ENFORCE = cv.get_enforce_mode();
+		} else {
+			return 1;
+		}
+		
+		// processing loop
 		while (!stop) {
 			run_analysis();
 			// every 30 minutes by default
