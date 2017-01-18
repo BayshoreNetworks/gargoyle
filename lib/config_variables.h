@@ -101,16 +101,20 @@ public:
 			//return atoi(key_vals[sip_threshold].c_str());
 			sscanf(key_vals[sip_threshold].c_str(), "%zu", &ret);
 		}
+		return ret;
 	}
 
 	
-	int get_overall_port_scan_threshold() {
+	size_t get_overall_port_scan_threshold() {
 		
 		string op_threshold = "overall_port_scan_threshold";
+		size_t ret = 0;
+		
 		if ( key_vals.find(op_threshold) == key_vals.end() ) {
-			return 8;
+			ret = 8;
 		} else {
-			return atoi(key_vals[op_threshold].c_str());
+			//return atoi(key_vals[op_threshold].c_str());
+			sscanf(key_vals[op_threshold].c_str(), "%zu", &ret);
 		}
 		return ret;
 	}
