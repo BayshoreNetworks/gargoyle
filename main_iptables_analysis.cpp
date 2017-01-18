@@ -395,11 +395,11 @@ int main() {
 	signal(SIGINT, handle_signal);
 	
 	int analysis_port;
-	const char *config_file = ".gargoyle_internal_port_config";
+	const char *port_config_file = ".gargoyle_internal_port_config";
 	analysis_port = 0;
 	
 	ConfigVariables cv;
-	if (cv.get_vals(config_file) == 0) {
+	if (cv.get_vals(port_config_file) == 0) {
 		analysis_port = cv.get_gargoyle_pscand_analysis_udp_port();
 	} else {
 		return 1;
@@ -418,14 +418,14 @@ int main() {
 	// Get config data
 	const char *config_file = ".gargoyle_config";
 	
-	ConfigVariables cv;
-	if (cv.get_vals(config_file) == 0) {
+	ConfigVariables cvv;
+	if (cvv.get_vals(config_file) == 0) {
 		
-		ENFORCE = cv.get_enforce_mode();
-		PORT_SCAN_THRESHOLD = cv.get_port_scan_threshold();
-		SINGLE_IP_SCAN_THRESHOLD = cv.get_single_ip_scan_threshold();
-		OVERALL_PORT_SCAN_THRESHOLD = cv.get_overall_port_scan_threshold();
-		LAST_SEEN_DELTA = cv.get_last_seen_delta();
+		ENFORCE = cvv.get_enforce_mode();
+		PORT_SCAN_THRESHOLD = cvv.get_port_scan_threshold();
+		SINGLE_IP_SCAN_THRESHOLD = cvv.get_single_ip_scan_threshold();
+		OVERALL_PORT_SCAN_THRESHOLD = cvv.get_overall_port_scan_threshold();
+		LAST_SEEN_DELTA = cvv.get_last_seen_delta();
 
 	} else {
 		return 1;

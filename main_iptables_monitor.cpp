@@ -185,11 +185,11 @@ int main() {
 	signal(SIGINT, handle_signal);
 	
 	int monitor_port;
-	const char *config_file = ".gargoyle_internal_port_config";
+	const char *port_config_file = ".gargoyle_internal_port_config";
 	monitor_port = 0;
 	
 	ConfigVariables cv;
-	if (cv.get_vals(config_file) == 0) {
+	if (cv.get_vals(port_config_file) == 0) {
 		monitor_port = cv.get_gargoyle_pscand_monitor_udp_port();
 	} else {
 		return 1;
@@ -208,9 +208,9 @@ int main() {
 	// Get config data
 	const char *config_file = ".gargoyle_config";
 	
-	ConfigVariables cv;
-	if (cv.get_vals(config_file) == 0) {
-		LOCKOUT_TIME = cv.get_lockout_time();
+	ConfigVariables cvv;
+	if (cvv.get_vals(config_file) == 0) {
+		LOCKOUT_TIME = cvv.get_lockout_time();
 	} else {
 		return 1;
 	}
