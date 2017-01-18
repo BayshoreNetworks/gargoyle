@@ -160,6 +160,23 @@ public:
 			return atoi(key_vals[g_pscandm_port].c_str());
 		}
 	}
+	
+	
+	bool get_enforce_mode() {
+		
+		string enforce_mode = "enforce";
+		int the_val;
+		if ( key_vals.find(enforce_mode) == key_vals.end() ) {
+			// enforce by default if nothing is found
+			return true;
+		} else {
+			the_val = atoi(key_vals[enforce_mode].c_str());
+			if (the_val == 1)
+				return true;
+			else
+				return false;
+		}
+	}
 
 private:
 	
