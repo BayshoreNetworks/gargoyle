@@ -422,10 +422,8 @@ int main() {
 			PORT_SCAN_THRESHOLD = cv.get_port_scan_threshold();
 			SINGLE_IP_SCAN_THRESHOLD = cv.get_single_ip_scan_threshold();
 			OVERALL_PORT_SCAN_THRESHOLD = cv.get_overall_port_scan_threshold();
-			
-			
-			
-			
+			LAST_SEEN_DELTA = cv.get_last_seen_delta();
+
 		} else {
 			return 1;
 		}

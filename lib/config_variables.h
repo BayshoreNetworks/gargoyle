@@ -57,7 +57,7 @@ public:
 	 * return 0 = ok
 	 * return 1 = not ok
 	 */
-	int get_vals(const char *fname) {
+	size_t get_vals(const char *fname) {
 		
 		string line;
 		ifstream infile(fname);
@@ -120,15 +120,19 @@ public:
 	}
 
 	
-	int get_last_seen_delta() {
+	size_t get_last_seen_delta() {
 		
 		// return value represents seconds
 		string ls_delta = "last_seen_delta";
+		size_t ret = 0;
+		
 		if ( key_vals.find(ls_delta) == key_vals.end() ) {
-			return 28800;
+			ret = 28800;
 		} else {
-			return atoi(key_vals[ls_delta].c_str());
+			//return atoi(key_vals[ls_delta].c_str());
+			sscanf(key_vals[ls_delta].c_str(), "%zu", &ret);
 		}
+		return ret;
 	}
 
 	
