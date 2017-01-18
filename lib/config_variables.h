@@ -30,8 +30,6 @@
 #include <iostream>
 #include <fstream>
 #include <map>
-#include <cstring>
-#include <stdlib.h>
 
 using namespace std;
 
@@ -43,6 +41,9 @@ using namespace std;
  * 	overall_port_scan_threshold
  * 	last_seen_delta
  * 	lockout_time
+ * 	gargoyle_pscand
+ * 	gargoyle_pscand_analysis
+ * 	gargoyle_pscand_monitor
  * 	
  */
 class ConfigVariables {
@@ -69,7 +70,6 @@ public:
 			return 1;
 		}
 	}
-
 
 	
 	int get_port_scan_threshold() {
@@ -125,7 +125,40 @@ public:
 			return 32400;
 		} else {
 			return atoi(key_vals[lck_time].c_str());
-		}	
+		}
+	}
+	
+	
+	int get_gargoyle_pscand_udp_port() {
+		
+		string g_pscand_port = "gargoyle_pscand";
+		if ( key_vals.find(g_pscand_port) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[g_pscand_port].c_str());
+		}
+	}
+	
+	
+	int get_gargoyle_pscand_analysis_udp_port() {
+		
+		string g_pscanda_port = "gargoyle_pscand_analysis";
+		if ( key_vals.find(g_pscanda_port) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[g_pscanda_port].c_str());
+		}
+	}
+	
+	
+	int get_gargoyle_pscand_monitor_udp_port() {
+		
+		string g_pscandm_port = "gargoyle_pscand_monitor";
+		if ( key_vals.find(g_pscandm_port) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[g_pscandm_port].c_str());
+		}
 	}
 
 private:
