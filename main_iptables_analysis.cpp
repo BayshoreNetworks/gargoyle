@@ -394,6 +394,11 @@ int main() {
 
 	signal(SIGINT, handle_signal);
 	
+    if (geteuid() != 0) {
+    	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
+    	return 1;
+    }
+	
 	int analysis_port;
 	const char *port_config_file = ".gargoyle_internal_port_config";
 	analysis_port = 0;
