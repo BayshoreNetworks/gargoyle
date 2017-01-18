@@ -404,39 +404,38 @@ int main() {
 	} else {
 		return 1;
 	}
+	
+	if (analysis_port <= 0)
+		return 1;
 
-	if (analysis_port > 0) {		
-		SingletonProcess singleton(analysis_port);
-		if (!singleton()) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
-			return 1;
-		}
 		
-		// Get config data
-		const char *config_file = ".gargoyle_config";
+	SingletonProcess singleton(analysis_port);
+	if (!singleton()) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+		return 1;
+	}
+	
+	// Get config data
+	const char *config_file = ".gargoyle_config";
+	
+	ConfigVariables cv;
+	if (cv.get_vals(config_file) == 0) {
 		
-		ConfigVariables cv;
-		if (cv.get_vals(config_file) == 0) {
-			
-			ENFORCE = cv.get_enforce_mode();
-			PORT_SCAN_THRESHOLD = cv.get_port_scan_threshold();
-			SINGLE_IP_SCAN_THRESHOLD = cv.get_single_ip_scan_threshold();
-			OVERALL_PORT_SCAN_THRESHOLD = cv.get_overall_port_scan_threshold();
-			LAST_SEEN_DELTA = cv.get_last_seen_delta();
+		ENFORCE = cv.get_enforce_mode();
+		PORT_SCAN_THRESHOLD = cv.get_port_scan_threshold();
+		SINGLE_IP_SCAN_THRESHOLD = cv.get_single_ip_scan_threshold();
+		OVERALL_PORT_SCAN_THRESHOLD = cv.get_overall_port_scan_threshold();
+		LAST_SEEN_DELTA = cv.get_last_seen_delta();
 
-		} else {
-			return 1;
-		}
-		
-		// processing loop
-		while (!stop) {
-			run_analysis();
-			// every 30 minutes by default
-			sleep(1800);
-		}
 	} else {
 		return 1;
 	}
-
+	
+	// processing loop
+	while (!stop) {
+		run_analysis();
+		// every 30 minutes by default
+		sleep(1800);
+	}
 	return 0;
 }

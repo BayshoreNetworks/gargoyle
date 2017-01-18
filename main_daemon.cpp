@@ -582,14 +582,13 @@ int main()
 	} else {
 		return 1;
 	}
+	
+	if (daemon_port <= 0)
+		return 1;
 
-	if (daemon_port > 0) {		
-		SingletonProcess singleton(daemon_port);
-		if (!singleton()) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
-			return 1;
-		}
-	} else {
+	SingletonProcess singleton(daemon_port);
+	if (!singleton()) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
 	

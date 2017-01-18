@@ -194,33 +194,32 @@ int main() {
 	} else {
 		return 1;
 	}
-
-	if (monitor_port > 0) {		
-		SingletonProcess singleton(monitor_port);
-		if (!singleton()) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
-			return 1;
-		}
-		
-		// Get config data
-		const char *config_file = ".gargoyle_config";
-		
-		ConfigVariables cv;
-		if (cv.get_vals(config_file) == 0) {
-			LOCKOUT_TIME = cv.get_lockout_time();
-		} else {
-			return 1;
-		}
 	
-		// processing loop
-		while (!stop) {
-			run_monitor();
-			// every 12 hours by default
-			sleep(43200);
-		}
+	if (monitor_port <= 0)
+		return 1;
+
+	
+	SingletonProcess singleton(monitor_port);
+	if (!singleton()) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+		return 1;
+	}
+	
+	// Get config data
+	const char *config_file = ".gargoyle_config";
+	
+	ConfigVariables cv;
+	if (cv.get_vals(config_file) == 0) {
+		LOCKOUT_TIME = cv.get_lockout_time();
 	} else {
 		return 1;
 	}
 
+	// processing loop
+	while (!stop) {
+		run_monitor();
+		// every 12 hours by default
+		sleep(43200);
+	}
 	return 0;
 }
