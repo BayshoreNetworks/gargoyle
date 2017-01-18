@@ -59,11 +59,11 @@ There is a file named “.gargoyle_config” that holds a series of modifiable k
 
 	- “enforce” - boolean type, acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
 
-	- “port_scan_threshold” - integer representing count,
+	- “port_scan_threshold” - integer representing count, when performing analysis of the activity of each host this value is the threshold count of hits per unique port. If this threshold is surpassed for any one port by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- “single_ip_scan_threshold” - integer representing count,
+	- “single_ip_scan_threshold” - integer representing count, when performing analysis of the activity of each host this value is the threshold count of ports that were scanned. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- “overall_port_scan_threshold” - integer representing count,
+	- “overall_port_scan_threshold” - integer representing count, when performing analysis of the activity of each host this value is the threshold count of collective activity. Collective activity is based on combinations of actions, for example if one host hits port 23 four times and ports 80,443,8080,9000,9090 each once. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
 
 	- “last_seen_delta” - integer representing seconds,
 
