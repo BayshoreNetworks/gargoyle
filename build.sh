@@ -1,17 +1,17 @@
 #!/bin/sh
 
-MYPREFIX=/opt/gargoyle_pscand
+DEPLOY_TO=/opt/gargoyle_pscand
 ./autogen.sh
-./configure --prefix=$MYPREFIX --bindir=$MYPREFIX
+./configure --prefix=$DEPLOY_TO --bindir=$DEPLOY_TO
 
-mkdir -p $MYPREFIX/db/
+mkdir -p $DEPLOY_TO/db/
 
-if [ ! -f $MYPREFIX/db/port_scan_detect.db ]; then
-   cp db/port_scan_detect.db $MYPREFIX/db/
+if [ ! -f $DEPLOY_TO/db/port_scan_detect.db ]; then
+   cp db/port_scan_detect.db $DEPLOY_TO/db/
 fi
 
-if [ ! -f $MYPREFIX/.gargoyle_config ]; then
-   cp .gargoyle_config $MYPREFIX
+if [ ! -f $DEPLOY_TO/.gargoyle_config ]; then
+   cp .gargoyle_config $DEPLOY_TO
 fi
 
 cp etc-init.d-gargoyle /etc/init.d/gargoyle_pscand
