@@ -121,6 +121,7 @@ int CompoundHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct 
 /////////////////////////////////////////////////////////////////////////////////
 GargoylePscandHandler::GargoylePscandHandler() {
 	BASE_TIME = (int) time(NULL);
+	ENFORCE = true;
 }
 
 int GargoylePscandHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad)
@@ -1305,7 +1306,8 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 		int tstamp;
 		tstamp = (int) time(NULL);
 
-		ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
+		if (ENFORCE == true)
+			ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
 
 		if (detection_type > 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
@@ -1320,6 +1322,12 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 		add_detected_host(host_ix, tstamp);
 	}
 	return host_ix;
+}
+
+
+void GargoylePscandHandler::set_enforce_mode(bool b_val) {
+	if (b_val == true || b_val == false)
+		ENFORCE = b_val;
 }
 /////////////////////////////////////////////////////////////////////////////////
 

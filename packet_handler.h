@@ -67,6 +67,7 @@ class GargoylePscandHandler:public PacketHandler
 	void set_ephemeral_low(size_t);
 	void set_ephemeral_high(size_t);
 	void set_chain_name(std::string);
+	void set_enforce_mode(bool);
 	
 	protected:
 	
@@ -110,6 +111,7 @@ class GargoylePscandHandler:public PacketHandler
 	int EPHEMERAL_LOW;
 	int EPHEMERAL_HIGH;
 	std::string CHAIN_NAME;
+	bool ENFORCE;
 	
 	std::ostringstream three_way_check_dat;
 	std::ostringstream reverse_three_way_check_dat;

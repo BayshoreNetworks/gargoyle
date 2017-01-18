@@ -84,8 +84,6 @@ TODO:
 
 - cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
 
-- add timestamp to block syslog line (GARG-5)
-
 - add full iptables cleanup upon prog termination (GARG-7)
 
 - add bool to turn on and off iptables rule addition (allow total passive mode with no block rules added) (GARG-8)
@@ -107,7 +105,7 @@ TODO:
 
 
 
-This software ignores certain elements by default so as to not be too agressive or disrupt legitimate functionality:
+This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
 
 	- any open ports that the system is aware of (data comes from "/proc/net/tcp")
 	- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")

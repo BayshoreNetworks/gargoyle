@@ -47,7 +47,7 @@
 #include "iptables_wrapper_api.h"
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
-
+#include "config_variables.h"
 
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
@@ -55,6 +55,7 @@ size_t SINGLE_IP_SCAN_THRESHOLD = 6;
 size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 // 8 hours
 size_t LAST_SEEN_DELTA = 28800;
+bool ENFORCE = true;
 
 volatile sig_atomic_t stop;
 
@@ -94,7 +95,8 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 		int tstamp;
 		tstamp = (int) time(NULL);
 
-		ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
+		if (ENFORCE == true)
+			ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
 
 		syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
 				BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
