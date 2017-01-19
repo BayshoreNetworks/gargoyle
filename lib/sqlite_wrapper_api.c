@@ -29,13 +29,14 @@
  *****************************************************************************/
 #include <ctype.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 #include <sqlite3.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "sqlite_wrapper_api.h"
+	
 
 /*
  * 
@@ -79,7 +80,8 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		
 		free(l_buf);
 		free(sql);
@@ -141,7 +143,7 @@ int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_host_all_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -190,7 +192,7 @@ int get_total_hit_count_one_host_by_ix(int the_ix) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_total_hit_count_one_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -229,7 +231,7 @@ int get_one_host_hit_count_all_ports(int ip_addr_ix) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_one_host_hit_count_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -268,7 +270,7 @@ int get_host_ix(const char *the_ip) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -307,7 +309,7 @@ int get_host_port_hit(int ip_addr_ix, int the_port) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -344,7 +346,7 @@ int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -356,7 +358,8 @@ int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR inserting data from function [add_host_port_hit]: %s\n", sqlite3_errmsg(db));
+		//printf("ERROR inserting data from function [add_host_port_hit]: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_host_port_hit]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -393,7 +396,7 @@ int add_host(const char *the_ip) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -406,7 +409,8 @@ int add_host(const char *the_ip) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR inserting data from function [add_host]: %s\n", sqlite3_errmsg(db));
+		//printf("ERROR inserting data from function [add_host]: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_host]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -440,7 +444,7 @@ int add_detected_host(int ip_addr_ix, int tstamp) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 	/*
@@ -455,7 +459,7 @@ int add_detected_host(int ip_addr_ix, int tstamp) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR inserting data from function [add_detected_host]: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_detected_host]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -488,7 +492,7 @@ int modify_host_set_processed_ix(int the_ix) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [modify_host_set_processed_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -498,7 +502,7 @@ int modify_host_set_processed_ix(int the_ix) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR updating data from function [modify_host_set_processed_ix]: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR updating data from function [modify_host_set_processed_ix]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -531,7 +535,7 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [update_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -543,7 +547,7 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		printf("ERROR updating data from function [update_host_port_hit]: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR updating data from function [update_host_port_hit]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -585,7 +589,7 @@ int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_all_host_one_port_threshold]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -655,7 +659,7 @@ int get_detected_hosts_all_active_unprocessed_ix(char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -723,7 +727,7 @@ int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_one_host_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -793,7 +797,7 @@ int get_hosts_all(char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -861,7 +865,7 @@ int get_unique_list_of_ports(char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_unique_list_of_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -929,7 +933,7 @@ int get_detected_hosts_all_active_unprocessed(char *dst, size_t sz_dst) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1000,7 +1004,7 @@ int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) 
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		printf("ERROR opening SQLite DB '%s': %s\n", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
