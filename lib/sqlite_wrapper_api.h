@@ -36,7 +36,8 @@
 
 
 //#define DB_LOCATION "/mnt/hd2/software_engineering/bayshore_port_scan_detection/db/port_scan_detect.db"
-#define DB_LOCATION "/opt/gargoyle_pscand/db/port_scan_detect.db"
+//#define DB_LOCATION "/opt/gargoyle_pscand/db/port_scan_detect.db"
+#define DB_PATH "/db/port_scan_detect.db"
 #define LOCAL_BUF_SZ 60
 #define SMALL_DEST_BUF 2097152
 #define MEDIUM_DEST_BUF 5242880

@@ -33,6 +33,7 @@
 #include <string.h>
 #include <sqlite3.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "sqlite_wrapper_api.h"
 
@@ -58,18 +59,23 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst) {
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
 	int rc;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	/*
 	char dest[DEST_LEN];
 	char l_buf[DEST_LEN];
 	char sql[SQL_CMD_MAX];
 	*/
-    char *dest;
-    dest = (char*) malloc (LOCAL_BUF_SZ);
-    char *l_buf;
-    l_buf = (char*) malloc (LOCAL_BUF_SZ);
-    char *sql;
-    sql = (char*) malloc (SQL_CMD_MAX);
+    char *dest = (char*) malloc (LOCAL_BUF_SZ);
+    char *l_buf = (char*) malloc (LOCAL_BUF_SZ);
+    char *sql = (char*) malloc (SQL_CMD_MAX);
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
@@ -121,6 +127,14 @@ int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst) {
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
 	int rc;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	char dest[LOCAL_BUF_SZ];
 	char sql[SQL_CMD_MAX];
@@ -160,6 +174,14 @@ int get_total_hit_count_one_host_by_ix(int the_ix) {
 
 	int return_val;
 	return_val = 0;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -191,6 +213,14 @@ int get_one_host_hit_count_all_ports(int ip_addr_ix) {
 
 	int return_val;
 	return_val = 0;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -222,6 +252,14 @@ int get_host_ix(const char *the_ip) {
 
 	int ret;
 	ret = 0;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -253,6 +291,14 @@ int get_host_port_hit(int ip_addr_ix, int the_port) {
 
 	int ret;
 	ret = 0;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -282,6 +328,14 @@ int get_host_port_hit(int ip_addr_ix, int the_port) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -318,6 +372,14 @@ int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 
 int add_host(const char *the_ip) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	int ret;
 	//ret = 0;
@@ -362,6 +424,14 @@ int add_host(const char *the_ip) {
 
 
 int add_detected_host(int ip_addr_ix, int tstamp) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -401,6 +471,14 @@ int add_detected_host(int ip_addr_ix, int tstamp) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 int modify_host_set_processed_ix(int the_ix) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -436,6 +514,14 @@ int modify_host_set_processed_ix(int the_ix) {
 
 
 int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -473,6 +559,14 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -535,6 +629,14 @@ int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size
 
 
 int get_detected_hosts_all_active_unprocessed_ix(char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -595,6 +697,14 @@ int get_detected_hosts_all_active_unprocessed_ix(char *dst, size_t sz_dst) {
 
 
 int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -657,6 +767,14 @@ int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst) {
 
 
 int get_hosts_all(char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -717,6 +835,14 @@ int get_hosts_all(char *dst, size_t sz_dst) {
 
 
 int get_unique_list_of_ports(char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -777,6 +903,14 @@ int get_unique_list_of_ports(char *dst, size_t sz_dst) {
 
 
 int get_detected_hosts_all_active_unprocessed(char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -840,6 +974,14 @@ int get_detected_hosts_all_active_unprocessed(char *dst, size_t sz_dst) {
 
 
 int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -897,86 +1039,4 @@ int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) 
 	return 0;
 }
 /////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-/*
-
-def modify_host_set_processed(ip_addr_ix='', tstamp=''):
-    ses.query(detected_hosts).filter(and_(detected_hosts.host_ix==ip_addr_ix, detected_hosts.timestamp==tstamp)).update({'processed':1,'active':0})
-    ses.commit()
-
-
-
-
-def get_detected_hosts_all():
-    ret = None
-    ret = ses.query(detected_hosts).all()
-    return ret
-
-
-def get_detected_hosts_all_inactive_unprocessed():
-    ret = []
-    for deth in ses.query(detected_hosts).filter(and_(detected_hosts.active==0,detected_hosts.processed==0)):
-        ret.append("%s:%s:%s:%s:%s" % (deth.ix, deth.host_ix, deth.timestamp, str(deth.active), str(deth.processed)))
-    return ret
-
-
-
-
-
-def get_detected_hosts_all_active_unprocessed_ix():
-    ret = []
-    for deth in ses.query(detected_hosts).filter(and_(detected_hosts.active==1,detected_hosts.processed==0)):
-        ret.append("%s" % (deth.ix))
-    return ret
-
-
-
-
-def get_detected_hosts_all_inactive_processed():
-    ret = []
-    for deth in ses.query(detected_hosts).filter(and_(detected_hosts.active==0,detected_hosts.processed==1)):
-        ret.append("%s:%s:%s:%s" % (deth.host_ix, deth.timestamp, str(deth.active), str(deth.processed)))
-    return ret
-
-def get_detected_host_all(the_host=''):
-    ret = []
-    for deth in ses.query(detected_hosts).filter(detected_hosts.host_ix==the_host):
-        ret.append("%s:%s:%s:%s" % (deth.host_ix, deth.timestamp, str(deth.active), str(deth.processed)))
-    return ret
-
-def get_detected_host_active(the_host=''):
-    ret = []
-    for deth in ses.query(detected_hosts).filter(and_(detected_hosts.host_ix==the_host, detected_hosts.active==1)):
-        ret.append("%s:%s:%s:%s" % (deth.host_ix, deth.timestamp, str(deth.active), str(deth.processed)))
-    return ret
-
-def get_detected_host_processed(the_host=''):
-    ret = []
-    for deth in ses.query(detected_hosts).filter(and_(detected_hosts.host_ix==the_host, detected_hosts.active==0, detected_hosts.processed==1)):
-        ret.append("%s:%s:%s:%s" % (deth.host_ix, deth.timestamp, str(deth.active), str(deth.processed)))
-    return ret
-
-
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
 
