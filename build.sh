@@ -14,7 +14,7 @@ if [ ! -f $DEPLOY_TO/.gargoyle_config ]; then
    cp .gargoyle_config $DEPLOY_TO
 fi
 
-cp etc-init.d-gargoyle /etc/init.d/gargoyle_pscand
+sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>/etc/init.d/gargoyle_pscand
 chmod 770 /etc/init.d/gargoyle_pscand
 systemctl enable gargoyle_pscand
 systemctl daemon-reload
