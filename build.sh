@@ -14,6 +14,10 @@ if [ ! -f $DEPLOY_TO/.gargoyle_config ]; then
    cp .gargoyle_config $DEPLOY_TO
 fi
 
+if [ ! -f $DEPLOY_TO/.gargoyle_internal_port_config ]; then
+   cp .gargoyle_internal_port_config $DEPLOY_TO
+fi
+
 sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>/etc/init.d/gargoyle_pscand
 chmod 770 /etc/init.d/gargoyle_pscand
 systemctl enable gargoyle_pscand
