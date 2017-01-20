@@ -1228,17 +1228,20 @@ void GargoylePscandHandler::add_block_rules() {
 
 		if (the_ip.size() > 0 && the_cnt > 0) {
 			// add non blacklisted ip to db
-			//added_host_ix = add_ip_to_hosts_table(the_ip);
+			added_host_ix = add_ip_to_hosts_table(the_ip);
 
 			if (the_cnt >= PH_SINGLE_PORT_SCAN_THRESHOLD) {
 
 				if (ip_tables_entries.count(the_ip) == 0) {
 
-					added_host_ix = do_block_actions(the_ip, 7);
+					do_block_actions(the_ip, 7);
 
 					ip_tables_entries.insert(the_ip);
 				}
 			}
+			
+			//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
+			
 			if (added_host_ix > 0) {
 				add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
 			}
@@ -1312,6 +1315,8 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip);
 
+	//syslog(LOG_INFO | LOG_LOCAL6, "%d-%s=\"%d\" %s=\"%d\"", ENFORCE, "host_ix", host_ix, "size", the_ip.size());
+	
 	if (the_ip.size() > 0 and host_ix > 0) {
 
 		size_t ret;
