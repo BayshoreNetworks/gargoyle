@@ -410,7 +410,7 @@ int add_host(const char *the_ip) {
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		//printf("ERROR inserting data from function [add_host]: %s\n", sqlite3_errmsg(db));
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_host]: %s", sqlite3_errmsg(db));
+		//syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_host]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
