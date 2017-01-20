@@ -114,7 +114,4 @@ TODO:
 
 - add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
 
-- automate init.d script install
-
-
 
