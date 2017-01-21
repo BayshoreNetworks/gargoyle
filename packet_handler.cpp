@@ -1251,7 +1251,7 @@ void GargoylePscandHandler::add_block_rules() {
 			 * this data is being used for analytics
 			 */
 			syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
-					VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);				
+					VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
 		}
 		//std::cout << "IP: " << the_ip << " - port " << the_port << " - CNT " << the_cnt << std::endl;
 
