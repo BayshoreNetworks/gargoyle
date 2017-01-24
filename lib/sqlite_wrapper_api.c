@@ -1042,5 +1042,48 @@ int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) 
 
 	return 0;
 }
+
+
+int get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	int return_val = 0;
+
+	char *sql = (char*) malloc (SQL_CMD_MAX);
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_row_ix_by_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
+
+		free(sql);
+
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1 AND active = 1 AND processed = 0", DETECTED_HOSTS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+		return_val = sqlite3_column_int(stmt, 0);
+	}
+	
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	free(sql);
+
+	return return_val;
+}
 /////////////////////////////////////////////////////////////////////////////////////
 
