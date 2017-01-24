@@ -11,8 +11,9 @@ DEPLOY_TO=/opt/gargoyle_pscand
 fi
 
 ./autogen.sh
-./configure DESTDIR=$DESTDIR --prefix=$DEPLOY_TO --bindir=$DEPLOY_TO \
-    --build=i686-pc-linux-gnu --host=$CROSS_COMPILE
+./configure --prefix=$DEPLOY_TO --bindir=$DEPLOY_TO \ 
+    --build=i686-pc-linux-gnu --host=$CROSS_COMPILE DESTDIR=$DESTDIR
+
 
 mkdir -p $DEPLOY_TO/db/
 
@@ -28,8 +29,8 @@ if [ ! -f $DEPLOY_TO/.gargoyle_internal_port_config ]; then
    cp .gargoyle_internal_port_config $DEPLOY_TO
 fi
 
-sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>/etc/init.d/gargoyle_pscand
-chmod 770 /etc/init.d/gargoyle_pscand
+sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}etc/init.d/gargoyle_pscand
+chmod 770 ${DESTDIR}etc/init.d/gargoyle_pscand
 systemctl enable gargoyle_pscand
 systemctl daemon-reload
 

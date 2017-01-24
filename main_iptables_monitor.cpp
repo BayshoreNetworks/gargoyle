@@ -63,7 +63,7 @@ void handle_signal (int signum) {
 
 void run_monitor() {
 	
-	//syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "running monitor process at", (int) time(NULL));
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", (int) time(NULL));
 
 	int iter_cnt;
 	int resp3;
@@ -175,6 +175,9 @@ void run_monitor() {
 			}
 		}
 	}
+	
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", (int) time(NULL));
+	
 	free(l_hosts3);
 	free(host_ip);
 }
@@ -183,6 +186,11 @@ void run_monitor() {
 int main() {
 
 	signal(SIGINT, handle_signal);
+	
+    if (geteuid() != 0) {
+    	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
+    	return 1;
+    }
 	
 	int monitor_port;
 	const char *port_config_file = ".gargoyle_internal_port_config";

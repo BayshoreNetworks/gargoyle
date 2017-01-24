@@ -336,7 +336,7 @@ void query_for_multiple_ports_hits_last_seen() {
 
 void run_analysis() {
 	
-	//syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "running analysis process at", (int) time(NULL));
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", (int) time(NULL));
 	
 	int iter_cnt;
 	int resp3;
@@ -386,6 +386,9 @@ void run_analysis() {
 		query_for_single_port_hits_last_seen();
 		query_for_multiple_ports_hits_last_seen();
 	}
+	
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", (int) time(NULL));
+	
 	free(l_hosts3);
 }
 
@@ -393,6 +396,11 @@ void run_analysis() {
 int main() {
 
 	signal(SIGINT, handle_signal);
+	
+    if (geteuid() != 0) {
+    	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
+    	return 1;
+    }
 	
 	int analysis_port;
 	const char *port_config_file = ".gargoyle_internal_port_config";

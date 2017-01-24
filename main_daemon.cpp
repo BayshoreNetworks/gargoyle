@@ -84,6 +84,11 @@ void nfqueue_signal_handler(int signum) {
 
 void graceful_exit(int signum) {
 	
+	if (signum == 11) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
+		exit(0);
+	}
+	
 	//std::cout << "Signal caught: " << signum << ", destroying queue ..." << std::endl;
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s %s", SIGNAL_CAUGHT_SYSLOG, signum, "destroying queue, cleaning up iptables entries and", PROG_TERM_SYSLOG);
 	
@@ -570,6 +575,11 @@ int main()
     // Set up signal handlers
     signal (SIGINT, nfqueue_signal_handler);
     signal (SIGSEGV, nfqueue_signal_handler);
+    
+    if (geteuid() != 0) {
+    	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
+    	return 1;
+    }
     
     // Get port config data
 	int daemon_port;

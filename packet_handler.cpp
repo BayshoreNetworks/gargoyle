@@ -940,6 +940,10 @@ int GargoylePscandHandler::xmas_scan(
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
 				add_block_rule(src_ip, 3);
+				
+				int host_ix = add_ip_to_hosts_table(src_ip);
+				if (host_ix > 0)
+					add_to_hosts_port_table(host_ix, dst_port, 1);
 			}
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
@@ -970,6 +974,10 @@ int GargoylePscandHandler::fin_scan(
 
 				if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
 					add_block_rule(src_ip, 2);
+					
+					int host_ix = add_ip_to_hosts_table(src_ip);
+					if (host_ix > 0)
+						add_to_hosts_port_table(host_ix, dst_port, 1);
 				}
 
 				add_to_scanned_ports_dict(dst_ip, src_port);
@@ -999,10 +1007,14 @@ int GargoylePscandHandler::null_scan(
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
 				add_block_rule(src_ip, 1);
+				
+				int host_ix = add_ip_to_hosts_table(src_ip);
+				if (host_ix > 0)
+					add_to_hosts_port_table(host_ix, dst_port, 1);
 			}
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
-
+			
 			if (is_in_black_listed_hosts(src_ip) == false) {
 				BLACK_LISTED_HOSTS.insert(src_ip);
 			}
@@ -1087,11 +1099,9 @@ void GargoylePscandHandler::add_block_rules() {
 
 	int resp;
 	size_t dst_buf_sz = SMALL_DEST_BUF;
-	char *l_hosts;
-	l_hosts = (char*) malloc(dst_buf_sz+1);
+	char *l_hosts = (char*) malloc(dst_buf_sz+1);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
-	char *host_ip;
-	host_ip = (char*) malloc(dst_buf_sz1+1);
+	char *host_ip = (char*) malloc(dst_buf_sz1+1);
 
 	int added_host_ix;
 	added_host_ix = 0;
@@ -1218,17 +1228,20 @@ void GargoylePscandHandler::add_block_rules() {
 
 		if (the_ip.size() > 0 && the_cnt > 0) {
 			// add non blacklisted ip to db
-			//added_host_ix = add_ip_to_hosts_table(the_ip);
+			added_host_ix = add_ip_to_hosts_table(the_ip);
 
 			if (the_cnt >= PH_SINGLE_PORT_SCAN_THRESHOLD) {
 
 				if (ip_tables_entries.count(the_ip) == 0) {
 
-					added_host_ix = do_block_actions(the_ip, 7);
+					do_block_actions(the_ip, 7);
 
 					ip_tables_entries.insert(the_ip);
 				}
 			}
+			
+			//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
+			
 			if (added_host_ix > 0) {
 				add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
 			}
@@ -1238,7 +1251,7 @@ void GargoylePscandHandler::add_block_rules() {
 			 * this data is being used for analytics
 			 */
 			syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
-					VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);				
+					VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
 		}
 		//std::cout << "IP: " << the_ip << " - port " << the_port << " - CNT " << the_cnt << std::endl;
 
@@ -1302,6 +1315,8 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip);
 
+	//syslog(LOG_INFO | LOG_LOCAL6, "%d-%s=\"%d\" %s=\"%d\"", ENFORCE, "host_ix", host_ix, "size", the_ip.size());
+	
 	if (the_ip.size() > 0 and host_ix > 0) {
 
 		size_t ret;

@@ -45,9 +45,9 @@ case "$1" in
 	check_for_upstart 1
 	check_dev_null
 	log_daemon_msg "Starting Gargoyle Portscan detection daemon" || true
-        cd /opt/gargoyle_pscand/
- #       export LD_LIBRARY_PATH=lib 
+        cd APPDIR
         ./gargoyle_config & 
+	sleep 1
         ./gargoyle_pscand &
 
 	log_daemon_msg "Starting Gargoyle Portscan analysis daemon" || true
@@ -94,7 +94,7 @@ case "$1" in
 	check_dev_null log_end_msg
         /usr/bin/pkill -2 gargoyle_pscand
         
-        cd /opt/gargoyle_pscand/
+        cd APPDIR
         LD_LIBRARY_PATH=lib
 
         if start-stop-daemon --start --oknodo --exec ./gargoyle_pscand ; then
