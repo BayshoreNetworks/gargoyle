@@ -100,24 +100,24 @@ void graceful_exit(int signum) {
 	 */
 	///////////////////////////////////////////////////
 	// 1
-
 	size_t rule_ix;
 	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE);
 	if (rule_ix > 0) {
 		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, rule_ix);
 	}
+	///////////////////////////////////////////////////
+	// 2
 	
+	///////////////////////////////////////////////////
+	// 3
+	
+	///////////////////////////////////////////////////
+	// 4
+	
+	///////////////////////////////////////////////////
+	// 5
 	
 	/*
-		if NFQUEUE_RULE_NUMBER > 0:
-			rule_ix = NFQUEUE_RULE_NUMBER
-		else:
-			rule_ix = _libgarg_iptables.iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE)
-		if int(rule_ix) > 0:
-			# delete rule from INPUT chain
-			#iptables_delete_rule_from_chain(chain_name=IPTABLES_INPUT_CHAIN, rule_ix=rule_ix)
-			_libgarg_iptables.iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, str(rule_ix))
-
 		###################################################
 		# 2
 		#rule_ix = 0
@@ -152,23 +152,7 @@ void graceful_exit(int signum) {
 	
 	
 	
-	
-	
-	
-	
-	
-	
-	/*
-	//======================================================================
-	// Called by a SIGHUP or SIGINT, unbind the queue and exit
-	//======================================================================
-	
-	printf ("Signal caught, destroying queue ...");
-	nfq_destroy_queue(qh);
-	printf ("Closing handle \n");
-	nfq_close(h);
-	exit(0);
-	*/
+
 }
 
 void handle_chain() {

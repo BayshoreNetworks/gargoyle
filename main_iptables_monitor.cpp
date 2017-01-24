@@ -148,17 +148,6 @@ void run_monitor() {
 					if (rule_ix > 0 && host_ip) {
 		
 						tstamp = 0;
-						// delete rule from chain
-						/*
-						char str[15];
-						snprintf (str, 15, "%d", rule_ix);
-						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, str);
-						 */
-						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-		
-						tstamp = (int) time(NULL);			
-						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
-		
 						/*
 						 * update DB set active=0, processed=1
 						 * 
@@ -167,7 +156,13 @@ void run_monitor() {
 						 * flushed the rules. if the time threshold is passed
 						 * the DB table must get updated
 						 */
-						modify_host_set_processed_ix(row_ix);
+						if (modify_host_set_processed_ix(row_ix) == 0) {
+							// delete rule from chain
+							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+							
+							tstamp = (int) time(NULL);
+							syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
+						}
 					}
 					//std::cout << std::endl;
 				}
