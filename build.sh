@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 if [ -z "$DESTDIR" ];
 then
 DESTDIR=/
@@ -11,28 +14,32 @@ DEPLOY_TO=/opt/gargoyle_pscand
 fi
 
 ./autogen.sh
-./configure --prefix=$DEPLOY_TO --bindir=$DEPLOY_TO \ 
-    --build=i686-pc-linux-gnu --host=$CROSS_COMPILE DESTDIR=$DESTDIR
+
+# do not pass in LDFLAGS or CXXFLAGS as this can spoil the autoconf checks
+# TODO: perhaps we should decouple autoconf from make by splitting up the build.sh script
+./configure --prefix=$DEPLOY_TO --bindir=$DEPLOY_TO \
+    --build=i686-pc-linux-gnu --host=$CROSS_COMPILE DESTDIR=$DESTDIR \
+    LDFLAGS= CXXFLAGS= 
 
 
-mkdir -p $DEPLOY_TO/db/
+mkdir -p ${DESTDIR}${DEPLOY_TO}/db/
 
-if [ ! -f $DEPLOY_TO/db/port_scan_detect.db ]; then
-   cp db/port_scan_detect.db $DEPLOY_TO/db/
+if [ ! -f ${DEPLOY_TO}/db/port_scan_detect.db ]; then
+   cp db/port_scan_detect.db ${DESTDIR}${DEPLOY_TO}/db/
 fi
 
-if [ ! -f $DEPLOY_TO/.gargoyle_config ]; then
-   cp .gargoyle_config $DEPLOY_TO
+if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_config ]; then
+   cp .gargoyle_config ${DESTDIR}${DEPLOY_TO}
 fi
 
-if [ ! -f $DEPLOY_TO/.gargoyle_internal_port_config ]; then
-   cp .gargoyle_internal_port_config $DEPLOY_TO
+if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_internal_port_config ]; then
+   cp .gargoyle_internal_port_config ${DESTDIR}${DEPLOY_TO}
 fi
 
-sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}etc/init.d/gargoyle_pscand
-chmod 770 ${DESTDIR}etc/init.d/gargoyle_pscand
+sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}/etc/init.d/gargoyle_pscand
+chmod 770 ${DESTDIR}/etc/init.d/gargoyle_pscand
 systemctl enable gargoyle_pscand
 systemctl daemon-reload
 
 make clean
-make
+make LDFLAGS="$LDFLAGS" CXXFLAGS="$CXXFLAGS"
