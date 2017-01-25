@@ -320,7 +320,7 @@ void query_for_multiple_ports_hits_last_seen() {
 						 */
 						l_count = 0;
 						l_count = get_one_host_hit_count_all_ports(host_ix);
-						if (l_count > OVERALL_PORT_SCAN_THRESHOLD) {
+						if (l_count >= OVERALL_PORT_SCAN_THRESHOLD) {
 							do_block_actions(host_ip, host_ix, 8);
 						}
 					}
