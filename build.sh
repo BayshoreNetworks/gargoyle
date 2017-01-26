@@ -24,7 +24,7 @@ fi
 
 mkdir -p ${DESTDIR}${DEPLOY_TO}/db/
 
-if [ ! -f ${DEPLOY_TO}/db/port_scan_detect.db ]; then
+if [ ! -f ${DESTDIR}${DEPLOY_TO}/db/port_scan_detect.db ]; then
    cp db/port_scan_detect.db ${DESTDIR}${DEPLOY_TO}/db/
 fi
 
@@ -38,8 +38,11 @@ fi
 
 sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}/etc/init.d/gargoyle_pscand
 chmod 770 ${DESTDIR}/etc/init.d/gargoyle_pscand
-systemctl enable gargoyle_pscand
-systemctl daemon-reload
+
+# If we are cross-compiling, we may not be ready to start gargoyle_pscand, so
+# commenting this out.
+#systemctl enable gargoyle_pscand
+#systemctl daemon-reload
 
 make clean
 make LDFLAGS="$LDFLAGS" CXXFLAGS="$CXXFLAGS"
