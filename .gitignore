@@ -47,6 +47,7 @@ gargoyle_config
 gargoyle_pscand
 gargoyle_pscand_analysis
 gargoyle_pscand_monitor
+gargoyle_pscand_unblockip
 install-sh
 lib/.deps/
 lib/.dirstamp
