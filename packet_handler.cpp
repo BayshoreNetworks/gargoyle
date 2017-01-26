@@ -850,11 +850,9 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 
 		int resp;
 		size_t dst_buf_sz = SMALL_DEST_BUF;
-		char *l_hosts;
-		l_hosts = (char*) malloc(dst_buf_sz+1);
+		char *l_hosts = (char*) malloc(dst_buf_sz+1);
 		size_t dst_buf_sz1 = LOCAL_BUF_SZ;
-		char *host_ip;
-		host_ip = (char*) malloc(dst_buf_sz1+1);
+		char *host_ip = (char*) malloc(dst_buf_sz1+1);
 
 		int added_host_ix;
 		added_host_ix = 0;
@@ -1006,11 +1004,13 @@ int GargoylePscandHandler::null_scan(
 		if(tcp_flags.size() == 0) {
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
+				
 				add_block_rule(src_ip, 1);
 				
 				int host_ix = add_ip_to_hosts_table(src_ip);
-				if (host_ix > 0)
+				if (host_ix > 0) {
 					add_to_hosts_port_table(host_ix, dst_port, 1);
+				}
 			}
 
 			add_to_scanned_ports_dict(dst_ip, src_port);

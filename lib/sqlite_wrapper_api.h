@@ -35,8 +35,6 @@
 #include <stdint.h>
 
 
-//#define DB_LOCATION "/mnt/hd2/software_engineering/bayshore_port_scan_detection/db/port_scan_detect.db"
-//#define DB_LOCATION "/opt/gargoyle_pscand/db/port_scan_detect.db"
 #define DB_PATH "/db/port_scan_detect.db"
 #define LOCAL_BUF_SZ 60
 #define SMALL_DEST_BUF 2097152
@@ -61,6 +59,7 @@ int modify_host_set_processed_ix(int);
 int get_total_hit_count_one_host_by_ix(int);
 int get_detected_hosts_all_active_unprocessed_ix(char *, size_t);
 int get_detected_hosts_all_active_unprocessed_host_ix(char *, size_t);
+int get_detected_hosts_row_ix_by_host_ix(size_t);
 ///////////////////////////////////////////////////////////////////////
 // hosts_table table
 int get_hosts_all(char *, size_t);
