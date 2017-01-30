@@ -47,7 +47,7 @@
 #include "sqlite_wrapper_api.h"
 #include "packet_handler.h"
 #include "gargoyle_config_vals.h"
-
+#include "string_functions.h"
 
 int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
 
@@ -101,16 +101,6 @@ static uint16_t checksum(const uint16_t* buf, unsigned int nbytes)
 	sum += (sum >> 16);
 
 	return ~sum;
-}
-
-
-void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
-{
-	int count = stop - start;
-	if ( count >= --size ) {
-		count = size;
-	}
-	sprintf(dst, "%.*s", count, src + start);
 }
 
 /////////////////////////////////////////////////////////////////////////////////

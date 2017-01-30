@@ -48,6 +48,8 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
+#include "string_functions.h"
+
 
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
@@ -67,17 +69,7 @@ void handle_signal (int signum) {
 }
 
 
-void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
-{
-	int count = stop - start;
-	if ( count >= --size ) {
-		count = size;
-	}
-	sprintf(dst, "%.*s", count, src + start);
-}
 
-
-//bool exists_in_iptables_entries(std::string s) {
 bool exists_in_iptables_entries(int s) {
 
 	std::vector<int>::const_iterator iter;
@@ -91,11 +83,14 @@ bool exists_in_iptables_entries(int s) {
 	}
 }
 
-//void add_to_iptables_entries(std::string s) {
+
+
 void add_to_iptables_entries(int s) {
 	if (exists_in_iptables_entries(s) == false)
 		IPTABLES_ENTRIES.push_back(s);
 }
+
+
 
 void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 
