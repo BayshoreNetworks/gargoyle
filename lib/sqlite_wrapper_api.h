@@ -59,7 +59,7 @@ size_t get_detected_hosts_all(char *, size_t);
 //int modify_host_set_processed_ix(int);
 //int get_detected_hosts_all_active_unprocessed_ix(char *, size_t);
 //int get_detected_hosts_all_active_unprocessed_host_ix(char *, size_t);
-int get_detected_hosts_row_ix_by_host_ix(size_t);
+size_t get_detected_hosts_row_ix_by_host_ix(size_t);
 size_t remove_detected_host(size_t);
 size_t remove_detected_hosts_all();
 ///////////////////////////////////////////////////////////////////////
@@ -79,6 +79,7 @@ int get_all_host_one_port_threshold(int, int, char *, size_t);
 int get_host_port_hit(int, int);
 int add_host_port_hit(int, int, int);
 int update_host_port_hit(int, int, int);
+size_t remove_host_ports_all(size_t);
 
 #ifdef __cplusplus
 }

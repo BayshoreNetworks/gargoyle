@@ -258,7 +258,7 @@ int get_host_ix(const char *the_ip) {
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    	return -1;
     } else {
     	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
     }
@@ -271,7 +271,7 @@ int get_host_ix(const char *the_ip) {
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
-		return 1;
+		return -1;
 	}
 
 	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host = ?1", HOSTS_TABLE);
@@ -515,7 +515,7 @@ size_t add_detected_host(size_t ip_addr_ix, size_t tstamp) {
 }
 
 
-size_t remove_detected_host(size_t ip_addr_ix) {
+size_t remove_detected_host(size_t row_ix) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -536,9 +536,9 @@ size_t remove_detected_host(size_t ip_addr_ix) {
 		return 1;
 	}
 
-	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", DETECTED_HOSTS_TABLE);
+	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE ix = ?1", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+	sqlite3_bind_int(stmt, 1, row_ix);
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
@@ -585,6 +585,49 @@ size_t remove_detected_hosts_all() {
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR deleting data from function [remove_detected_hosts_all]: %s", sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;	
+}
+
+
+
+size_t remove_host_ports_all(size_t ip_addr_ix) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_ports_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR deleting data from function [remove_host_ports_all]: %s", sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -1244,7 +1287,7 @@ int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) 
 */
 
 
-int get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix) {
+size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1257,7 +1300,7 @@ int get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix) {
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
 	int rc;
-	int return_val = 0;
+	size_t return_val = 0;
 
 	char *sql = (char*) malloc (SQL_CMD_MAX);
 

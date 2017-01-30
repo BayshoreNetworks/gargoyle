@@ -84,29 +84,28 @@ int main(int argc, char *argv[])
 			
 			if (rule_ix > 0 && ip) {
 				
-				iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-				
-				int tstamp = (int) time(NULL);
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "manually unblocked", VIOLATOR_SYSLOG, ip, TIMESTAMP_SYSLOG, tstamp);
-
-				/*
 				// find the host ix for the ip
 				int host_ix = get_host_ix(ip);
-				std::cout << "Host ix: " << host_ix << std::endl;
-				
-				// find the row ix for this block
-				int row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
-				std::cout << "Row ix: " << row_ix << std::endl;
+				if (host_ix > 0) {
+
+					// find the row ix for this host (in detected_hosts table)
+					size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
+					if (row_ix > 0) {
 						
-
-				if (modify_host_set_processed_ix(row_ix) == 0) {
-					iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-					
-					int tstamp = (int) time(NULL);
-					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "manually unblocked", VIOLATOR_SYSLOG, ip, TIMESTAMP_SYSLOG, tstamp);
-
+						std::cout << "Host ix: " << host_ix << std::endl;
+						// delete all records for this host_ix from hosts_ports_hits table
+						remove_host_ports_all(host_ix);
+						
+						std::cout << "Row ix: " << row_ix << std::endl;
+						// delete row from detected_hosts
+						remove_detected_host(row_ix);
+						
+						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+						
+						int tstamp = (int) time(NULL);
+						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "manually unblocked", VIOLATOR_SYSLOG, ip, TIMESTAMP_SYSLOG, tstamp);
+					}
 				}
-				*/
 			}
 		}
     }
