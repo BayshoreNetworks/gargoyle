@@ -172,11 +172,10 @@ void handle_chain() {
 	 * if the chain doesnt exist it could not possibly have been added
 	 * to the INPUT chain so create the chain and then add it to INPUT
 	 */
-	char *l_chains;
 	char *p_lchains;
 	
 	size_t dst_buf_sz = DEST_BUF_SZ;
-	l_chains = (char*) malloc(dst_buf_sz+1);
+	char *l_chains = (char*) malloc(dst_buf_sz+1);
 	*l_chains = 0;
 	iptables_list_all(l_chains, dst_buf_sz);
 	
@@ -198,8 +197,7 @@ void handle_chain() {
 	///////////////////////////////////////////////////
 	// 2
 	size_t dst_buf_sz2 = DEST_BUF_SZ;
-	char *l_chains2;
-	l_chains2 = (char*) malloc(dst_buf_sz2+1);
+	char *l_chains2 = (char*) malloc(dst_buf_sz2+1);
 	*l_chains2 = 0;
 	
 	const char *tok1 = "\n";
@@ -260,21 +258,17 @@ void handle_chain() {
 	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE);
 	
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
-	char *l_chains3;
-	l_chains3 = (char*) malloc(d_buf_sz);
+	char *l_chains3 = (char*) malloc(d_buf_sz);
 	*l_chains3 = 0;
 	
 	char *p_lchains3;
 	char *s_lchains3;
-	//char drop_ix_buf[4];
-	char *drop_ix_buf;
-	drop_ix_buf = (char*) malloc(5);
+	char *drop_ix_buf = (char*) malloc(5);
 	*drop_ix_buf = 0;
 	
 	char *p_lchains4;
 	char *s_lchains4;
-	char *reject_ix_buf;
-	reject_ix_buf = (char*) malloc(5);
+	char *reject_ix_buf = (char*) malloc(5);
 	*reject_ix_buf = 0;
 	
 	if (rule_ix == 0) {
@@ -362,10 +356,8 @@ int hex_to_int(const char *hex) {
 void get_ports_to_ignore() {
 	
 	FILE *fp;
-	char *net_tcp;
-	net_tcp = (char*) malloc(133);
-	char *target;
-	target = (char*) malloc(6);
+	char *net_tcp = (char*) malloc(133);
+	char *target = (char*) malloc(6);
 
 	fp = popen("cat /proc/net/tcp", "r");
 	if (fp) {
@@ -432,10 +424,8 @@ void add_to_ip_entries(std::string s) {
 void get_ephemeral_range_to_ignore() {
 	
 	FILE *fp;
-	char *ephemeral_tcp;
-	ephemeral_tcp = (char*) malloc(13);
-	char *target;
-	target = (char*) malloc(6);
+	char *ephemeral_tcp = (char*) malloc(13);
+	char *target = (char*) malloc(6);
 	
 	const char *tok1 = "\t";
 	char *token1;
@@ -476,8 +466,7 @@ void get_local_ip_addrs() {
 	char *dot;
 	char *f_slash;
 	
-	char *ip_addrs;
-	ip_addrs = (char*) malloc(1024);
+	char *ip_addrs = (char*) malloc(1024);
 	
 	const char *tok1 = " ";
 	char *token1;
@@ -526,8 +515,7 @@ void get_default_gateway_linux() {
 	
 	FILE *fp;
 	char *dot;
-	char *default_gway;
-	default_gway = (char*) malloc(1024);
+	char *default_gway = (char*) malloc(1024);
 	
 	const char *tok1 = " ";
 	char *token1;

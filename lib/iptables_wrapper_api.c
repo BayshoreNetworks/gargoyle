@@ -103,8 +103,7 @@ size_t iptables_list_chain_with_line_numbers(const char *chain_name, char *dst, 
 		
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
-    char *dest;
-    dest = (char*) malloc (DEST_BUF_SZ);
+    char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
 	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-L", chain_name, "-n --line-numbers");
@@ -143,8 +142,7 @@ size_t iptables_list_chain(const char *chain_name, char *dst, size_t sz_dst) {
 	
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
-    char *dest;
-    dest = (char*) malloc (DEST_BUF_SZ);
+    char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
 	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-L", chain_name, "-n");
@@ -183,8 +181,7 @@ size_t iptables_list_all_with_line_numbers(char *dst, size_t sz_dst) {
 	
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
-    char *dest;
-    dest = (char*) malloc (DEST_BUF_SZ);
+    char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
 	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-L -n --line-numbers");
@@ -224,8 +221,7 @@ size_t iptables_list_all(char *dst, size_t sz_dst) {
 	
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
-    char *dest;
-    dest = (char*) malloc (DEST_BUF_SZ);
+    char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
 	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-L -n");
@@ -370,8 +366,7 @@ size_t iptables_find_rule_in_chain(const char *chain_name, const char *criteria_
 
 		//char results[DEST_BUF_SZ];
 		size_t d_buf_sz = DEST_BUF_SZ;
-		char *results;
-		results = (char*) malloc (d_buf_sz+1);
+		char *results = (char*) malloc (d_buf_sz+1);
 		*results = 0;
 		size_t x;
 		
@@ -428,8 +423,7 @@ size_t iptables_find_rule_in_chain_two_criteria(const char *chain_name, const ch
 
 		//char results[DEST_BUF_SZ];
 		size_t d_buf_sz = DEST_BUF_SZ;
-		char *results;
-		results = (char*) malloc (d_buf_sz+1);
+		char *results = (char*) malloc (d_buf_sz+1);
 		*results = 0;
 		size_t x;
 

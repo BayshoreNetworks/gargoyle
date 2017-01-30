@@ -65,8 +65,7 @@ int main () {
 	FILE * stream;
 
 	size_t DEST_BUF_SZ = 1024;
-	char *dest;
-	dest = (char*) malloc (DEST_BUF_SZ+1);
+	char *dest = (char*) malloc (DEST_BUF_SZ+1);
 	bool good = true;
 
 	for (std::map<std::string,int>::iterator mit=mymap.begin(); mit!=mymap.end(); ++mit) {
