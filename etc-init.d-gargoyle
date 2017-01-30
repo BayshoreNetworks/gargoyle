@@ -42,8 +42,8 @@ export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
 case "$1" in
   start)
-	check_for_upstart 1
-	check_dev_null
+#	check_for_upstart 1
+#	check_dev_null
 	log_daemon_msg "Starting Gargoyle Portscan detection daemon" || true
         cd APPDIR
         ./gargoyle_config & 
@@ -59,7 +59,7 @@ case "$1" in
 	    log_end_msg 0 || true
 	;;
   stop)
-	check_for_upstart 0
+#	check_for_upstart 0
 	log_daemon_msg "Stopping Gargoyle Portscan detection daemon" || true
 	if /usr/bin/pkill -2 gargoyle_pscand; then
 	    log_end_msg 0 || true
@@ -85,11 +85,11 @@ case "$1" in
 	;;
 
   reload|force-reload)
-	check_for_upstart 1
+	#check_for_upstart 1
 	;;
 
   restart)
-	check_for_upstart 1
+#	check_for_upstart 1
 	log_daemon_msg "Restarting Gargoyle Portscan detection daemon" || true
 	check_dev_null log_end_msg
         /usr/bin/pkill -2 gargoyle_pscand
@@ -106,7 +106,7 @@ case "$1" in
 	;;
 
   status)
-	check_for_upstart 1
+#	check_for_upstart 1
         pgrep gargoyle_pscand 
 	;;
 
