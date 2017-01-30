@@ -49,6 +49,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 
+bool DEBUG = false;
 
 
 bool validate_ip_addr(std::string ip_addr)
@@ -68,7 +69,10 @@ int main(int argc, char *argv[])
     }
     
     char ip[16];
-    std::cout << "ARGC " << argc << std::endl;
+    
+    if (DEBUG)
+    	std::cout << "ARGC " << argc << std::endl;
+    
     if (argc == 2) {
     	
 		if (validate_ip_addr(argv[1])) {
@@ -76,11 +80,13 @@ int main(int argc, char *argv[])
 			strncpy(ip, argv[1], 15);
 			ip[strlen(ip)] = '\0';
 			
-			std::cout << "IP addr: " << ip << std::endl;
+		    if (DEBUG)
+		    	std::cout << "IP addr: " << ip << std::endl;
 			
 			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip);
 			
-			std::cout << "RuleIX: " << rule_ix << std::endl;
+		    if (DEBUG)
+		    	std::cout << "RuleIX: " << rule_ix << std::endl;
 			
 			if (rule_ix > 0 && ip) {
 				
@@ -92,11 +98,13 @@ int main(int argc, char *argv[])
 					size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
 					if (row_ix > 0) {
 						
-						std::cout << "Host ix: " << host_ix << std::endl;
+					    if (DEBUG)
+					    	std::cout << "Host ix: " << host_ix << std::endl;
 						// delete all records for this host_ix from hosts_ports_hits table
 						remove_host_ports_all(host_ix);
 						
-						std::cout << "Row ix: " << row_ix << std::endl;
+					    if (DEBUG)
+					    	std::cout << "Row ix: " << row_ix << std::endl;
 						// delete row from detected_hosts
 						remove_detected_host(row_ix);
 						
