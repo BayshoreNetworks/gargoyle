@@ -53,13 +53,15 @@ extern "C" {
 
 ///////////////////////////////////////////////////////////////////////
 // detected_hosts table
-int add_detected_host(int, int);
-int get_detected_hosts_all_active_unprocessed(char *, size_t);
-int modify_host_set_processed_ix(int);
-int get_total_hit_count_one_host_by_ix(int);
-int get_detected_hosts_all_active_unprocessed_ix(char *, size_t);
-int get_detected_hosts_all_active_unprocessed_host_ix(char *, size_t);
+size_t add_detected_host(size_t, size_t);
+size_t get_detected_hosts_all(char *, size_t);
+//int get_detected_hosts_all_active_unprocessed(char *, size_t); // - in the monitor
+//int modify_host_set_processed_ix(int);
+//int get_detected_hosts_all_active_unprocessed_ix(char *, size_t);
+//int get_detected_hosts_all_active_unprocessed_host_ix(char *, size_t);
 int get_detected_hosts_row_ix_by_host_ix(size_t);
+size_t remove_detected_host(size_t);
+size_t remove_detected_hosts_all();
 ///////////////////////////////////////////////////////////////////////
 // hosts_table table
 int get_hosts_all(char *, size_t);
@@ -72,6 +74,7 @@ int get_host_ix(const char *);
 int get_unique_list_of_ports(char *, size_t);
 int get_one_host_all_ports(int, char *, size_t);
 int get_one_host_hit_count_all_ports(int);
+int get_total_hit_count_one_host_by_ix(int);
 int get_all_host_one_port_threshold(int, int, char *, size_t);
 int get_host_port_hit(int, int);
 int add_host_port_hit(int, int, int);
