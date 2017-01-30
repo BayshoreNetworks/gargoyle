@@ -59,6 +59,8 @@ int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
  */
 bool ADD_RULES_KNOWN_SCAN_AGGRESSIVE = true;
 
+bool DEBUG = true;
+
 int BASE_TIME;
 int PROCESS_TIME_CHECK = 120;
 size_t PH_SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -102,6 +104,14 @@ static uint16_t checksum(const uint16_t* buf, unsigned int nbytes)
 }
 
 
+void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
+{
+	int count = stop - start;
+	if ( count >= --size ) {
+		count = size;
+	}
+	sprintf(dst, "%.*s", count, src + start);
+}
 
 /////////////////////////////////////////////////////////////////////////////////
 void CompoundHandler::add_handler(PacketHandler& handler) {
@@ -844,20 +854,42 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 		std::set<std::string> ip_tables_entries;
 		std::set<std::string>::iterator it;
 
+		/*
 		const char *tok1 = ">";
 		char *token1;
 		char *token1_save;
+		*/
+		const char *tok1 = "\n";
+		char *token1;
+		char *token1_save;
 
+		/*
 		int resp;
 		size_t dst_buf_sz = SMALL_DEST_BUF;
 		char *l_hosts = (char*) malloc(dst_buf_sz+1);
 		size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 		char *host_ip = (char*) malloc(dst_buf_sz1+1);
-
-		int added_host_ix;
-		added_host_ix = 0;
+		*/
+		
+		int added_host_ix = 0;
 		int tstamp;
+		
+		size_t d_buf_sz = DEST_BUF_SZ * 2;
+		char *l_hosts = (char*) malloc(d_buf_sz);
+		*l_hosts = 0;
+		
+		size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+		char *host_ip = (char*) malloc(dst_buf_sz1+1);
+		*host_ip = 0;
+		
+		const char *dash_dash = "--  ";
+		size_t dash_dash_len = 4;
+		const char *w_space = " ";
+		char *s_lchains3;
+		char *s_lchains4;
 
+
+		/*
 		// whats active in iptables?
 		resp = get_detected_hosts_all_active_unprocessed_host_ix(l_hosts, dst_buf_sz);
 		if (resp == 0) {
@@ -874,6 +906,34 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 				token1 = strtok_r(NULL, tok1, &token1_save);
 			}
 		}
+		*/
+		// whats active in iptables?
+		
+		iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz);
+		
+		if (l_hosts) {
+			token1 = strtok_r(l_hosts, tok1, &token1_save);
+			while (token1 != NULL) {
+
+				s_lchains3 = strstr (token1, dash_dash);
+				if (s_lchains3) {
+					
+					size_t position1 = s_lchains3 - token1;
+					s_lchains4 = strstr (token1 + position1 + dash_dash_len, w_space);
+					size_t position2 = s_lchains4 - token1;
+
+					*host_ip = 0;
+					bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
+					if (host_ip) {
+						
+						ip_tables_entries.insert(host_ip);
+					
+					}
+				}
+				token1 = strtok_r(NULL, tok1, &token1_save);
+			}
+		}		
+		
 
 		if (ip_tables_entries.count(the_ip) == 0) {
 			/*
@@ -1093,6 +1153,7 @@ void GargoylePscandHandler::add_block_rules() {
 	std::set<std::string> ip_tables_entries;
 	std::set<std::string>::iterator it;
 
+	/*
 	const char *tok1 = ">";
 	char *token1;
 	char *token1_save;
@@ -1102,6 +1163,25 @@ void GargoylePscandHandler::add_block_rules() {
 	char *l_hosts = (char*) malloc(dst_buf_sz+1);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
+	*/
+	
+	const char *tok1 = "\n";
+	char *token1;
+	char *token1_save;
+	
+	size_t d_buf_sz = DEST_BUF_SZ * 2;
+	char *l_hosts = (char*) malloc(d_buf_sz);
+	*l_hosts = 0;
+	
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1+1);
+	*host_ip = 0;
+	
+	const char *dash_dash = "--  ";
+	size_t dash_dash_len = 4;
+	const char *w_space = " ";
+	char *s_lchains3;
+	char *s_lchains4;
 
 	int added_host_ix;
 	added_host_ix = 0;
@@ -1114,6 +1194,7 @@ void GargoylePscandHandler::add_block_rules() {
 	 * very expensive
 	 */
 	// whats active in iptables?
+	/*
 	resp = get_detected_hosts_all_active_unprocessed_host_ix(l_hosts, dst_buf_sz);
 	if (resp == 0) {
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
@@ -1129,6 +1210,34 @@ void GargoylePscandHandler::add_block_rules() {
 			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
 	}
+	*/
+	
+	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz);
+	
+	if (l_hosts) {
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+
+			s_lchains3 = strstr (token1, dash_dash);
+			if (s_lchains3) {
+				
+				size_t position1 = s_lchains3 - token1;
+				s_lchains4 = strstr (token1 + position1 + dash_dash_len, w_space);
+				size_t position2 = s_lchains4 - token1;
+
+				*host_ip = 0;
+				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
+				if (host_ip) {
+					
+					ip_tables_entries.insert(host_ip);
+				
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	
+	
 
 	/*
 	 * PHASE 1
@@ -1177,10 +1286,12 @@ void GargoylePscandHandler::add_block_rules() {
 				added_host_ix = add_ip_to_hosts_table(*it);
 		}
 
+		/*
 		// add to DB
 		if (added_host_ix > 0) {
 			add_detected_host(added_host_ix, tstamp);
 		}
+		*/
 
 		BLACK_LISTED_HOSTS.erase(*it);   
 	}
@@ -1335,8 +1446,10 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
 		}
 
+		/*
 		// add to DB
 		add_detected_host(host_ix, tstamp);
+		*/
 	}
 	return host_ix;
 }
