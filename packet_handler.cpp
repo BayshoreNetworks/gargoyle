@@ -1276,12 +1276,10 @@ void GargoylePscandHandler::add_block_rules() {
 				added_host_ix = add_ip_to_hosts_table(*it);
 		}
 
-		/*
 		// add to DB
 		if (added_host_ix > 0) {
 			add_detected_host(added_host_ix, tstamp);
 		}
-		*/
 
 		BLACK_LISTED_HOSTS.erase(*it);   
 	}
@@ -1436,10 +1434,8 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
 		}
 
-		/*
 		// add to DB
 		add_detected_host(host_ix, tstamp);
-		*/
 	}
 	return host_ix;
 }

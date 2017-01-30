@@ -66,7 +66,8 @@ void run_monitor() {
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", (int) time(NULL));
 
 	int iter_cnt;
-	int resp3;
+	//int resp3;
+	size_t resp3;
 	int row_ix;
 	int host_ix;
 	int timestamp;
@@ -88,8 +89,12 @@ void run_monitor() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
+	//resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
+	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz);
+	
 	if (resp3 == 0) {
+		
+		
 		/*
 		 std::cout << std::endl << resp3 << std::endl;
 		 std::cout << l_hosts3 << std::endl;
@@ -100,8 +105,8 @@ void run_monitor() {
 			iter_cnt = 0;
 			timestamp = 0;
 			host_ix = 0;
-			active = -1;
-			processed = -1;
+			//active = -1;
+			//processed = -1;
 			row_ix = -1;
 			
 			//std::cout << token1 << std::endl;
@@ -115,17 +120,20 @@ void run_monitor() {
 					host_ix = atoi(token2);
 				} else if (iter_cnt == 2) {
 					timestamp = atoi(token2);
-				} else if (iter_cnt == 3) {
+				} 
+				/*
+				else if (iter_cnt == 3) {
 					active = atoi(token2);
 				} else if (iter_cnt == 4) {
 					processed = atoi(token2);
 				}
-	
+				*/
 				iter_cnt++;
 				token2 = strtok_r(NULL, tok2, &token2_save);
 			}
 			
-			if (row_ix >= 0 && active >= 0 && processed >= 0 && host_ix > 0) {
+			//if (row_ix >= 0 && active >= 0 && processed >= 0 && host_ix > 0) {
+			if (row_ix >= 0 && host_ix > 0) {
 	
 				//std::cout << row_ix << " - " << host_ix << " - " << timestamp << " - " << active << " - " << processed << std::endl;
 				now = (int) time(NULL);
@@ -143,34 +151,38 @@ void run_monitor() {
 						//std::cout << "HOST IP: " << host_ip << std::endl;
 			
 						// we have the ip addr so get the rule ix from iptables
-						rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
+						//rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
 						//std::cout << "RULE IX: " << rule_ix << std::endl;
-						if (rule_ix > 0 && strcmp(host_ip, "") != 0) {
+						//if (rule_ix > 0 && strcmp(host_ip, "") != 0) {
+						if (strcmp(host_ip, "") != 0) {
 							
-							tstamp = 0;
-							// delete rule from chain
-							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-							
-							tstamp = (int) time(NULL);
-							syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
-			
-							
-							/*
-							 * update DB set active=0, processed=1
-							 * 
-							 * do this even if there is no rule in iptables
-							 * because someone else could have deleted it or
-							 * flushed the rules. if the time threshold is passed
-							 * the DB table must get updated
-							 
-							if (modify_host_set_processed_ix(row_ix) == 0) {
+							// remove DB row from when we blocked this host
+							if (remove_detected_host(host_ix) == 0) {
+								
+								tstamp = 0;
 								// delete rule from chain
 								iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
 								
 								tstamp = (int) time(NULL);
 								syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
+
+								/*
+								 * update DB set active=0, processed=1
+								 * 
+								 * do this even if there is no rule in iptables
+								 * because someone else could have deleted it or
+								 * flushed the rules. if the time threshold is passed
+								 * the DB table must get updated
+								 
+								if (modify_host_set_processed_ix(row_ix) == 0) {
+									// delete rule from chain
+									iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+									
+									tstamp = (int) time(NULL);
+									syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
+								}
+								*/
 							}
-							*/
 						}
 					}
 				}
