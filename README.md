@@ -106,10 +106,6 @@ TODO:
 
 - cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
 
-- add full iptables cleanup upon prog termination (GARG-7)
-
-- add sync step that synchronizes iptables rules with the DB - part of cleanup process (GARG-11)
-
 - add support for HOT_PORTS - if these are encountered a block is immediate (GARG-12)
 
 - add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)

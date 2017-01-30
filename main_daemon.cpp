@@ -94,7 +94,7 @@ void graceful_exit(int signum) {
 	
 	/*
 	 * 1. delete NFQUEUE rule from INPUT chain
-	 * 2. delete GARGOYLE_CHAIN_NAME rule from INPUT
+	 * 2. delete GARGOYLE_CHAIN_NAME rule from the INPUT chain
 	 * 3. flush (delete any rules that exist in) GARGOYLE_CHAIN_NAME
 	 * 4. clear items in DB table detected_hosts
 	 * 5. deete GARGOYLE_CHAIN_NAME
@@ -110,34 +110,19 @@ void graceful_exit(int signum) {
 	// 2
 	size_t g_rule_ix;
 	g_rule_ix = iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME);
-	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s %s %s %s", "Rule", g_rule_ix, "is", GARGOYLE_CHAIN_NAME, "inside", IPTABLES_INPUT_CHAIN);
+	//syslog(LOG_INFO | LOG_LOCAL6, "%s: %zu, %s %s %s %s", "Rule", g_rule_ix, "is", GARGOYLE_CHAIN_NAME, "inside", IPTABLES_INPUT_CHAIN);
+	if (g_rule_ix > 0) {
+		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, g_rule_ix);
+	}
 	///////////////////////////////////////////////////
 	// 3
-	//iptables_flush_chain(GARGOYLE_CHAIN_NAME);
+	iptables_flush_chain(GARGOYLE_CHAIN_NAME);
 	///////////////////////////////////////////////////
 	// 4
-	//remove_detected_hosts_all();
+	remove_detected_hosts_all();
 	///////////////////////////////////////////////////
 	// 5
-	//iptables_delete_chain(GARGOYLE_CHAIN_NAME);
-	
-	/*
-		###################################################
-		# 2
-		#rule_ix = 0
-		'''
-		rule_ix = _libgarg_iptables.iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME)
-		if int(rule_ix) > 0:
-			_libgarg_iptables.iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, str(rule_ix))
-		'''
-	
-	
-	
-	*/
-	
-	
-	
-	
+	iptables_delete_chain(GARGOYLE_CHAIN_NAME);
 
 }
 
