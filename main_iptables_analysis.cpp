@@ -108,7 +108,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 				detection_type, TIMESTAMP_SYSLOG, tstamp);
 
 		// add to DB
-		//add_detected_host(the_ix, tstamp);
+		add_detected_host(the_ix, tstamp);
 		// so that we dont have to deal with duplicate data
 		add_to_iptables_entries(the_ix);
 	}
