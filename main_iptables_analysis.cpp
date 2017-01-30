@@ -103,7 +103,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 				detection_type, TIMESTAMP_SYSLOG, tstamp);
 
 		// add to DB
-		add_detected_host(the_ix, tstamp);
+		//add_detected_host(the_ix, tstamp);
 		// so that we dont have to deal with duplicate data
 		add_to_iptables_entries(the_ix);
 	}
@@ -338,6 +338,7 @@ void run_analysis() {
 	
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", (int) time(NULL));
 	
+	/*
 	int iter_cnt;
 	int resp3;
 
@@ -348,15 +349,16 @@ void run_analysis() {
 	char *token2;
 	char *token2_save;
 
+	
 	size_t dst_buf_sz = SMALL_DEST_BUF;
 	char *l_hosts3 = (char*) malloc(dst_buf_sz+1);
 	
 	resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
 	if (resp3 == 0) {
-		/*
-		 std::cout << std::endl << resp3 << std::endl;
-		 std::cout << l_hosts3 << std::endl;
-		*/ 
+
+		//std::cout << std::endl << resp3 << std::endl;
+		//std::cout << l_hosts3 << std::endl;
+
 		token1 = strtok_r(l_hosts3, tok1, &token1_save);
 		while (token1 != NULL) {
 			iter_cnt = 0;
@@ -373,23 +375,72 @@ void run_analysis() {
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
-		/*
-		std::cout << std::endl << std::endl;
-		for (std::vector<int>::const_iterator i = IPTABLES_ENTRIES.begin();
-				i != IPTABLES_ENTRIES.end(); ++i)
-			std::cout << *i << ' ';
-	
-		std::cout << std::endl << std::endl;
-		std::cout << exists_in_iptables_entries(31880) << std::endl;
-		std::cout << exists_in_iptables_entries(31881) << std::endl;
-		*/
+
 		query_for_single_port_hits_last_seen();
 		query_for_multiple_ports_hits_last_seen();
 	}
+	*/
+	
+	const char *tok1 = "\n";
+	char *token1;
+	char *token1_save;
+	
+	size_t d_buf_sz = DEST_BUF_SZ * 2;
+	char *l_hosts = (char*) malloc(d_buf_sz);
+	*l_hosts = 0;
+	
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1+1);
+	*host_ip = 0;
+	
+	const char *dash_dash = "--  ";
+	size_t dash_dash_len = 4;
+	const char *w_space = " ";
+	char *s_lchains3;
+	char *s_lchains4;
+
+	size_t added_host_ix;
+	added_host_ix = 0;
+	int tstamp;
+	
+	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz);
+	
+	if (l_hosts) {
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+
+			s_lchains3 = strstr (token1, dash_dash);
+			if (s_lchains3) {
+				
+				size_t position1 = s_lchains3 - token1;
+				s_lchains4 = strstr (token1 + position1 + dash_dash_len, w_space);
+				size_t position2 = s_lchains4 - token1;
+
+				*host_ip = 0;
+				added_host_ix = 0;
+				
+				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
+				if (host_ip) {
+					
+					added_host_ix = get_host_ix(host_ip);
+					if (added_host_ix > 0) {
+						add_to_iptables_entries(added_host_ix);
+					}
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+
+	query_for_single_port_hits_last_seen();
+	query_for_multiple_ports_hits_last_seen();
 	
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", (int) time(NULL));
 	
-	free(l_hosts3);
+	//free(l_hosts3);
+	
+	free(l_hosts);
+	free(host_ip);
 }
 
 
