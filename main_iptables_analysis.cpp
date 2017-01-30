@@ -67,6 +67,16 @@ void handle_signal (int signum) {
 }
 
 
+void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
+{
+	int count = stop - start;
+	if ( count >= --size ) {
+		count = size;
+	}
+	sprintf(dst, "%.*s", count, src + start);
+}
+
+
 //bool exists_in_iptables_entries(std::string s) {
 bool exists_in_iptables_entries(int s) {
 
