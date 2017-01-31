@@ -641,6 +641,50 @@ size_t remove_host_ports_all(size_t ip_addr_ix) {
 	return 0;	
 }
 
+
+
+size_t add_host_to_ignore(size_t ip_addr_ix, size_t tstamp) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", IGNORE_IP_LIST_TABLES);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+	sqlite3_bind_int(stmt, 2, tstamp);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;	
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 /*
 int modify_host_set_processed_ix(int the_ix) {

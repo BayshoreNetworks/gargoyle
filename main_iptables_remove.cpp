@@ -108,9 +108,13 @@ int main(int argc, char *argv[])
 						// delete row from detected_hosts
 						remove_detected_host(row_ix);
 						
-						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-						
 						int tstamp = (int) time(NULL);
+						
+						// add to ignore ip table
+						add_host_to_ignore(host_ix, tstamp);
+						
+						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+
 						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "manually unblocked", VIOLATOR_SYSLOG, ip, TIMESTAMP_SYSLOG, tstamp);
 					}
 				}

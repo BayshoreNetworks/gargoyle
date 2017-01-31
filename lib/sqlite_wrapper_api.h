@@ -45,6 +45,7 @@
 #define DETECTED_HOSTS_TABLE "detected_hosts"
 #define HOSTS_TABLE "hosts_table"
 #define HOSTS_PORTS_HITS_TABLE "hosts_ports_hits"
+#define IGNORE_IP_LIST_TABLES "ignore_ip_list"
 
 
 #ifdef __cplusplus
@@ -80,6 +81,10 @@ int get_host_port_hit(int, int);
 int add_host_port_hit(int, int, int);
 int update_host_port_hit(int, int, int);
 size_t remove_host_ports_all(size_t);
+///////////////////////////////////////////////////////////////////////
+// ignore_ip_list table
+size_t add_host_to_ignore(size_t, size_t);
+
 
 #ifdef __cplusplus
 }

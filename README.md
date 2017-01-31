@@ -3,7 +3,7 @@ Gargoyle Port Scan Detector
 
 This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian.
+Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
 
 Gargoyle_pscand is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 
@@ -37,6 +37,13 @@ There are numerous run time entities:
 
 	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
 
+	4. gargoyle_pscand_unblockip - this is a standalone program that accepts one argument (an ip address string) and will cleanup/remove all traces of that ip address except for the fact that we once encountered it. The thought process here is that you deliberately removing an ip address means you are treating this address as a trusted entity and want no future blocks of it.
+
+		- To run:
+			cd install_path
+			./gargoyle_pscand_unblockip ip_addr
+
+
 
 Default install path: /opt/gargoyle_pscand
 
@@ -45,15 +52,15 @@ Required libs
 
 	Debian variant:
 
-		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev
+		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev autoconf
 
 	Fedora:
 
-		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel
+		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel autoconf
 
 
 
-Config data
+Config data:
 
 There is a file named “.gargoyle_config” that holds a series of modifiable key/value pairs. The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in. Keys:
 
@@ -77,28 +84,33 @@ To compile and install:
 	sudo make install
 
 
-This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
+Notes:
+	This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
 
-	- any open ports that the system is aware of (data comes from "/proc/net/tcp")
-	- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
-	- any port dictated by user created process (function "get_my_ports_to_ignore")
-	- any ip address bound to the local system (data comes from system call to "ip addr")
-	- system default gateway (data comes from "/proc/net/route")
+		- any open ports that the system is aware of (data comes from "/proc/net/tcp")
+		- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
+		- any port dictated by user created process (function "get_my_ports_to_ignore")
+		- any ip address bound to the local system (data comes from system call to "ip addr")
+		- system default gateway (data comes from "/proc/net/route")
 
 
 
 
-BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
+	BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
-	1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
-	2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
-	3:'XMAS Scan' (Stealth technique) - sends packets with the URG, PUSH, FIN flags set
-	4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response.
-	5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection.
-	6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
-	7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
-	8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+		1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
+		2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
+		3:'XMAS Scan' (Stealth technique) - sends packets with the URG, PUSH, FIN flags set
+		4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response.
+		5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection.
+		6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
+		7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
+		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
 
+	
+	Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
+
+	When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
 
 
