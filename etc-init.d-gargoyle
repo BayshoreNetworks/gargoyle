@@ -107,7 +107,8 @@ case "$1" in
 
   status)
 #	check_for_upstart 1
-        pgrep gargoyle_pscand 
+#        pgrep gargoyle_pscand 
+        ps -ef |grep -v grep|grep gargoyle_pscand$ |awk {'print $2'}
 	;;
 
   *)
