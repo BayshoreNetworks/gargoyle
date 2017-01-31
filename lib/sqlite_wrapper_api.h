@@ -84,6 +84,7 @@ size_t remove_host_ports_all(size_t);
 ///////////////////////////////////////////////////////////////////////
 // ignore_ip_list table
 size_t add_host_to_ignore(size_t, size_t);
+size_t get_hosts_to_ignore_all(char *, size_t);
 
 
 #ifdef __cplusplus
