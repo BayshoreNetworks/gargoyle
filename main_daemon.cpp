@@ -75,6 +75,7 @@ void get_ports_to_ignore();
 void get_ephemeral_range_to_ignore();
 void get_local_ip_addrs();
 void get_default_gateway_linux();
+void get_white_list_addrs();
 
 ///////////////////////////////////////////////////////////////////////////////////
 void nfqueue_signal_handler(int signum) {
@@ -511,6 +512,42 @@ void get_default_gateway_linux() {
 	pclose(fp);
 }
 
+
+void get_white_list_addrs() {
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz);
+	
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			if (atoi(token1) > 0) {
+			
+				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
+				
+				if (strcmp(host_ip, "") != 0) {
+					add_to_ip_entries(host_ip);
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+
+	free(l_hosts);
+	free(host_ip);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 int main()
@@ -596,8 +633,10 @@ int main()
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();
 	if (IGNORE_LOCAL_IP_ADDRS) {
-		get_local_ip_addrs();
 		
+		get_local_ip_addrs();
+		get_white_list_addrs();
+
 		std::stringstream ss;
 		int l_cnt = 1;
 		int v_cnt = LOCAL_IP_ADDRS.size();

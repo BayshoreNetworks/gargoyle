@@ -175,8 +175,8 @@ void run_monitor() {
 						}
 					}
 				}
-				token1 = strtok_r(NULL, tok1, &token1_save);
 			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
 	}
 	

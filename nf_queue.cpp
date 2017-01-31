@@ -85,7 +85,7 @@ Library::Library()
 Library::~Library()
 {
 	nfq_close(_handle);
-	std::cout << "[NF LIB] - DESTRUCTOR - destroyed" << std::endl;
+	//std::cout << "[NF LIB] - DESTRUCTOR - destroyed" << std::endl;
 }
 
 
