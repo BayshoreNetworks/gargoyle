@@ -36,7 +36,8 @@
 #include <unistd.h>
 
 #include "sqlite_wrapper_api.h"
-	
+#include "gargoyle_config_vals.h"
+
 
 /*
  * 
@@ -358,8 +359,7 @@ int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		//printf("ERROR inserting data from function [add_host_port_hit]: %s\n", sqlite3_errmsg(db));
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_host_port_hit]: %s", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -500,7 +500,7 @@ size_t add_detected_host(size_t ip_addr_ix, size_t tstamp) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_detected_host]: %s", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_detected_host] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -542,7 +542,7 @@ size_t remove_detected_host(size_t row_ix) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR deleting data from function [remove_detected_host]: %s", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_detected_host] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -584,8 +584,8 @@ size_t remove_detected_hosts_all() {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR deleting data from function [remove_detected_hosts_all]: %s", sqlite3_errmsg(db));
-		
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_detected_hosts_all] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
 		
@@ -627,7 +627,7 @@ size_t remove_host_ports_all(size_t ip_addr_ix) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR deleting data from function [remove_host_ports_all]: %s", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_ports_all] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -717,7 +717,7 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR updating data from function [update_host_port_hit]: %s", sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s updating data from function [update_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
