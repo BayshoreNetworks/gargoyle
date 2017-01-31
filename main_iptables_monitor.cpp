@@ -156,32 +156,21 @@ void run_monitor() {
 						//if (rule_ix > 0 && strcmp(host_ip, "") != 0) {
 						if (strcmp(host_ip, "") != 0) {
 							
-							// remove DB row from when we blocked this host
-							if (remove_detected_host(host_ix) == 0) {
-								
-								tstamp = 0;
-								// delete rule from chain
-								iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-								
-								tstamp = (int) time(NULL);
-								syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
-
-								/*
-								 * update DB set active=0, processed=1
-								 * 
-								 * do this even if there is no rule in iptables
-								 * because someone else could have deleted it or
-								 * flushed the rules. if the time threshold is passed
-								 * the DB table must get updated
-								 
-								if (modify_host_set_processed_ix(row_ix) == 0) {
+							// find the row ix for this host (in detected_hosts table)
+							size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
+							if (row_ix > 0) {
+							
+								// remove DB row from when we blocked this host
+								if (remove_detected_host(row_ix) == 0) {
+									
+									size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
 									// delete rule from chain
 									iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
-									
+
+									tstamp = 0;
 									tstamp = (int) time(NULL);
 									syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
 								}
-								*/
 							}
 						}
 					}
