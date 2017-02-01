@@ -63,7 +63,7 @@ bool DEBUG = true;
 
 int BASE_TIME;
 //int PROCESS_TIME_CHECK = 120;
-int PROCESS_TIME_CHECK = 30;
+int PROCESS_TIME_CHECK = 60;
 size_t PH_SINGLE_IP_SCAN_THRESHOLD = 6;
 size_t PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
 /////////////////////////////////////////////////////////////////////////////////
