@@ -120,6 +120,8 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+    } else {
+    	std::cout << std::endl << "Usage: ./gargoyle_pscand_unblockip ip_addr" << std::endl << std::endl;
     }
 	return 0;
 }
