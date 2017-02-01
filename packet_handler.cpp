@@ -62,7 +62,8 @@ bool ADD_RULES_KNOWN_SCAN_AGGRESSIVE = true;
 bool DEBUG = true;
 
 int BASE_TIME;
-int PROCESS_TIME_CHECK = 120;
+//int PROCESS_TIME_CHECK = 120;
+int PROCESS_TIME_CHECK = 30;
 size_t PH_SINGLE_IP_SCAN_THRESHOLD = 6;
 size_t PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
 /////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +77,7 @@ std::vector<int> calculate_flags(int dec) {
 	for (n = 0; n < 8; ++n) {
 		if (dec >= FLAGS_LIST[n]) {
 			dec = dec - FLAGS_LIST[n];
-			final.push_back(FLAGS_LIST[n]);	
+			final.push_back(FLAGS_LIST[n]);
 		}
 	}
 	return final;
@@ -234,15 +235,44 @@ int GargoylePscandHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, s
 						ack_num
 						);
 				 */
-				std::vector<int> tcp_flags = calculate_flags(flags >> 13);
+				/*
+				std::cout << "FLAGS: - " << flags << std::endl;
+				//std::vector<int> tcp_flags = calculate_flags(flags >> 13);
+				
+				std::cout << "URG: " << tcp_info->urg << std::endl;
+				std::cout << "ACK: " << tcp_info->ack << std::endl;
+				std::cout << "PSH: " << tcp_info->psh << std::endl;
+				std::cout << "RST: " << tcp_info->rst << std::endl;
+				std::cout << "SYN: " << tcp_info->syn << std::endl;
+				std::cout << "FIN: " << tcp_info->fin << std::endl;
+				*/
+				
+				/*
+				 * U  A  P R S F
+				 * 32 16 8 4 2 1
+				 */
+				std::vector<int> tcp_flags;
+				if (tcp_info->urg)
+					tcp_flags.push_back(32);
+				if (tcp_info->ack)
+					tcp_flags.push_back(16);
+				if (tcp_info->psh)
+					tcp_flags.push_back(8);
+				if (tcp_info->rst)
+					tcp_flags.push_back(4);
+				if (tcp_info->syn)
+					tcp_flags.push_back(2);
+				if (tcp_info->fin)
+					tcp_flags.push_back(1);
+				
 
 				/*
-				std::cout << "FLAGS: " << std::endl;
+				std::cout << "FLAGS: - " << tcp_flags.size() << std::endl;
 				for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
 					std::cout << *i << " ";
 				}
 				std::cout << std::endl;
-				 */
+				*/
 
 				std::ostringstream testdata_tmp;
 				testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;		
@@ -461,6 +491,12 @@ void GargoylePscandHandler::main_port_scan_check(
 		int seq_num,
 		int ack_num,
 		std::vector<int> tcp_flags) {
+	
+	/*
+	std::cout << "IP: " << src_ip << std::endl;
+	std::cout << "SZ: " << tcp_flags.size() << std::endl;
+	std::cout << "DST PORT: " << dst_port << std::endl << std::endl;
+	*/
 
 	clear_three_way_check_dat();
 	three_way_check_dat << src_ip << ":" << src_port << "->" << dst_ip << ":" << dst_port;
