@@ -286,6 +286,9 @@ int GargoylePscandHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, s
 		 */
 		if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
 			//std::cout << "TIME CHECK" << BASE_TIME << std::endl;
+			
+			// are there any new white list entries in the DB?
+			process_ignore_ip_list();
 
 			add_block_rules();
 			BASE_TIME = (int)time(NULL);
@@ -458,10 +461,6 @@ void GargoylePscandHandler::main_port_scan_check(
 		int seq_num,
 		int ack_num,
 		std::vector<int> tcp_flags) {
-
-
-
-
 
 	clear_three_way_check_dat();
 	three_way_check_dat << src_ip << ":" << src_port << "->" << dst_ip << ":" << dst_port;
@@ -1459,6 +1458,41 @@ void GargoylePscandHandler::set_single_port_scan_threshold(size_t t_val) {
 		PH_SINGLE_PORT_SCAN_THRESHOLD = t_val;
 	}
 }
+
+
+void GargoylePscandHandler::process_ignore_ip_list() {
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz);
+	
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			if (atoi(token1) > 0) {
+			
+				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
+				
+				if (strcmp(host_ip, "") != 0) {
+					add_to_ip_entries(host_ip);
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	free(l_hosts);
+	free(host_ip);
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 
 
