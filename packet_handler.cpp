@@ -1412,7 +1412,8 @@ void GargoylePscandHandler::add_block_rules() {
 
 	free(l_hosts);
 	free(host_ip);
-	LOCAL_IP_ROW_CNT.clear();
+	if (LOCAL_IP_ROW_CNT.size() > 0)
+		LOCAL_IP_ROW_CNT.clear();
 }
 
 

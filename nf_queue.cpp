@@ -124,8 +124,8 @@ void Library::loop()
 	sigset_t emptymask;
 	sigemptyset(&emptymask);
 	
-	//char buf[4096] __attribute__ ((aligned));
-	char buf[4096];
+	char buf[4096] __attribute__ ((aligned));
+	//char buf[4096];
 	int fd = nfq_fd(_handle);
 	fd_set rfds;
 	
