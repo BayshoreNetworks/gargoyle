@@ -70,6 +70,7 @@ int get_host_by_ix(int, char *, size_t);
 int get_host_all_by_ix(int, char *, size_t);
 int add_host(const char *);
 int get_host_ix(const char *);
+size_t update_host_last_seen(size_t);
 ///////////////////////////////////////////////////////////////////////
 // hosts_ports_hits table
 int get_unique_list_of_ports(char *, size_t);

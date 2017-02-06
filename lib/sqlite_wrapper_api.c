@@ -775,6 +775,57 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 	return 0;
 }
 
+
+
+size_t update_host_last_seen(size_t ip_addr_ix) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    	return 1;
+    } else {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+
+	char sql[SQL_CMD_MAX];
+	/*
+	int now = (int)time(NULL);
+	int minus_48 = now - 172800;
+	*/
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [update_host_last_seen]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET last_seen = ?1 WHERE ix = ?2", HOSTS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	// 01/01/2972 00:00:00 UTC
+	sqlite3_bind_int(stmt, 1, 63072000);
+	sqlite3_bind_int(stmt, 2, ip_addr_ix);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s updating data from function [update_host_last_seen] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+	
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////
 int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size_t sz_dst) {
 	
