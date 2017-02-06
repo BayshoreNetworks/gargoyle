@@ -88,10 +88,11 @@ int main(int argc, char *argv[])
 		    if (DEBUG)
 		    	std::cout << "RuleIX: " << rule_ix << std::endl;
 			
-			if (rule_ix > 0 && ip) {
+			if (rule_ix > 0 && strcmp(ip, "") != 0) {
 				
 				// find the host ix for the ip
 				int host_ix = get_host_ix(ip);
+				
 				if (host_ix > 0) {
 
 					// find the row ix for this host (in detected_hosts table)
@@ -112,6 +113,9 @@ int main(int argc, char *argv[])
 						
 						// add to ignore ip table
 						add_host_to_ignore(host_ix, tstamp);
+						
+						// reset last_seen to 1972
+						update_host_last_seen(host_ix);
 						
 						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
 

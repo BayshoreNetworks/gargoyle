@@ -1014,7 +1014,7 @@ int GargoylePscandHandler::xmas_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false) {
+	if (ignore_this_port(dst_port) == false || is_in_ip_entries(src_ip) == false) {
 		if((tcp_flags.size() == 3) &&
 				(std::find(tcp_flags.begin(), tcp_flags.end(), 1) != tcp_flags.end()) &&
 				(std::find(tcp_flags.begin(), tcp_flags.end(), 8) != tcp_flags.end()) &&
@@ -1050,7 +1050,7 @@ int GargoylePscandHandler::fin_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false) {
+	if (ignore_this_port(dst_port) == false || is_in_ip_entries(src_ip) == false) {
 		if (is_in_three_way_handshake(three_way_check_dat.str()) == false) {
 
 			if(tcp_flags.size() == 1 && tcp_flags[0] == 1) { // flags = FIN - len flags = 1
@@ -1085,7 +1085,7 @@ int GargoylePscandHandler::null_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false) {
+	if (ignore_this_port(dst_port) == false || is_in_ip_entries(src_ip) == false) {
 		if(tcp_flags.size() == 0) {
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
@@ -1376,7 +1376,7 @@ void GargoylePscandHandler::add_block_rules() {
 			
 			//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
 			
-			if (added_host_ix > 0) {
+			if (added_host_ix > 0 && is_in_ip_entries(the_ip) == false) {
 				add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
 			}
 
@@ -1453,25 +1453,29 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 	//syslog(LOG_INFO | LOG_LOCAL6, "%d-%s=\"%d\" %s=\"%d\"", ENFORCE, "host_ix", host_ix, "size", the_ip.size());
 	
 	if (the_ip.size() > 0 and host_ix > 0) {
+		
+		// we dont ignore this ip
+		if (is_in_ip_entries(the_ip) == false) {
 
-		size_t ret;
-		int tstamp;
-		tstamp = (int) time(NULL);
-
-		if (ENFORCE == true)
-			ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
-
-		if (detection_type > 0) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE_SYSLOG,
-					detection_type, TIMESTAMP_SYSLOG, tstamp);
-		} else {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"",
-					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
+			size_t ret;
+			int tstamp;
+			tstamp = (int) time(NULL);
+	
+			if (ENFORCE == true)
+				ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
+	
+			if (detection_type > 0) {
+				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
+						BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE_SYSLOG,
+						detection_type, TIMESTAMP_SYSLOG, tstamp);
+			} else {
+				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"",
+						BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
+			}
+	
+			// add to DB
+			add_detected_host(host_ix, tstamp);
 		}
-
-		// add to DB
-		add_detected_host(host_ix, tstamp);
 	}
 	return host_ix;
 }

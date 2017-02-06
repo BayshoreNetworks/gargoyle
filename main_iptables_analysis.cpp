@@ -51,6 +51,7 @@
 #include "string_functions.h"
 
 
+std::vector<std::string> LOCAL_IP_ADDRS;
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
 size_t SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -69,7 +70,6 @@ void handle_signal (int signum) {
 }
 
 
-
 bool exists_in_iptables_entries(int s) {
 
 	std::vector<int>::const_iterator iter;
@@ -84,6 +84,15 @@ bool exists_in_iptables_entries(int s) {
 }
 
 
+bool is_in_ip_entries(std::string s) {
+
+	std::vector<std::string>::const_iterator local_ip_iter;
+	local_ip_iter = std::find(LOCAL_IP_ADDRS.begin(), LOCAL_IP_ADDRS.end(), s);
+	if (local_ip_iter != LOCAL_IP_ADDRS.end())
+		return true;
+	return false;
+}
+
 
 void add_to_iptables_entries(int s) {
 	if (exists_in_iptables_entries(s) == false)
@@ -91,26 +100,27 @@ void add_to_iptables_entries(int s) {
 }
 
 
-
 void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 
 	if (the_ip and the_ix) {
-
-		size_t ret;
-		int tstamp;
-		tstamp = (int) time(NULL);
-
-		if (ENFORCE == true)
-			ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
-
-		syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-				BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
-				detection_type, TIMESTAMP_SYSLOG, tstamp);
-
-		// add to DB
-		add_detected_host(the_ix, tstamp);
-		// so that we dont have to deal with duplicate data
-		add_to_iptables_entries(the_ix);
+		// we dont ignore this ip
+		if (is_in_ip_entries(the_ip) == false) {
+			size_t ret;
+			int tstamp;
+			tstamp = (int) time(NULL);
+	
+			if (ENFORCE == true)
+				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
+	
+			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
+					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
+					detection_type, TIMESTAMP_SYSLOG, tstamp);
+	
+			// add to DB
+			add_detected_host(the_ix, tstamp);
+			// so that we dont have to deal with duplicate data
+			add_to_iptables_entries(the_ix);
+		}
 	}
 }
 
@@ -449,6 +459,143 @@ void run_analysis() {
 }
 
 
+bool exists_in_ip_entries(std::string s){
+
+	std::vector<std::string>::const_iterator iter;
+
+	iter = std::find(LOCAL_IP_ADDRS.begin(), LOCAL_IP_ADDRS.end(), s);
+	if (iter != LOCAL_IP_ADDRS.end()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+void add_to_ip_entries(std::string s) {
+	if (exists_in_ip_entries(s) == false)
+		LOCAL_IP_ADDRS.push_back(s);
+}
+
+
+void get_default_gateway_linux() {
+	
+	FILE *fp;
+	char *dot;
+	char *default_gway = (char*) malloc(1024);
+	
+	const char *tok1 = " ";
+	char *token1;
+	char *token1_save;
+	
+	fp = popen("ip route | grep default", "r");
+	if (fp) {
+		while (fgets(default_gway, 1024, fp) != NULL) {
+			//std::cout << "--- " << default_gway << " --- " << strlen(default_gway) << std::endl;
+			token1 = strtok_r(default_gway, tok1, &token1_save);
+			while (token1 != NULL) {
+				dot = strstr (token1, ".");
+				if (dot) {
+					add_to_ip_entries(token1);
+				}
+				token1 = strtok_r(NULL, tok1, &token1_save);
+			}
+		}
+	}
+	free(default_gway);
+	pclose(fp);
+}
+
+
+void get_local_ip_addrs() {
+	
+	FILE *fp;
+	
+	char *inet;
+	char *dot;
+	char *f_slash;
+	
+	char *ip_addrs = (char*) malloc(1024);
+	
+	const char *tok1 = " ";
+	char *token1;
+	char *token1_save;
+	
+	const char *tok2 = "/";
+	char *token2;
+	char *token2_save;
+	
+	int iter_cnt;
+
+	fp = popen("ip addr", "r");
+	if (fp) {
+		while (fgets(ip_addrs, 1024, fp) != NULL) {
+			//std::cout << "--- " << ip_addrs << " --- " << strlen(ip_addrs) << std::endl;
+			inet = strstr (ip_addrs, "inet");
+			dot = strstr (ip_addrs, ".");
+			if (inet && dot) {
+				//std::cout << "--- " << ip_addrs << " --- " << strlen(ip_addrs) << std::endl;
+
+				token1 = strtok_r(ip_addrs, tok1, &token1_save);
+				while (token1 != NULL) {
+					//std::cout << token1 << std::endl;
+					f_slash = strstr (token1, "/");
+					if (f_slash) {
+						iter_cnt = 0;
+						token2 = strtok_r(token1, tok2, &token2_save);
+						while (token2 != NULL) {
+							if (iter_cnt == 0)
+								add_to_ip_entries(token2);
+							iter_cnt++;
+							token2 = strtok_r(NULL, tok2, &token2_save);
+						}
+					}
+					token1 = strtok_r(NULL, tok1, &token1_save);
+				}
+			}
+		}
+	}
+	free(ip_addrs);
+	pclose(fp);
+}
+
+
+void get_white_list_addrs() {
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz);
+	
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			if (atoi(token1) > 0) {
+			
+				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
+				
+				if (strcmp(host_ip, "") != 0) {
+					add_to_ip_entries(host_ip);
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+
+	free(l_hosts);
+	free(host_ip);
+}
+
+
 int main() {
 
 	signal(SIGINT, handle_signal);
@@ -494,6 +641,32 @@ int main() {
 	} else {
 		return 1;
 	}
+	
+	
+	LOCAL_IP_ADDRS.push_back("0.0.0.0");
+	get_default_gateway_linux();
+	get_local_ip_addrs();
+	get_white_list_addrs();
+
+	
+	
+	
+	
+	std::stringstream ss;
+	int l_cnt = 1;
+	int v_cnt = LOCAL_IP_ADDRS.size();
+	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
+		//std::cout << *i << std::endl;
+		if (l_cnt == v_cnt)
+			ss << *i;
+		else
+			ss << *i << ",";
+		l_cnt++;
+	}
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+	
+	
+	
 	
 	// processing loop
 	while (!stop) {
