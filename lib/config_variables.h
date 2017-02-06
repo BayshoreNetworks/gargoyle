@@ -47,6 +47,7 @@ using namespace std;
  * 	gargoyle_pscand_analysis
  * 	gargoyle_pscand_monitor
  * 	enforce
+ * 	ports_to_ignore
  * 	
  */
 class ConfigVariables {
@@ -198,6 +199,17 @@ public:
 				return true;
 			else
 				return false;
+		}
+	}
+	
+	
+	string get_ports_to_ignore() {
+		
+		string ports_to_ignore = "ports_to_ignore";
+		if ( key_vals.find(ports_to_ignore) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[ports_to_ignore];
 		}
 	}
 

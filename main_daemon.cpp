@@ -587,6 +587,7 @@ int main()
 	bool enforce_mode = true;
 	size_t single_ip_scan_threshold = 0;
 	size_t single_port_scan_threshold = 0;
+	std::string ports_to_ignore;
 	
 	const char *config_file = ".gargoyle_config";
 	
@@ -597,6 +598,8 @@ int main()
 		
 		single_ip_scan_threshold = cvv.get_single_ip_scan_threshold();
 		single_port_scan_threshold = cvv.get_port_scan_threshold();
+		
+		ports_to_ignore = cvv.get_ports_to_ignore();
 		
 	} else {
 		return 1;
@@ -612,6 +615,38 @@ int main()
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %zu - %zu", "ignoring ephemeral port range:", EPHEMERAL_LOW, EPHEMERAL_HIGH);
 	
 	if (IGNORE_LISTENING_PORTS) {
+
+		/*
+		 * first get any ports to ignore from
+		 * .gargoyle_config
+		 */
+		if (ports_to_ignore.size() > 0) {
+			// tokenize , delimited
+			if (EPHEMERAL_LOW > 0 && EPHEMERAL_HIGH > 0) {
+				
+				const char *tok1 = ",";
+				char *token1;
+				char *token1_save;
+				int the_port;
+				
+				token1 = strtok_r(&ports_to_ignore[0], tok1, &token1_save);
+				while (token1 != NULL) {
+					
+					the_port = atoi(token1);
+					if(the_port > 0) {
+						if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
+							add_to_ports_entries(the_port);
+						}
+					}
+					token1 = strtok_r(NULL, tok1, &token1_save);
+				}
+			}
+		}
+		
+		/*
+		 * get ports to ignore from
+		 * system
+		 */
 		get_ports_to_ignore();
 
 		std::stringstream ss;
@@ -624,10 +659,7 @@ int main()
 				ss << *i << ",";
 			l_cnt++;
 		}
-			//std::cout << *i << ' ';
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring ports:", (ss.str().c_str()));
-		//std::cout << (ss.str()).substr(0, ss.str().length() - 1) << std::endl;
-		//std::cout << ss.str() << IGNORE_PORTS.size() << std::endl;
 	}
 
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
