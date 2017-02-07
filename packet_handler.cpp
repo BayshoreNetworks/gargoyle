@@ -1521,10 +1521,38 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 			
 			if (atoi(token1) > 0) {
 			
-				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
+				int host_ix = atoi(token1);
+				get_host_by_ix(host_ix, host_ip, dst_buf_sz1);
 				
 				if (strcmp(host_ip, "") != 0) {
 					add_to_ip_entries(host_ip);
+				
+				
+					/*
+					 * this is ugly but ....
+					 * extra cleanup check in case we
+					 * aggressively blocked (race condition)
+					 * an ip addr that has been whitelisted
+					 */
+					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
+					if(rule_ix > 0) {
+						
+						size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
+						
+						if (row_ix > 0) {
+
+							// delete all records for this host_ix from hosts_ports_hits table
+							remove_host_ports_all(host_ix);
+							
+							// delete row from detected_hosts
+							remove_detected_host(row_ix);
+							
+							// reset last_seen to 1972
+							update_host_last_seen(host_ix);
+							
+							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+						}
+					}
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
