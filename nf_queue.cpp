@@ -30,12 +30,18 @@
 #include "nf_queue.h"
 
 #include <iostream>
-#include <stdlib.h>
-#include <sys/select.h>
+
+#include <errno.h>
 #include <memory.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <signal.h>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/time.h>
 
 
 Queue::Queue(const Library& lib, u_int16_t num, PacketHandler& packetHandler) : _packetHandler(packetHandler)
@@ -134,15 +140,25 @@ void Library::loop()
 		FD_ZERO(&rfds);
 		FD_SET(fd, &rfds);
 		
-		if (pselect(fd+1, &rfds, NULL, NULL, NULL, &emptymask) <= 0)
-			break;
+		if (pselect(fd+1, &rfds, NULL, NULL, NULL, &emptymask) <= 0) {
+			//std::cout << "BREAK @ pselect" << std::endl;
+			//break;
+			continue;
+		}
 		
-		if (!FD_ISSET(fd, &rfds))
-			break;
+		if (!FD_ISSET(fd, &rfds)) {
+			//std::cout << "BREAK @ FD_ISSET" << std::endl;
+			//break;
+			continue;
+		}
 		
-		int rv = recv(fd, buf, sizeof(buf), 0);
-		if (rv < 0)
-			break;
+		//int rv = recv(fd, buf, sizeof(buf), 0);
+		int rv = TEMP_FAILURE_RETRY(recv(fd, buf, sizeof(buf), 0));
+		if (rv < 0) {
+			//std::cout << "BREAK @ recv - returned - " << rv << std::endl;
+			//break;
+			continue;
+		}
 		
 		nfq_handle_packet(_handle, buf, rv);
 	}
