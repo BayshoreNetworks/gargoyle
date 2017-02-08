@@ -56,6 +56,7 @@
 bool IGNORE_LISTENING_PORTS = true;
 bool IGNORE_LOCAL_IP_ADDRS = true;
 
+size_t IPTABLES_SUPPORTS_XLOCK;
 size_t EPHEMERAL_LOW;
 size_t EPHEMERAL_HIGH;
 
@@ -103,27 +104,27 @@ void graceful_exit(int signum) {
 	///////////////////////////////////////////////////
 	// 1
 	size_t rule_ix;
-	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE);
+	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE, IPTABLES_SUPPORTS_XLOCK);
 	if (rule_ix > 0) {
-		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, rule_ix);
+		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 	}
 	///////////////////////////////////////////////////
 	// 2
 	size_t g_rule_ix;
-	g_rule_ix = iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME);
+	g_rule_ix = iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	//syslog(LOG_INFO | LOG_LOCAL6, "%s: %zu, %s %s %s %s", "Rule", g_rule_ix, "is", GARGOYLE_CHAIN_NAME, "inside", IPTABLES_INPUT_CHAIN);
 	if (g_rule_ix > 0) {
-		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, g_rule_ix);
+		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, g_rule_ix, IPTABLES_SUPPORTS_XLOCK);
 	}
 	///////////////////////////////////////////////////
 	// 3
-	iptables_flush_chain(GARGOYLE_CHAIN_NAME);
+	iptables_flush_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	///////////////////////////////////////////////////
 	// 4
 	remove_detected_hosts_all();
 	///////////////////////////////////////////////////
 	// 5
-	iptables_delete_chain(GARGOYLE_CHAIN_NAME);
+	iptables_delete_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 
 }
 
@@ -150,7 +151,7 @@ void handle_chain() {
 	size_t dst_buf_sz = DEST_BUF_SZ;
 	char *l_chains = (char*) malloc(dst_buf_sz+1);
 	*l_chains = 0;
-	iptables_list_all(l_chains, dst_buf_sz);
+	iptables_list_all(l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_chains) {
 		//std::cout << l_chains << std::endl;
@@ -158,7 +159,7 @@ void handle_chain() {
 		if (!p_lchains) {
 			// create new chain used just for this
 			//std::cout << "CREATING Chain " << GARGOYLE_CHAIN_NAME << std::endl;
-			iptables_create_new_chain(GARGOYLE_CHAIN_NAME);
+			iptables_create_new_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 			/*
 			 * example out:
 			 * 
@@ -182,7 +183,7 @@ void handle_chain() {
 	
 	bool ADD_CHAIN_TO_INPUT = true;
 	
-	iptables_list_all_with_line_numbers(l_chains2, dst_buf_sz2);
+	iptables_list_all_with_line_numbers(l_chains2, dst_buf_sz2, IPTABLES_SUPPORTS_XLOCK);
 	if (l_chains2) {
 		token1 = strtok_r(l_chains2, tok1, &token1_save);
 		while (token1 != NULL) {
@@ -203,7 +204,7 @@ void handle_chain() {
 
 	if (ADD_CHAIN_TO_INPUT) {
 		// insert this to INPUT chain at specific index 1
-		iptables_insert_chain_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, "1", GARGOYLE_CHAIN_NAME);
+		iptables_insert_chain_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, "1", GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	}
 	
 	int drop_ix;
@@ -228,7 +229,7 @@ void handle_chain() {
 	 * iptables -A INPUT -j NFQUEUE --queue-num 5
 	 */
 	size_t rule_ix;
-	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE);
+	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE, IPTABLES_SUPPORTS_XLOCK);
 	
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_chains3 = (char*) malloc(d_buf_sz);
@@ -250,7 +251,7 @@ void handle_chain() {
 		 * look for rules that start with DROP or REJECT,
 		 * we need to get injected before them
 		 */
-		iptables_list_chain_with_line_numbers(IPTABLES_INPUT_CHAIN, l_chains3, d_buf_sz);
+		iptables_list_chain_with_line_numbers(IPTABLES_INPUT_CHAIN, l_chains3, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 		if (l_chains3) {
 			token1 = strtok_r(l_chains3, tok1, &token1_save);
 			while (token1 != NULL) {
@@ -293,7 +294,7 @@ void handle_chain() {
 		if (targ_ix == 0)
 			targ_ix = 2;
 
-		iptables_insert_nfqueue_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, targ_ix);
+		iptables_insert_nfqueue_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, targ_ix, IPTABLES_SUPPORTS_XLOCK);
 
 	}
 	///////////////////////////////////////////////////
@@ -605,6 +606,10 @@ int main()
 		return 1;
 	}
 	
+	// does iptables support xlock
+	// 1 = true, 0 = false
+	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
+	
 	handle_chain();
 
 	get_ephemeral_range_to_ignore();
@@ -712,6 +717,7 @@ int main()
 	for (std::vector<int>::const_iterator i = IGNORE_PORTS.begin(); i != IGNORE_PORTS.end(); ++i) {
 		gargoyleHandler.add_to_ports_entries(*i);
 	}
+	gargoyleHandler.set_iptables_supports_xlock(IPTABLES_SUPPORTS_XLOCK);
 	
 	c_handlers.add_handler(gargoyleHandler);
 	

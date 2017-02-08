@@ -50,7 +50,7 @@
 #include "config_variables.h"
 
 bool DEBUG = false;
-
+size_t IPTABLES_SUPPORTS_XLOCK;
 
 bool validate_ip_addr(std::string ip_addr)
 {
@@ -75,6 +75,8 @@ int main(int argc, char *argv[])
     
     if (argc == 2) {
     	
+    	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
+    	
 		if (validate_ip_addr(argv[1])) {
 			
 			strncpy(ip, argv[1], 15);
@@ -83,7 +85,7 @@ int main(int argc, char *argv[])
 		    if (DEBUG)
 		    	std::cout << "IP addr: " << ip << std::endl;
 			
-			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip);
+			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip, IPTABLES_SUPPORTS_XLOCK);
 			
 		    if (DEBUG)
 		    	std::cout << "RuleIX: " << rule_ix << std::endl;
@@ -117,7 +119,7 @@ int main(int argc, char *argv[])
 						// reset last_seen to 1972
 						update_host_last_seen(host_ix);
 						
-						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
 						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "manually unblocked", VIOLATOR_SYSLOG, ip, TIMESTAMP_SYSLOG, tstamp);
 					}

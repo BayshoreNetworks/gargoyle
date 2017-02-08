@@ -50,6 +50,7 @@
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
+size_t IPTABLES_SUPPORTS_XLOCK;
 
 volatile sig_atomic_t stop;
 
@@ -163,9 +164,9 @@ void run_monitor() {
 								// remove DB row from when we blocked this host
 								if (remove_detected_host(row_ix) == 0) {
 									
-									size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
+									size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 									// delete rule from chain
-									iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+									iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
 									tstamp = 0;
 									tstamp = (int) time(NULL);
@@ -226,6 +227,8 @@ int main() {
 	} else {
 		return 1;
 	}
+	
+	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 
 	// processing loop
 	while (!stop) {

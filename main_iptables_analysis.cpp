@@ -59,6 +59,7 @@ size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 // 8 hours
 size_t LAST_SEEN_DELTA = 28800;
 bool ENFORCE = true;
+size_t IPTABLES_SUPPORTS_XLOCK;
 
 volatile sig_atomic_t stop;
 
@@ -110,7 +111,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 			tstamp = (int) time(NULL);
 	
 			if (ENFORCE == true)
-				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip);
+				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip, IPTABLES_SUPPORTS_XLOCK);
 	
 			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
 					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
@@ -418,7 +419,7 @@ void run_analysis() {
 	added_host_ix = 0;
 	int tstamp;
 	
-	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz);
+	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_hosts) {
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
@@ -665,7 +666,7 @@ int main() {
 	}
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
 	
-	
+	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 	
 	
 	// processing loop

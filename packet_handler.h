@@ -70,6 +70,7 @@ class GargoylePscandHandler:public PacketHandler
 	void set_enforce_mode(bool);
 	void set_single_ip_scan_threshold(size_t);
 	void set_single_port_scan_threshold(size_t);
+	void set_iptables_supports_xlock(size_t);
 	
 	protected:
 	
@@ -117,6 +118,7 @@ class GargoylePscandHandler:public PacketHandler
 	bool ENFORCE;
 	size_t PH_SINGLE_IP_SCAN_THRESHOLD;
 	size_t PH_SINGLE_PORT_SCAN_THRESHOLD;
+	size_t IPTABLES_SUPPORTS_XLOCK;
 	
 	std::ostringstream three_way_check_dat;
 	std::ostringstream reverse_three_way_check_dat;

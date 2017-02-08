@@ -934,7 +934,7 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 		*/
 		// whats active in iptables?
 		
-		iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz);
+		iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 		
 		if (l_hosts) {
 			token1 = strtok_r(l_hosts, tok1, &token1_save);
@@ -1237,7 +1237,7 @@ void GargoylePscandHandler::add_block_rules() {
 	}
 	*/
 	
-	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz);
+	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_hosts) {
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
@@ -1462,7 +1462,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 			tstamp = (int) time(NULL);
 	
 			if (ENFORCE == true)
-				ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str());
+				ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str(), IPTABLES_SUPPORTS_XLOCK);
 	
 			if (detection_type > 0) {
 				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
@@ -1534,7 +1534,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 					 * aggressively blocked (race condition)
 					 * an ip addr that has been whitelisted
 					 */
-					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
+					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 					if(rule_ix > 0) {
 						
 						size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
@@ -1550,7 +1550,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 							// reset last_seen to 1972
 							update_host_last_seen(host_ix);
 							
-							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix);
+							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 						}
 					}
 				}
@@ -1562,6 +1562,11 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	free(host_ip);
 }
 
+
+
+void GargoylePscandHandler::set_iptables_supports_xlock(size_t support_xlock) {
+	IPTABLES_SUPPORTS_XLOCK = support_xlock;
+}
 /////////////////////////////////////////////////////////////////////////////////
 
 

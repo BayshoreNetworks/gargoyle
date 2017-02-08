@@ -61,12 +61,15 @@ size_t is_integer (char *the_str) {
 }
 */
 
-size_t iptables_create_new_chain(const char *chain_name) {
+size_t iptables_create_new_chain(const char *chain_name, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-N", chain_name);
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-w", "-N", chain_name);
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-N", chain_name);
 	
 	FILE *in;
 	extern FILE *popen();
@@ -80,12 +83,15 @@ size_t iptables_create_new_chain(const char *chain_name) {
 }								
 
 
-size_t iptables_flush_chain(const char *chain_name) {
+size_t iptables_flush_chain(const char *chain_name, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-F", chain_name);
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-w -F", chain_name);
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-F", chain_name);
 	
 	FILE *in;
 	extern FILE *popen();
@@ -99,14 +105,17 @@ size_t iptables_flush_chain(const char *chain_name) {
 }
 
 
-size_t iptables_list_chain_with_line_numbers(const char *chain_name, char *dst, size_t sz_dst) {
+size_t iptables_list_chain_with_line_numbers(const char *chain_name, char *dst, size_t sz_dst, size_t use_xlock) {
 		
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
     char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-L", chain_name, "-n --line-numbers");
+    if (use_xlock)
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-w -L", chain_name, "-n --line-numbers");
+    else
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-L", chain_name, "-n --line-numbers");
 	
 	FILE *in;
 	extern FILE *popen();
@@ -138,14 +147,17 @@ size_t iptables_list_chain_with_line_numbers(const char *chain_name, char *dst, 
 }
 
 
-size_t iptables_list_chain(const char *chain_name, char *dst, size_t sz_dst) {
+size_t iptables_list_chain(const char *chain_name, char *dst, size_t sz_dst, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
     char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-L", chain_name, "-n");
+    if (use_xlock)
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-w -L", chain_name, "-n");
+    else
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s", IPTABLES, "-L", chain_name, "-n");
 	
 	FILE *in;
 	extern FILE *popen();
@@ -177,14 +189,17 @@ size_t iptables_list_chain(const char *chain_name, char *dst, size_t sz_dst) {
 }
 
 
-size_t iptables_list_all_with_line_numbers(char *dst, size_t sz_dst) {
+size_t iptables_list_all_with_line_numbers(char *dst, size_t sz_dst, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	//char dest[DEST_BUF_SZ];
     char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-L -n --line-numbers");
+    if (use_xlock)
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-w -L -n --line-numbers");
+    else
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-L -n --line-numbers");
 	
 	FILE *in;
 	extern FILE *popen();
@@ -216,7 +231,7 @@ size_t iptables_list_all_with_line_numbers(char *dst, size_t sz_dst) {
 }
 
 
-size_t iptables_list_all(char *dst, size_t sz_dst) {
+size_t iptables_list_all(char *dst, size_t sz_dst, size_t use_xlock) {
 	
 	
 	char cmd[CMD_BUF_SZ];
@@ -224,7 +239,10 @@ size_t iptables_list_all(char *dst, size_t sz_dst) {
     char *dest = (char*) malloc (DEST_BUF_SZ);
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-L -n");
+    if (use_xlock)
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-w -L -n");
+    else
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s", IPTABLES, "-L -n");
 
 	FILE *in;
 	extern FILE *popen();
@@ -256,12 +274,15 @@ size_t iptables_list_all(char *dst, size_t sz_dst) {
 }
 
 
-size_t iptables_delete_chain(const char *chain_name) {
+size_t iptables_delete_chain(const char *chain_name, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-X", chain_name);
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-w -X", chain_name);
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-X", chain_name);
 	
 	FILE *in;
 	extern FILE *popen();
@@ -275,12 +296,15 @@ size_t iptables_delete_chain(const char *chain_name) {
 }
 
 
-size_t iptables_delete_rule_from_chain(const char *chain_name, size_t rule_index) {
+size_t iptables_delete_rule_from_chain(const char *chain_name, size_t rule_index, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu", IPTABLES, "-D", chain_name, rule_index);
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu", IPTABLES, "-w -D", chain_name, rule_index);
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu", IPTABLES, "-D", chain_name, rule_index);
 	
 	FILE *in;
 	extern FILE *popen();
@@ -294,12 +318,15 @@ size_t iptables_delete_rule_from_chain(const char *chain_name, size_t rule_index
 }
 
 
-size_t iptables_add_drop_rule_to_chain(const char *chain_name, const char *the_ip) {
+size_t iptables_add_drop_rule_to_chain(const char *chain_name, const char *the_ip, size_t use_xlock) {
 	
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s %s", IPTABLES, "-A", chain_name, "-s", the_ip, "-j DROP");
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s %s", IPTABLES, "-w -A", chain_name, "-s", the_ip, "-j DROP");
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s %s", IPTABLES, "-A", chain_name, "-s", the_ip, "-j DROP");
 	
 	FILE *in;
 	extern FILE *popen();
@@ -313,12 +340,15 @@ size_t iptables_add_drop_rule_to_chain(const char *chain_name, const char *the_i
 }
 
 
-size_t iptables_insert_chain_rule_to_chain_at_index(const char *chain_name, const char *ix_pos, const char *chain_to_add) {
+size_t iptables_insert_chain_rule_to_chain_at_index(const char *chain_name, const char *ix_pos, const char *chain_to_add, size_t use_xlock) {
 
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s %s", IPTABLES, "-I", chain_name, ix_pos, "-j", chain_to_add);
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s %s", IPTABLES, "-w -I", chain_name, ix_pos, "-j", chain_to_add);
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s %s", IPTABLES, "-I", chain_name, ix_pos, "-j", chain_to_add);
 	
 	FILE *in;
 	extern FILE *popen();
@@ -332,12 +362,15 @@ size_t iptables_insert_chain_rule_to_chain_at_index(const char *chain_name, cons
 }
 
 
-size_t iptables_insert_nfqueue_rule_to_chain_at_index(const char *chain_name, size_t ix_pos) {
+size_t iptables_insert_nfqueue_rule_to_chain_at_index(const char *chain_name, size_t ix_pos, size_t use_xlock) {
 
 	char cmd[CMD_BUF_SZ];
 	
 	// construct iptables cmd
-	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu %s %s %s", IPTABLES, "-I", chain_name, ix_pos, "-j", NFQUEUE, "--queue-num 5");
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu %s %s %s", IPTABLES, "-w -I", chain_name, ix_pos, "-j", NFQUEUE, "--queue-num 5");
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu %s %s %s", IPTABLES, "-I", chain_name, ix_pos, "-j", NFQUEUE, "--queue-num 5");
 	
 	FILE *in;
 	extern FILE *popen();
@@ -351,7 +384,7 @@ size_t iptables_insert_nfqueue_rule_to_chain_at_index(const char *chain_name, si
 }
 
 
-size_t iptables_find_rule_in_chain(const char *chain_name, const char *criteria_one) {
+size_t iptables_find_rule_in_chain(const char *chain_name, const char *criteria_one, size_t use_xlock) {
 	
 	char *token;
 	char *token_save;
@@ -370,7 +403,7 @@ size_t iptables_find_rule_in_chain(const char *chain_name, const char *criteria_
 		*results = 0;
 		size_t x;
 		
-		if (iptables_list_chain_with_line_numbers(chain_name, results, d_buf_sz) == 0) {
+		if (iptables_list_chain_with_line_numbers(chain_name, results, d_buf_sz, use_xlock) == 0) {
 			
 			token = strtok_r(results, s, &token_save);
 
@@ -408,7 +441,7 @@ size_t iptables_find_rule_in_chain(const char *chain_name, const char *criteria_
 }
 
 
-size_t iptables_find_rule_in_chain_two_criteria(const char *chain_name, const char *criteria_one, const char *criteria_two) {
+size_t iptables_find_rule_in_chain_two_criteria(const char *chain_name, const char *criteria_one, const char *criteria_two, size_t use_xlock) {
 	
 	char *token;
 	char *token_save;
@@ -427,7 +460,7 @@ size_t iptables_find_rule_in_chain_two_criteria(const char *chain_name, const ch
 		*results = 0;
 		size_t x;
 
-		if (iptables_list_chain_with_line_numbers(chain_name, results, d_buf_sz) == 0) {
+		if (iptables_list_chain_with_line_numbers(chain_name, results, d_buf_sz, use_xlock) == 0) {
 			
 			//printf("\n\nRESULTS: %s\n", results);
 			
@@ -471,6 +504,25 @@ size_t iptables_find_rule_in_chain_two_criteria(const char *chain_name, const ch
 		free(results);
 	}
 	return 0;
+}
+
+
+
+size_t iptables_supports_xlock () {
+	
+	/*
+	 *  false is represented by 0, 1 = xlock is supported
+	 */
+	size_t ret = 0;
+	char cmd[CMD_BUF_SZ];
+	
+	// construct iptables cmd
+	snprintf(cmd, CMD_BUF_SZ, "%s %s %s", IPTABLES, "-w", "--version");
+	
+	if (system(cmd) == 0)
+		ret = 1;
+	
+	return ret;
 }
 
 

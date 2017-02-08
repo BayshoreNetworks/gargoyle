@@ -804,7 +804,7 @@ size_t update_host_last_seen(size_t ip_addr_ix) {
 
 	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET last_seen = ?1 WHERE ix = ?2", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-	// 01/01/2972 00:00:00 UTC
+	// 01/01/1972 00:00:00 UTC
 	sqlite3_bind_int(stmt, 1, 63072000);
 	sqlite3_bind_int(stmt, 2, ip_addr_ix);
 
