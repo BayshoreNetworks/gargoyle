@@ -63,6 +63,19 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 
 volatile sig_atomic_t stop;
 
+void handle_signal (int);
+bool exists_in_iptables_entries(int);
+void add_to_iptables_entries(int);
+void do_block_actions(const char *, int, int);
+void query_for_single_port_hits_last_seen();
+void query_for_multiple_ports_hits_last_seen();
+void run_analysis();
+bool exists_in_ip_entries(std::string);
+void add_to_ip_entries(std::string);
+void get_default_gateway_linux();
+void get_local_ip_addrs();
+void get_white_list_addrs();
+
 
 void handle_signal (int signum) {
 	stop = 1;
@@ -85,16 +98,6 @@ bool exists_in_iptables_entries(int s) {
 }
 
 
-bool is_in_ip_entries(std::string s) {
-
-	std::vector<std::string>::const_iterator local_ip_iter;
-	local_ip_iter = std::find(LOCAL_IP_ADDRS.begin(), LOCAL_IP_ADDRS.end(), s);
-	if (local_ip_iter != LOCAL_IP_ADDRS.end())
-		return true;
-	return false;
-}
-
-
 void add_to_iptables_entries(int s) {
 	if (exists_in_iptables_entries(s) == false)
 		IPTABLES_ENTRIES.push_back(s);
@@ -105,7 +108,10 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 
 	if (the_ip and the_ix) {
 		// we dont ignore this ip
-		if (is_in_ip_entries(the_ip) == false) {
+		
+		std::cout << exists_in_ip_entries(the_ip) << std::endl;
+		
+		if (exists_in_ip_entries(the_ip) == false) {
 			size_t ret;
 			int tstamp;
 			tstamp = (int) time(NULL);
@@ -354,48 +360,8 @@ void run_analysis() {
 	
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", (int) time(NULL));
 	
-	/*
-	int iter_cnt;
-	int resp3;
-
-	const char *tok1 = ">";
-	char *token1;
-	char *token1_save;
-	const char *tok2 = ":";
-	char *token2;
-	char *token2_save;
-
-	
-	size_t dst_buf_sz = SMALL_DEST_BUF;
-	char *l_hosts3 = (char*) malloc(dst_buf_sz+1);
-	
-	resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
-	if (resp3 == 0) {
-
-		//std::cout << std::endl << resp3 << std::endl;
-		//std::cout << l_hosts3 << std::endl;
-
-		token1 = strtok_r(l_hosts3, tok1, &token1_save);
-		while (token1 != NULL) {
-			iter_cnt = 0;
-			//std::cout << token1 << std::endl;
-			token2 = strtok_r(token1, tok2, &token2_save);
-			while (token2 != NULL) {
-				//std::cout << token2 << " - " << iter_cnt << std::endl;
-				if (iter_cnt == 1) {
-					//IPTABLES_ENTRIES.push_back(token2);
-					add_to_iptables_entries(atoi(token2));
-				}
-				token2 = strtok_r(NULL, tok2, &token2_save);
-				iter_cnt++;
-			}
-			token1 = strtok_r(NULL, tok1, &token1_save);
-		}
-
-		query_for_single_port_hits_last_seen();
-		query_for_multiple_ports_hits_last_seen();
-	}
-	*/
+	IPTABLES_ENTRIES.clear();
+	get_white_list_addrs();
 	
 	const char *tok1 = "\n";
 	char *token1;
@@ -643,16 +609,11 @@ int main() {
 		return 1;
 	}
 	
-	
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();
 	get_local_ip_addrs();
 	get_white_list_addrs();
 
-	
-	
-	
-	
 	std::stringstream ss;
 	int l_cnt = 1;
 	int v_cnt = LOCAL_IP_ADDRS.size();

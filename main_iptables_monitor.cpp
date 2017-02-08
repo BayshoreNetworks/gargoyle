@@ -232,9 +232,9 @@ int main() {
 
 	// processing loop
 	while (!stop) {
-		run_monitor();
 		// every 12 hours by default
 		sleep(43200);
+		run_monitor();
 	}
 	return 0;
 }
