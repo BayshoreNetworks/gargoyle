@@ -58,7 +58,7 @@ int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
  * detected
  */
 bool ADD_RULES_KNOWN_SCAN_AGGRESSIVE = true;
-
+bool SYSLOG_ALL_DETECTIONS = true;
 bool DEBUG = true;
 
 int BASE_TIME;
@@ -66,6 +66,7 @@ int BASE_TIME;
 int PROCESS_TIME_CHECK = 60;
 size_t PH_SINGLE_IP_SCAN_THRESHOLD = 6;
 size_t PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
+size_t PROCESSING_LIMIT = 100;
 /////////////////////////////////////////////////////////////////////////////////
 std::vector<int> calculate_flags(int dec) {
 
@@ -752,39 +753,35 @@ void GargoylePscandHandler::add_to_scanned_ports_dict(std::string the_ip, int th
 		 * we ignore ephemeral ports as blocking them will disrupt
 		 * legitimate functionality on the running host
 		 */
-		if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
+		//if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
+		if (ignore_this_port(the_port) == false) {
 
 			int tstamp = (int) time(NULL);
 
-			if (is_in_ports_entries(the_port) == false) {
+			std::ostringstream tkey;
+			tkey << the_ip << ":" << the_port;
 
-				//std::cout << "WTFWTFWTF" << std::endl;
+			if (is_in_scanned_ports_cnt_dict(tkey.str())) {
 
-				std::ostringstream tkey;
-				tkey << the_ip << ":" << the_port;
+				std::pair <int,int> foo;
+				foo = SCANNED_PORTS_CNT_DICT[tkey.str()];
+				//std::cout << foo.first << " - " << foo.second << std::endl;
 
-				if (is_in_scanned_ports_cnt_dict(tkey.str())) {
+				//std::cout << "REPLACING - " << tkey.str() << std::endl;
 
-					std::pair <int,int> foo;
-					foo = SCANNED_PORTS_CNT_DICT[tkey.str()];
-					//std::cout << foo.first << " - " << foo.second << std::endl;
+				std::pair <int, int> cnt_tstamp;
+				cnt_tstamp = std::make_pair (foo.first + 1, tstamp);
 
-					//std::cout << "REPLACING - " << tkey.str() << std::endl;
+				SCANNED_PORTS_CNT_DICT[tkey.str()] = cnt_tstamp;
 
-					std::pair <int, int> cnt_tstamp;
-					cnt_tstamp = std::make_pair (foo.first + 1, tstamp);
+			} else {
 
-					SCANNED_PORTS_CNT_DICT[tkey.str()] = cnt_tstamp;
+				//std::cout << "ADDING - " << tkey.str() << std::endl;
 
-				} else {
+				std::pair <int, int> cnt_tstamp;
+				cnt_tstamp = std::make_pair (1, tstamp);
 
-					//std::cout << "ADDING - " << tkey.str() << std::endl;
-
-					std::pair <int, int> cnt_tstamp;
-					cnt_tstamp = std::make_pair (1, tstamp);
-
-					SCANNED_PORTS_CNT_DICT.insert(std::make_pair(tkey.str(), cnt_tstamp));
-				}					
+				SCANNED_PORTS_CNT_DICT.insert(std::make_pair(tkey.str(), cnt_tstamp));
 			}
 		}
 	}
@@ -1329,6 +1326,8 @@ void GargoylePscandHandler::add_block_rules() {
 	int the_port;
 	int the_cnt;
 	std::map<std::string, int> LOCAL_IP_ROW_CNT;
+	
+	size_t limit_cnt = 0;
 
 	std::map< std::string, std::pair <int, int> >::iterator s_port_it = SCANNED_PORTS_CNT_DICT.begin();
 	while(s_port_it != SCANNED_PORTS_CNT_DICT.end()) {
@@ -1372,25 +1371,39 @@ void GargoylePscandHandler::add_block_rules() {
 
 					ip_tables_entries.insert(the_ip);
 				}
-			}
+				
+				if (is_in_scanned_ports_cnt_dict(current_key)) {
+					SCANNED_PORTS_CNT_DICT.erase(current_key);
+				}
+				break;
+				
+			} else {
 			
-			//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
-			
-			if (added_host_ix > 0 && is_in_ip_entries(the_ip) == false) {
-				add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
+				//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
+				
+				if (added_host_ix > 0 && is_in_ip_entries(the_ip) == false) {
+					add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
+				}
+				
+				/*
+				 * do some output to syslog in case
+				 * this data is being used for analytics
+				 */
+				if (SYSLOG_ALL_DETECTIONS) {
+					syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+							VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
+				}
 			}
-
-			/*
-			 * do some output to syslog in case
-			 * this data is being used for analytics
-			 */
-			syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
-					VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
 		}
 		//std::cout << "IP: " << the_ip << " - port " << the_port << " - CNT " << the_cnt << std::endl;
 
-		SCANNED_PORTS_CNT_DICT.erase(current_key);
+		if (is_in_scanned_ports_cnt_dict(current_key)) {
+			SCANNED_PORTS_CNT_DICT.erase(current_key);
+		}
 		s_port_it++;
+		limit_cnt++;
+		if (limit_cnt == PROCESSING_LIMIT)
+			break;
 	}
 
 	std::map<std::string, int>::iterator loc_ip_it = LOCAL_IP_ROW_CNT.begin();
