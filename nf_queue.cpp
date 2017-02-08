@@ -142,14 +142,14 @@ void Library::loop()
 		
 		if (pselect(fd+1, &rfds, NULL, NULL, NULL, &emptymask) <= 0) {
 			//std::cout << "BREAK @ pselect" << std::endl;
-			//break;
-			continue;
+			break;
+			//continue;
 		}
 		
 		if (!FD_ISSET(fd, &rfds)) {
 			//std::cout << "BREAK @ FD_ISSET" << std::endl;
-			//break;
-			continue;
+			break;
+			//continue;
 		}
 		
 		//int rv = recv(fd, buf, sizeof(buf), 0);
