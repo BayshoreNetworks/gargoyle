@@ -385,6 +385,12 @@ void run_analysis() {
 	added_host_ix = 0;
 	int tstamp;
 	
+	/*
+	 * get the latest data from iptables and
+	 * populate vector IPTABLES_ENTRIES with
+	 * the index of each ip actively blocked
+	 * via iptables
+	 */
 	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_hosts) {
