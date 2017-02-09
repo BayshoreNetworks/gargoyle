@@ -13,7 +13,30 @@ set -e
 
 # /etc/init.d/gargoyle_pscand: start and stop the Gargoyle portscan detection daemon
 
+# End system needs lsb-core functionality
 . /lib/lsb/init-functions
+
+# Define LSB log_* functions.
+
+# To be replaced by LSB functions
+# Defined here for distributions that don't define
+# log_daemon_msg
+log_daemon_msg () {
+    echo $@
+}
+
+# To be replaced by LSB functions
+# Defined here for distributions that don't define
+# log_end_msg
+log_end_msg () {
+    retval=$1
+    if [ $retval -eq 0 ]; then
+        echo "."
+    else
+        echo " failed!"
+    fi
+    return $retval
+}
 
 # Are we running from init?
 run_by_init() {
