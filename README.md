@@ -97,8 +97,10 @@ To compile and install:
 
 
 Notes:
+
+	- Currently addresses TCP ports, UDP support will come soon
 	
-	This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
+	- This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
 
 		- any port that the system is aware of (data comes from "/proc/net/tcp")
 		- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
@@ -110,7 +112,7 @@ Notes:
 
 
 
-	BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
+	- BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
 		1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
 		2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
@@ -122,9 +124,9 @@ Notes:
 		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
 
 	
-	Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
+	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
-	When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
+	- When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
 
 
