@@ -61,32 +61,32 @@ Required libs
 
 Database:
 
-The database file name is "port_scan_detect.db"
+	The database file name is "port_scan_detect.db"
 
-By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/port_scan_detect.db"
+	By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/port_scan_detect.db"
 
 
 Config data:
 
-Gargoyle_pscand needs to read data from a config file that holds a series of modifiable key/value pairs.
+	Gargoyle_pscand needs to read data from a config file that holds a series of modifiable key/value pairs.
 
-By default it will look for a path to a file called "gargoyle_config" in ENV variable "GARGOYLE_CONFIG". If that is not present it expects a file named ".gargoyle_config" (in the programs root dir). The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in.
+	By default it will look for a path to a file called "gargoyle_config" in ENV variable "GARGOYLE_CONFIG". If that is not present it expects a file named ".gargoyle_config" (in the programs root dir). The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in.
 
-The following are the supported config keys:
+	The following are the supported config keys:
 
-	- "enforce" - boolean type - acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
+		- "enforce" - boolean type - acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
 
-	- "port_scan_threshold" - integer representing count - when performing analysis of the activity of each host this value is the threshold count of hits per unique port. If this threshold is surpassed for any one port by any given host Gargoyle_pscand will treat that as malicious activity
+		- "port_scan_threshold" - integer representing count - when performing analysis of the activity of each host this value is the threshold count of hits per unique port. If this threshold is surpassed for any one port by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- "single_ip_scan_threshold" - integer representing count - when performing analysis of the activity of each host this value is the threshold count of ports that were scanned. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
+		- "single_ip_scan_threshold" - integer representing count - when performing analysis of the activity of each host this value is the threshold count of ports that were scanned. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- "overall_port_scan_threshold" - integer representing count - when performing analysis of the activity of each host this value is the threshold count of collective activity. Collective activity is based on combinations of actions, for example if one host hits port 23 four times and ports 80,443,8080,9000,9090 each once. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
+		- "overall_port_scan_threshold" - integer representing count - when performing analysis of the activity of each host this value is the threshold count of collective activity. Collective activity is based on combinations of actions, for example if one host hits port 23 four times and ports 80,443,8080,9000,9090 each once. If this threshold is surpassed by any given host Gargoyle_pscand will treat that as malicious activity
 
-	- "last_seen_delta" - integer representing seconds - Gargoyle_pscand’s processes will only block hosts that have been seen within (less than) this value 
+		- "last_seen_delta" - integer representing seconds - Gargoyle_pscand’s processes will only block hosts that have been seen within (less than) this value 
 
-	- "lockout_time" - integer representing seconds - if a host has been blocked by Gargoyle_pscand for a period longer than this value it will be unblocked
+		- "lockout_time" - integer representing seconds - if a host has been blocked by Gargoyle_pscand for a period longer than this value it will be unblocked
 
-	- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic
+		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic
 
 
 
@@ -97,12 +97,14 @@ To compile and install:
 
 
 Notes:
+	
 	This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
 
-		- any open ports that the system is aware of (data comes from "/proc/net/tcp")
+		- any port that the system is aware of (data comes from "/proc/net/tcp")
 		- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
-		- any port dictated by user created process (function "get_my_ports_to_ignore")
+		- any port established in the config file ".gargoyle_config", with key "ports_to_ignore"
 		- any ip address bound to the local system (data comes from system call to "ip addr")
+		- any ip address whitelisted in the DB 
 		- system default gateway (data comes from "/proc/net/route")
 
 
