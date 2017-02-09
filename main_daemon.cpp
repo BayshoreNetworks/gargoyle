@@ -590,7 +590,10 @@ int main()
 	size_t single_port_scan_threshold = 0;
 	std::string ports_to_ignore;
 	
-	const char *config_file = ".gargoyle_config";
+	const char *config_file;
+	config_file = getenv("GARGOYLE_CONFIG");
+	if (config_file == NULL)
+		config_file = ".gargoyle_config";
 	
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {

@@ -600,7 +600,11 @@ int main() {
 	}
 	
 	// Get config data
-	const char *config_file = ".gargoyle_config";
+	//const char *config_file = ".gargoyle_config";
+	const char *config_file;
+	config_file = getenv("GARGOYLE_CONFIG");
+	if (config_file == NULL)
+		config_file = ".gargoyle_config";
 	
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {
