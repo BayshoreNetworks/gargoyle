@@ -508,7 +508,7 @@ size_t iptables_find_rule_in_chain_two_criteria(const char *chain_name, const ch
 
 
 
-size_t iptables_supports_xlock () {
+size_t iptables_supports_xlock() {
 	
 	/*
 	 *  false is represented by 0, 1 = xlock is supported
@@ -523,6 +523,49 @@ size_t iptables_supports_xlock () {
 		ret = 1;
 	
 	return ret;
+}
+
+
+
+size_t iptables_list_chain_table(const char *chain_name, const char *table_name, char *dst, size_t sz_dst, size_t use_xlock) {
+	
+	char cmd[CMD_BUF_SZ];
+	//char dest[DEST_BUF_SZ];
+    char *dest = (char*) malloc (DEST_BUF_SZ);
+	
+	// construct iptables cmd
+    if (use_xlock)
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s", IPTABLES, "-w -L", chain_name, "-n -t", table_name);
+    else
+    	snprintf(cmd, CMD_BUF_SZ, "%s %s %s %s %s", IPTABLES, "-L", chain_name, "-n -t", table_name);
+	
+	FILE *in;
+	extern FILE *popen();
+	char buff[512];
+
+	if(!(in = popen(cmd, "r"))){
+		free(dest);
+		return 1;
+	}
+
+	// populate results from iptables cmd
+	*dest = 0;
+	while(fgets(buff, sizeof(buff), in)!=NULL){
+		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
+	}
+	
+	size_t dest_len = strlen(dest);
+	dest[dest_len] = '\0';
+
+	if (dest_len+1 > sz_dst) {
+		free(dest);
+		return 1;
+	}
+	memcpy (dst, dest, dest_len+1);
+	
+	free(dest);
+	pclose(in);
+	return 0;
 }
 
 

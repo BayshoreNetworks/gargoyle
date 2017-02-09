@@ -567,7 +567,10 @@ int main()
     
     // Get port config data
 	int daemon_port;
-	const char *port_config_file = ".gargoyle_internal_port_config";
+	const char *port_config_file;
+	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
+	if (port_config_file == NULL)
+		port_config_file = ".gargoyle_internal_port_config";
 	daemon_port = 0;
 	
 	ConfigVariables cv;

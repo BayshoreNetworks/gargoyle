@@ -41,6 +41,12 @@
 #include "gargoyle_config_vals.h"
 
 int main () {
+	
+	const char *config_file;
+	config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
+	if (config_file == NULL)
+		config_file = ".gargoyle_internal_port_config";
+	
 	/*
 	std::cout << GARGOYLE_VERSION << std::endl;
 	std::cout << GARGOYLE_CHAIN_NAME << std::endl;
@@ -112,7 +118,8 @@ int main () {
 		}
 	}
 
-	std::ofstream myfile (".gargoyle_internal_port_config");
+	//std::ofstream myfile (".gargoyle_internal_port_config");
+	std::ofstream myfile (config_file);
 	if (myfile.is_open()) {
 
 		//myfile << "gargoyle_chain_name:GARGOYLE_Input_Chain\n";

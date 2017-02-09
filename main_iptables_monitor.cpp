@@ -216,7 +216,11 @@ int main() {
 	}
 	
 	int monitor_port;
-	const char *port_config_file = ".gargoyle_internal_port_config";
+	//const char *port_config_file = ".gargoyle_internal_port_config";
+	const char *port_config_file;
+	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
+	if (port_config_file == NULL)
+		port_config_file = ".gargoyle_internal_port_config";
 	monitor_port = 0;
 	
 	ConfigVariables cv;

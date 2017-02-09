@@ -56,6 +56,7 @@ size_t iptables_find_rule_in_chain(const char *, const char *, size_t);
 size_t iptables_find_rule_in_chain_two_criteria(const char *, const char *, const char *, size_t);
 size_t iptables_insert_nfqueue_rule_to_chain_at_index(const char *, size_t, size_t);
 size_t iptables_supports_xlock();
+size_t iptables_list_chain_table(const char *, const char *, char *, size_t, size_t);
 
 
 #ifdef __cplusplus
