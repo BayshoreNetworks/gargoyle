@@ -71,6 +71,7 @@ class GargoylePscandHandler:public PacketHandler
 	void set_single_ip_scan_threshold(size_t);
 	void set_single_port_scan_threshold(size_t);
 	void set_iptables_supports_xlock(size_t);
+	void set_db_location(const char *);
 	
 	protected:
 	
@@ -119,6 +120,7 @@ class GargoylePscandHandler:public PacketHandler
 	size_t PH_SINGLE_IP_SCAN_THRESHOLD;
 	size_t PH_SINGLE_PORT_SCAN_THRESHOLD;
 	size_t IPTABLES_SUPPORTS_XLOCK;
+	std::string DB_LOCATION;
 	
 	std::ostringstream three_way_check_dat;
 	std::ostringstream reverse_three_way_check_dat;

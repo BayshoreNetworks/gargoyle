@@ -52,6 +52,8 @@
 size_t LOCKOUT_TIME = 32400;
 size_t IPTABLES_SUPPORTS_XLOCK;
 
+char DB_LOCATION[SQL_CMD_MAX+1];
+
 volatile sig_atomic_t stop;
 
 
@@ -91,7 +93,7 @@ void run_monitor() {
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
 	//resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
-	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz);
+	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
 	
 	if (resp3 == 0) {
 		
@@ -148,7 +150,7 @@ void run_monitor() {
 				if ((now - timestamp) >= LOCKOUT_TIME) {
 		
 					// we have the host ix so get the ip addr from the DB
-					if (get_host_by_ix(host_ix, host_ip, dst_buf_sz1) == 0) {
+					if (get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION) == 0) {
 						//std::cout << "HOST IP: " << host_ip << std::endl;
 			
 						// we have the ip addr so get the rule ix from iptables
@@ -158,11 +160,11 @@ void run_monitor() {
 						if (strcmp(host_ip, "") != 0) {
 							
 							// find the row ix for this host (in detected_hosts table)
-							size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
+							size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
 							if (row_ix > 0) {
 							
 								// remove DB row from when we blocked this host
-								if (remove_detected_host(row_ix) == 0) {
+								if (remove_detected_host(row_ix, DB_LOCATION) == 0) {
 									
 									size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 									// delete rule from chain
@@ -196,6 +198,22 @@ int main() {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
     }
+
+	/*
+	 * Get location for the DB file
+	 */
+	const char *gargoyle_db_file;
+	gargoyle_db_file = getenv("GARGOYLE_DB");
+	if (gargoyle_db_file == NULL) {
+		char cwd[SQL_CMD_MAX/2];
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+	} else {
+		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
+	}
 	
 	int monitor_port;
 	const char *port_config_file = ".gargoyle_internal_port_config";

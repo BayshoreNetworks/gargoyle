@@ -61,6 +61,8 @@ size_t LAST_SEEN_DELTA = 28800;
 bool ENFORCE = true;
 size_t IPTABLES_SUPPORTS_XLOCK;
 
+char DB_LOCATION[SQL_CMD_MAX+1];
+
 volatile sig_atomic_t stop;
 
 void handle_signal (int);
@@ -124,7 +126,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 					detection_type, TIMESTAMP_SYSLOG, tstamp);
 	
 			// add to DB
-			add_detected_host(the_ix, tstamp);
+			add_detected_host(the_ix, tstamp, DB_LOCATION);
 			// so that we dont have to deal with duplicate data
 			add_to_iptables_entries(the_ix);
 		}
@@ -163,7 +165,7 @@ void query_for_single_port_hits_last_seen() {
 	//char list_of_ports[(size_t)SMALL_DEST_BUF];
 	size_t list_ports_dst_sz = SMALL_DEST_BUF;
 	char *list_of_ports = (char*) malloc(list_ports_dst_sz+1);
-	ret = get_unique_list_of_ports(list_of_ports, list_ports_dst_sz);
+	ret = get_unique_list_of_ports(list_of_ports, list_ports_dst_sz, DB_LOCATION);
 
 	size_t list_hosts_dst_sz = SMALL_DEST_BUF;
 	char *l_hosts = (char*) malloc(list_hosts_dst_sz+1);
@@ -172,7 +174,7 @@ void query_for_single_port_hits_last_seen() {
 	while (token1 != NULL) {
 
 		*l_hosts = 0;
-		get_all_host_one_port_threshold(atoi(token1), PORT_SCAN_THRESHOLD, l_hosts, list_hosts_dst_sz);
+		get_all_host_one_port_threshold(atoi(token1), PORT_SCAN_THRESHOLD, l_hosts, list_hosts_dst_sz, DB_LOCATION);
 		if (strlen(l_hosts) > 0) {
 			/*
 			 std::cout << std::endl << token1 << std::endl;
@@ -209,7 +211,7 @@ void query_for_single_port_hits_last_seen() {
 
 					size_t get_all_dst_sz = LOCAL_BUF_SZ;
 					char *h_all = (char*) malloc(get_all_dst_sz+1);
-					get_host_all_by_ix(host_ix, h_all, get_all_dst_sz);
+					get_host_all_by_ix(host_ix, h_all, get_all_dst_sz, DB_LOCATION);
 					//std::cout << h_all << std::endl;
 
 					char *host_ip = (char*) malloc(60);
@@ -285,7 +287,7 @@ void query_for_multiple_ports_hits_last_seen() {
 	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
 	char *host_ip = (char*) malloc(60);
 	
-	ret = get_hosts_all(hosts_all_buf, dst_buf_sz);
+	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
 	/*
 	std::cout << hosts_all_buf << std::endl;
 	std::cout << strlen(hosts_all_buf) << std::endl;
@@ -323,7 +325,7 @@ void query_for_multiple_ports_hits_last_seen() {
 				if ((now - last_seen) <= LAST_SEEN_DELTA) {
 					
 					hit_cnt_resp = 0;
-					hit_cnt_resp = get_total_hit_count_one_host_by_ix(host_ix);
+					hit_cnt_resp = get_total_hit_count_one_host_by_ix(host_ix, DB_LOCATION);
 					if (hit_cnt_resp >= SINGLE_IP_SCAN_THRESHOLD) {
 						/*
 						 * !! ENFORCE - if more than SINGLE_IP_SCAN_THRESHOLD ports
@@ -341,7 +343,7 @@ void query_for_multiple_ports_hits_last_seen() {
 						 * get a total count of port hits for this host
 						 */
 						l_count = 0;
-						l_count = get_one_host_hit_count_all_ports(host_ix);
+						l_count = get_one_host_hit_count_all_ports(host_ix, DB_LOCATION);
 						if (l_count >= OVERALL_PORT_SCAN_THRESHOLD) {
 							do_block_actions(host_ip, host_ix, 8);
 						}
@@ -410,7 +412,7 @@ void run_analysis() {
 				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
 				if (host_ip) {
 					
-					added_host_ix = get_host_ix(host_ip);
+					added_host_ix = get_host_ix(host_ip, DB_LOCATION);
 					if (added_host_ix > 0) {
 						add_to_iptables_entries(added_host_ix);
 					}
@@ -545,7 +547,7 @@ void get_white_list_addrs() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz);
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION);
 	
 	if (resp == 0) {
 
@@ -554,7 +556,7 @@ void get_white_list_addrs() {
 			
 			if (atoi(token1) > 0) {
 			
-				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
+				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
 				
 				if (strcmp(host_ip, "") != 0) {
 					add_to_ip_entries(host_ip);
@@ -597,6 +599,22 @@ int main() {
 	if (!singleton()) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
+	}
+	
+	/*
+	 * Get location for the DB file
+	 */
+	const char *gargoyle_db_file;
+	gargoyle_db_file = getenv("GARGOYLE_DB");
+	if (gargoyle_db_file == NULL) {
+		char cwd[SQL_CMD_MAX/2];
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+	} else {
+		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
 	
 	// Get config data

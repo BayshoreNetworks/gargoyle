@@ -54,7 +54,7 @@
  * returns host value (ip addr) by writing
  * data to dst
  */
-int get_host_by_ix(int the_ix, char *dst, size_t sz_dst) {
+int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc) {
 
 	//size_t DEST_LEN = 20;
 
@@ -64,10 +64,14 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	/*
@@ -125,7 +129,7 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst) {
 }
 
 
-int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst) {
+int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc) {
 
 	sqlite3 *db;
 	sqlite3_stmt *stmt;
@@ -133,10 +137,14 @@ int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	char dest[LOCAL_BUF_SZ];
@@ -173,17 +181,21 @@ int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst) {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-int get_total_hit_count_one_host_by_ix(int the_ix) {
+int get_total_hit_count_one_host_by_ix(int the_ix, const char *db_loc) {
 
 	int return_val;
 	return_val = 0;
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -212,17 +224,21 @@ int get_total_hit_count_one_host_by_ix(int the_ix) {
 }
 
 
-int get_one_host_hit_count_all_ports(int ip_addr_ix) {
+int get_one_host_hit_count_all_ports(int ip_addr_ix, const char *db_loc) {
 
 	int return_val;
 	return_val = 0;
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -251,17 +267,21 @@ int get_one_host_hit_count_all_ports(int ip_addr_ix) {
 }
 
 
-int get_host_ix(const char *the_ip) {
+int get_host_ix(const char *the_ip, const char *db_loc) {
 
 	int ret;
 	ret = 0;
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return -1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -290,17 +310,21 @@ int get_host_ix(const char *the_ip) {
 }
 
 
-int get_host_port_hit(int ip_addr_ix, int the_port) {
+int get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
 
 	int ret;
 	ret = 0;
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -330,14 +354,18 @@ int get_host_port_hit(int ip_addr_ix, int the_port) {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
+int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -374,14 +402,18 @@ int add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 }
 
 
-int add_host(const char *the_ip) {
+int add_host(const char *the_ip, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	int ret;
@@ -427,59 +459,18 @@ int add_host(const char *the_ip) {
 }
 
 
-/*
-int add_detected_host(int ip_addr_ix, int tstamp) {
+size_t add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-    }
-
-	sqlite3 *db;
-	sqlite3_stmt *stmt;
-	int rc;
-	char sql[SQL_CMD_MAX];
-
-	rc = sqlite3_open(DB_LOCATION, &db);
-	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
-		return 1;
-	}
-
-	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp,active,processed) VALUES (?1,?2,1,0)", DETECTED_HOSTS_TABLE);
-	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-	sqlite3_bind_int(stmt, 1, ip_addr_ix);
-	sqlite3_bind_int(stmt, 2, tstamp);
-
-	rc = sqlite3_step(stmt);
-	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_detected_host]: %s", sqlite3_errmsg(db));
-		
-		sqlite3_finalize(stmt);
-		sqlite3_close(db);
-		
-		return -1;
-	}
-
-	sqlite3_finalize(stmt);
-	sqlite3_close(db);
-
-	return 0;	
-}
-*/
-
-
-size_t add_detected_host(size_t ip_addr_ix, size_t tstamp) {
-	
-    char cwd[SQL_CMD_MAX/2];
-    char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
-    } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -515,14 +506,18 @@ size_t add_detected_host(size_t ip_addr_ix, size_t tstamp) {
 }
 
 
-size_t remove_detected_host(size_t row_ix) {
+size_t remove_detected_host(size_t row_ix, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -558,14 +553,18 @@ size_t remove_detected_host(size_t row_ix) {
 
 
 
-size_t remove_detected_hosts_all() {
+size_t remove_detected_hosts_all(const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -600,14 +599,18 @@ size_t remove_detected_hosts_all() {
 
 
 
-size_t remove_host_ports_all(size_t ip_addr_ix) {
+size_t remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -643,14 +646,18 @@ size_t remove_host_ports_all(size_t ip_addr_ix) {
 
 
 
-size_t add_host_to_ignore(size_t ip_addr_ix, size_t tstamp) {
+size_t add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -731,14 +738,18 @@ int modify_host_set_processed_ix(int the_ix) {
 */
 
 
-int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
+int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -777,14 +788,18 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt) {
 
 
 
-size_t update_host_last_seen(size_t ip_addr_ix) {
+size_t update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -827,14 +842,18 @@ size_t update_host_last_seen(size_t ip_addr_ix) {
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size_t sz_dst) {
+int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size_t sz_dst, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -967,14 +986,18 @@ int get_detected_hosts_all_active_unprocessed_ix(char *dst, size_t sz_dst) {
 */
 
 
-int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst) {
+int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -1037,14 +1060,18 @@ int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst) {
 }
 
 
-int get_hosts_all(char *dst, size_t sz_dst) {
+int get_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -1105,14 +1132,18 @@ int get_hosts_all(char *dst, size_t sz_dst) {
 }
 
 
-int get_unique_list_of_ports(char *dst, size_t sz_dst) {
+int get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -1173,14 +1204,18 @@ int get_unique_list_of_ports(char *dst, size_t sz_dst) {
 }
 
 
-size_t get_detected_hosts_all(char *dst, size_t sz_dst) {
+size_t get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -1375,14 +1410,18 @@ int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) 
 */
 
 
-size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix) {
+size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;
@@ -1419,14 +1458,18 @@ size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix) {
 }
 
 
-size_t get_hosts_to_ignore_all(char *dst, size_t sz_dst) {
+size_t get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc) {
 	
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
     }
 
 	sqlite3 *db;

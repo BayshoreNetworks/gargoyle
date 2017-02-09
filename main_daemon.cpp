@@ -60,6 +60,8 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 size_t EPHEMERAL_LOW;
 size_t EPHEMERAL_HIGH;
 
+char DB_LOCATION[SQL_CMD_MAX+1];
+
 std::vector<int> IGNORE_PORTS;
 std::vector<std::string> LOCAL_IP_ADDRS;
 ///////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +123,7 @@ void graceful_exit(int signum) {
 	iptables_flush_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	///////////////////////////////////////////////////
 	// 4
-	remove_detected_hosts_all();
+	remove_detected_hosts_all(DB_LOCATION);
 	///////////////////////////////////////////////////
 	// 5
 	iptables_delete_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
@@ -526,7 +528,7 @@ void get_white_list_addrs() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz);
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION);
 	
 	if (resp == 0) {
 
@@ -535,7 +537,7 @@ void get_white_list_addrs() {
 			
 			if (atoi(token1) > 0) {
 			
-				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
+				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
 				
 				if (strcmp(host_ip, "") != 0) {
 					add_to_ip_entries(host_ip);
@@ -582,6 +584,22 @@ int main()
 	if (!singleton()) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
+	}
+	
+	/*
+	 * Get location for the DB file
+	 */
+	const char *gargoyle_db_file;
+	gargoyle_db_file = getenv("GARGOYLE_DB");
+	if (gargoyle_db_file == NULL) {
+		char cwd[SQL_CMD_MAX/2];
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+	} else {
+		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
 	
 	// Get config data
@@ -721,6 +739,7 @@ int main()
 		gargoyleHandler.add_to_ports_entries(*i);
 	}
 	gargoyleHandler.set_iptables_supports_xlock(IPTABLES_SUPPORTS_XLOCK);
+	gargoyleHandler.set_db_location(DB_LOCATION);
 	
 	c_handlers.add_handler(gargoyleHandler);
 	

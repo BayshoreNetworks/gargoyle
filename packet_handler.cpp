@@ -991,11 +991,11 @@ int GargoylePscandHandler::add_ip_to_hosts_table(std::string the_ip) {
 		 * ip addr in question, so try to get its ix
 		 * value via get_host
 		 */
-		added_host_ix = add_host(the_ip.c_str());
+		added_host_ix = add_host(the_ip.c_str(), DB_LOCATION.c_str());
 		// already exists
 		if (added_host_ix == -1) {
 			// get existing index
-			added_host_ix = get_host_ix(the_ip.c_str());
+			added_host_ix = get_host_ix(the_ip.c_str(), DB_LOCATION.c_str());
 		}
 	}	
 	return added_host_ix;
@@ -1303,14 +1303,14 @@ void GargoylePscandHandler::add_block_rules() {
 		} else {
 			// exists in iptables but we need to put
 			// some data in the DB
-			added_host_ix = get_host_ix((*it).c_str());
+			added_host_ix = get_host_ix((*it).c_str(), DB_LOCATION.c_str());
 			if (added_host_ix == 0)
 				added_host_ix = add_ip_to_hosts_table(*it);
 		}
 
 		// add to DB
 		if (added_host_ix > 0) {
-			add_detected_host(added_host_ix, tstamp);
+			add_detected_host(added_host_ix, tstamp, DB_LOCATION.c_str());
 		}
 
 		BLACK_LISTED_HOSTS.erase(*it);   
@@ -1441,14 +1441,14 @@ void GargoylePscandHandler::add_to_hosts_port_table(int added_host_ix, int the_p
 
 		int resp;
 		//number of hits registered in the DB
-		resp = get_host_port_hit(added_host_ix, the_port);
+		resp = get_host_port_hit(added_host_ix, the_port, DB_LOCATION.c_str());
 
 		// new record
 		if (resp == 0) {
-			add_host_port_hit(added_host_ix, the_port, the_cnt);
+			add_host_port_hit(added_host_ix, the_port, the_cnt, DB_LOCATION.c_str());
 		} else if (resp >= 1) {
 			int u_cnt = resp + the_cnt;
-			update_host_port_hit(added_host_ix, the_port, u_cnt);
+			update_host_port_hit(added_host_ix, the_port, u_cnt, DB_LOCATION.c_str());
 		}
 	}
 }
@@ -1459,7 +1459,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 	int host_ix;
 	host_ix = 0;
 
-	host_ix = get_host_ix(the_ip.c_str());
+	host_ix = get_host_ix(the_ip.c_str(), DB_LOCATION.c_str());
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip);
 
@@ -1487,7 +1487,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 			}
 	
 			// add to DB
-			add_detected_host(host_ix, tstamp);
+			add_detected_host(host_ix, tstamp, DB_LOCATION.c_str());
 		}
 	}
 	return host_ix;
@@ -1525,7 +1525,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz);
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
 	
 	if (resp == 0) {
 
@@ -1535,7 +1535,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 			if (atoi(token1) > 0) {
 			
 				int host_ix = atoi(token1);
-				get_host_by_ix(host_ix, host_ip, dst_buf_sz1);
+				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
 				
 				if (strcmp(host_ip, "") != 0) {
 					add_to_ip_entries(host_ip);
@@ -1550,18 +1550,18 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 					if(rule_ix > 0) {
 						
-						size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
+						size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION.c_str());
 						
 						if (row_ix > 0) {
 
 							// delete all records for this host_ix from hosts_ports_hits table
-							remove_host_ports_all(host_ix);
+							remove_host_ports_all(host_ix, DB_LOCATION.c_str());
 							
 							// delete row from detected_hosts
-							remove_detected_host(row_ix);
+							remove_detected_host(row_ix, DB_LOCATION.c_str());
 							
 							// reset last_seen to 1972
-							update_host_last_seen(host_ix);
+							update_host_last_seen(host_ix, DB_LOCATION.c_str());
 							
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 							
@@ -1582,6 +1582,12 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 
 void GargoylePscandHandler::set_iptables_supports_xlock(size_t support_xlock) {
 	IPTABLES_SUPPORTS_XLOCK = support_xlock;
+}
+
+
+void GargoylePscandHandler::set_db_location(const char *db_loc) {
+	if (db_loc)
+		DB_LOCATION = db_loc;
 }
 /////////////////////////////////////////////////////////////////////////////////
 

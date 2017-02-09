@@ -59,10 +59,20 @@ Required libs
 		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel autoconf
 
 
+Database:
+
+The database file name is "port_scan_detect.db"
+
+By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/port_scan_detect.db"
+
 
 Config data:
 
-There is a file named ".gargoyle_config" that holds a series of modifiable key/value pairs. The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in. Keys:
+Gargoyle_pscand needs to read data from a config file that holds a series of modifiable key/value pairs.
+
+By default it will look for a path to a file called "gargoyle_config" in ENV variable "GARGOYLE_CONFIG". If that is not present it expects a file named ".gargoyle_config" (in the programs root dir). The code in all 3 Gargoyle_pscand daemons will act based on the values they read from this config file. This means you can modify the values if you wish and the programs will respect the values you put in.
+
+The following are the supported config keys:
 
 	- "enforce" - boolean type - acceptable values are 1 and 0 where 1 means block (make iptables and syslog entries when appropriate) and 0 means only report (write syslog entries only and take no blocking action)
 
@@ -114,14 +124,5 @@ Notes:
 
 	When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
-
-
-TODO:
-
-- cleanup/archive process for the DB (separate code to be cron'd) (GARG-1)
-
-- add support for HOT_PORTS - if these are encountered a block is immediate (GARG-12)
-
-- add support for -v in iptables query, use the number of hits/bytes in the cleanup decision (GARG-13)
 
 

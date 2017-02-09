@@ -54,38 +54,38 @@ extern "C" {
 
 ///////////////////////////////////////////////////////////////////////
 // detected_hosts table
-size_t add_detected_host(size_t, size_t);
-size_t get_detected_hosts_all(char *, size_t);
+size_t add_detected_host(size_t, size_t, const char *);
+size_t get_detected_hosts_all(char *, size_t, const char *);
 //int get_detected_hosts_all_active_unprocessed(char *, size_t); // - in the monitor
 //int modify_host_set_processed_ix(int);
 //int get_detected_hosts_all_active_unprocessed_ix(char *, size_t);
 //int get_detected_hosts_all_active_unprocessed_host_ix(char *, size_t);
-size_t get_detected_hosts_row_ix_by_host_ix(size_t);
-size_t remove_detected_host(size_t);
-size_t remove_detected_hosts_all();
+size_t get_detected_hosts_row_ix_by_host_ix(size_t, const char *);
+size_t remove_detected_host(size_t, const char *);
+size_t remove_detected_hosts_all(const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_table table
-int get_hosts_all(char *, size_t);
-int get_host_by_ix(int, char *, size_t);
-int get_host_all_by_ix(int, char *, size_t);
-int add_host(const char *);
-int get_host_ix(const char *);
-size_t update_host_last_seen(size_t);
+int get_hosts_all(char *, size_t, const char *);
+int get_host_by_ix(int, char *, size_t, const char *);
+int get_host_all_by_ix(int, char *, size_t, const char *);
+int add_host(const char *, const char *);
+int get_host_ix(const char *, const char *);
+size_t update_host_last_seen(size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_ports_hits table
-int get_unique_list_of_ports(char *, size_t);
-int get_one_host_all_ports(int, char *, size_t);
-int get_one_host_hit_count_all_ports(int);
-int get_total_hit_count_one_host_by_ix(int);
-int get_all_host_one_port_threshold(int, int, char *, size_t);
-int get_host_port_hit(int, int);
-int add_host_port_hit(int, int, int);
-int update_host_port_hit(int, int, int);
-size_t remove_host_ports_all(size_t);
+int get_unique_list_of_ports(char *, size_t, const char *);
+int get_one_host_all_ports(int, char *, size_t, const char *);
+int get_one_host_hit_count_all_ports(int, const char *);
+int get_total_hit_count_one_host_by_ix(int, const char *);
+int get_all_host_one_port_threshold(int, int, char *, size_t, const char *);
+int get_host_port_hit(int, int, const char *);
+int add_host_port_hit(int, int, int, const char *);
+int update_host_port_hit(int, int, int, const char *);
+size_t remove_host_ports_all(size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // ignore_ip_list table
-size_t add_host_to_ignore(size_t, size_t);
-size_t get_hosts_to_ignore_all(char *, size_t);
+size_t add_host_to_ignore(size_t, size_t, const char *);
+size_t get_hosts_to_ignore_all(char *, size_t, const char *);
 
 
 #ifdef __cplusplus

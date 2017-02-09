@@ -52,6 +52,8 @@
 bool DEBUG = false;
 size_t IPTABLES_SUPPORTS_XLOCK;
 
+char DB_LOCATION[SQL_CMD_MAX+1];
+
 bool validate_ip_addr(std::string ip_addr)
 {
     struct sockaddr_in sa;
@@ -67,6 +69,22 @@ int main(int argc, char *argv[])
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
     }
+
+	/*
+	 * Get location for the DB file
+	 */
+	const char *gargoyle_db_file;
+	gargoyle_db_file = getenv("GARGOYLE_DB");
+	if (gargoyle_db_file == NULL) {
+		char cwd[SQL_CMD_MAX/2];
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+	} else {
+		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
+	}
     
     char ip[16];
     
@@ -93,31 +111,31 @@ int main(int argc, char *argv[])
 			if (rule_ix > 0 && strcmp(ip, "") != 0) {
 				
 				// find the host ix for the ip
-				int host_ix = get_host_ix(ip);
+				int host_ix = get_host_ix(ip, DB_LOCATION);
 				
 				if (host_ix > 0) {
 
 					// find the row ix for this host (in detected_hosts table)
-					size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix);
+					size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
 					if (row_ix > 0) {
 						
 					    if (DEBUG)
 					    	std::cout << "Host ix: " << host_ix << std::endl;
 						// delete all records for this host_ix from hosts_ports_hits table
-						remove_host_ports_all(host_ix);
+						remove_host_ports_all(host_ix, DB_LOCATION);
 						
 					    if (DEBUG)
 					    	std::cout << "Row ix: " << row_ix << std::endl;
 						// delete row from detected_hosts
-						remove_detected_host(row_ix);
+						remove_detected_host(row_ix, DB_LOCATION);
 						
 						int tstamp = (int) time(NULL);
 						
 						// add to ignore ip table
-						add_host_to_ignore(host_ix, tstamp);
+						add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
 						
 						// reset last_seen to 1972
-						update_host_last_seen(host_ix);
+						update_host_last_seen(host_ix, DB_LOCATION);
 						
 						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
