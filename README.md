@@ -52,11 +52,11 @@ Required libs
 
 	Debian variant:
 
-		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev autoconf
+		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev autoconf lsb-base
 
 	Fedora:
 
-		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel autoconf
+		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel autoconf redhat-lsb-core
 
 
 Database:
