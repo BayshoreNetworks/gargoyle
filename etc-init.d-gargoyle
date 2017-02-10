@@ -1,0 +1,142 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:		gargoyle_pscand
+# Required-Start:	$remote_fs $syslog
+# Required-Stop:	$remote_fs $syslog
+# Default-Start:	2 3 4 5
+# Default-Stop:		
+# Short-Description:	Gargoyle Portscan detection daemon
+### END INIT INFO
+
+set -e
+
+# /etc/init.d/gargoyle_pscand: start and stop the Gargoyle portscan detection daemon
+
+# End system needs lsb-core functionality
+. /lib/lsb/init-functions
+
+# Define LSB log_* functions.
+
+# To be replaced by LSB functions
+# Defined here for distributions that don't define
+# log_daemon_msg
+log_daemon_msg () {
+    echo $@
+}
+
+# To be replaced by LSB functions
+# Defined here for distributions that don't define
+# log_end_msg
+log_end_msg () {
+    retval=$1
+    if [ $retval -eq 0 ]; then
+        echo "."
+    else
+        echo " failed!"
+    fi
+    return $retval
+}
+
+# Are we running from init?
+run_by_init() {
+    ([ "$previous" ] && [ "$runlevel" ]) || [ "$runlevel" = S ]
+}
+
+check_for_upstart() {
+    if init_is_upstart; then
+	exit $1
+    fi
+}
+
+check_dev_null() {
+    if [ ! -c /dev/null ]; then
+	if [ "$1" = log_end_msg ]; then
+	    log_end_msg 1 || true
+	fi
+	if ! run_by_init; then
+	    log_action_msg "/dev/null is not a character device!" || true
+	fi
+	exit 1
+    fi
+}
+
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+case "$1" in
+  start)
+#	check_for_upstart 1
+#	check_dev_null
+	log_daemon_msg "Starting Gargoyle Portscan detection daemon" || true
+        cd APPDIR
+        ./gargoyle_config & 
+	sleep 1
+        ./gargoyle_pscand &
+
+	log_daemon_msg "Starting Gargoyle Portscan analysis daemon" || true
+        ./gargoyle_pscand_analysis &
+
+	log_daemon_msg "Starting Gargoyle Portscan monitoring daemon" || true
+        ./gargoyle_pscand_monitor &
+        
+	    log_end_msg 0 || true
+	;;
+  stop)
+#	check_for_upstart 0
+	log_daemon_msg "Stopping Gargoyle Portscan detection daemon" || true
+	if /usr/bin/pkill -2 gargoyle_pscand; then
+	    log_end_msg 0 || true
+	else
+	    log_end_msg 1 || true
+	fi
+
+	log_daemon_msg "Stopping Gargoyle Portscan detection monitor" || true
+	if /usr/bin/pkill -2 gargoyle_pscand_monitor; then
+	    log_end_msg 0 || true
+	else
+	    log_end_msg 1 || true
+	fi
+
+	log_daemon_msg "Stopping Gargoyle Portscan detection analysis" || true
+        if /usr/bin/pkill -2 gargoyle_pscand_analysis; then
+	    log_end_msg 0 || true
+	else
+	    log_end_msg 1 || true
+	fi
+
+
+	;;
+
+  reload|force-reload)
+	#check_for_upstart 1
+	;;
+
+  restart)
+#	check_for_upstart 1
+	log_daemon_msg "Restarting Gargoyle Portscan detection daemon" || true
+	check_dev_null log_end_msg
+        /usr/bin/pkill -2 gargoyle_pscand
+        
+        cd APPDIR
+        LD_LIBRARY_PATH=lib
+
+        if start-stop-daemon --start --oknodo --exec ./gargoyle_pscand ; then
+            
+        log_end_msg 0 || true
+	else
+	    log_end_msg 1 || true
+	fi
+	;;
+
+  status)
+#	check_for_upstart 1
+#        pgrep gargoyle_pscand 
+        ps -ef |grep -v grep|grep gargoyle_pscand$ |awk {'print $2'}
+	;;
+
+  *)
+	log_action_msg "Usage: /etc/init.d/gargoyle_pscand {start|stop|restart|status}" || true
+	exit 1
+esac
+
+exit 0

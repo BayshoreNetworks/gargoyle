@@ -1,0 +1,6 @@
+enforce:1
+port_scan_threshold:15
+single_ip_scan_threshold:6
+overall_port_scan_threshold:8
+last_seen_delta:28800
+lockout_time:32400
