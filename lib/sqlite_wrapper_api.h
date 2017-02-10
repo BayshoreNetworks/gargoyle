@@ -71,6 +71,7 @@ int get_host_all_by_ix(int, char *, size_t, const char *);
 int add_host(const char *, const char *);
 int get_host_ix(const char *, const char *);
 size_t update_host_last_seen(size_t, const char *);
+size_t remove_host(size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_ports_hits table
 int get_unique_list_of_ports(char *, size_t, const char *);
