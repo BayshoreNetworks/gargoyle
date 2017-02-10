@@ -111,8 +111,6 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 	if (the_ip and the_ix) {
 		// we dont ignore this ip
 		
-		std::cout << exists_in_ip_entries(the_ip) << std::endl;
-		
 		if (exists_in_ip_entries(the_ip) == false) {
 			size_t ret;
 			int tstamp;
