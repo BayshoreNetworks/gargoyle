@@ -128,5 +128,8 @@ Notes:
 
 	- When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
+	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep analysis performance acceptable.
+
+
 
 
