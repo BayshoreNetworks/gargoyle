@@ -86,7 +86,7 @@ Config data:
 
 		- "lockout_time" - integer representing seconds - if a host has been blocked by Gargoyle_pscand for a period longer than this value it will be unblocked
 
-		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic
+		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic. A range of ports is supported if the format is properly used (x-y). Example (note no white spaces when specifying a range): ports_to_ignore:22,443,80-90,8080,8443-8448,502
 
 
 
