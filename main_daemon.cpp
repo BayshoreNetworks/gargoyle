@@ -657,14 +657,34 @@ int main()
 				char *token1;
 				char *token1_save;
 				int the_port;
+				char *ret_dash;
 				
 				token1 = strtok_r(&ports_to_ignore[0], tok1, &token1_save);
 				while (token1 != NULL) {
 					
-					the_port = atoi(token1);
-					if(the_port > 0) {
-						if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
-							add_to_ports_entries(the_port);
+					/*
+					 * look for dash and process this
+					 * as a range of ports
+					 */
+					ret_dash = strstr(token1, "-");
+					if (ret_dash) {
+						
+						int start_port = atoi(token1);
+						int end_port = atoi(ret_dash + 1);
+						
+						if (start_port < end_port && start_port > 0) {
+						
+							//std::cout << start_port << std::endl;
+							//std::cout << end_port << std::endl;
+							for(int x = start_port; x <= end_port; x++)
+								add_to_ports_entries(x);
+						}
+					} else {
+						the_port = atoi(token1);
+						if(the_port > 0) {
+							if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
+								add_to_ports_entries(the_port);
+							}
 						}
 					}
 					token1 = strtok_r(NULL, tok1, &token1_save);
