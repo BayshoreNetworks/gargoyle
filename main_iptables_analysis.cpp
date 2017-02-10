@@ -60,6 +60,8 @@ size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 size_t LAST_SEEN_DELTA = 28800;
 bool ENFORCE = true;
 size_t IPTABLES_SUPPORTS_XLOCK;
+// 5 days
+size_t LAST_SEEN_THRESHOLD = 432000;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 
@@ -77,7 +79,7 @@ void add_to_ip_entries(std::string);
 void get_default_gateway_linux();
 void get_local_ip_addrs();
 void get_white_list_addrs();
-
+void clean_up_stale_data();
 
 void handle_signal (int signum) {
 	stop = 1;
@@ -109,8 +111,8 @@ void add_to_iptables_entries(int s) {
 void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 
 	if (the_ip and the_ix) {
-		// we dont ignore this ip
 		
+		// we dont ignore this ip
 		if (exists_in_ip_entries(the_ip) == false) {
 			size_t ret;
 			int tstamp;
@@ -295,7 +297,7 @@ void query_for_multiple_ports_hits_last_seen() {
 		token1 = strtok_r(hosts_all_buf, tok1, &token1_save);
 		while (token1 != NULL) {
 			
-			iter_cnt =0;
+			iter_cnt = 0;
 			token2 = strtok_r(token1, tok2, &token2_save);
 			
 			while (token2 != NULL) {
@@ -420,12 +422,11 @@ void run_analysis() {
 		}
 	}
 
+	clean_up_stale_data();
 	query_for_single_port_hits_last_seen();
 	query_for_multiple_ports_hits_last_seen();
 	
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", (int) time(NULL));
-	
-	//free(l_hosts3);
 	
 	free(l_hosts);
 	free(host_ip);
@@ -567,6 +568,94 @@ void get_white_list_addrs() {
 	free(l_hosts);
 	free(host_ip);
 }
+
+
+void clean_up_stale_data() {
+	
+	int ret;
+	int row_ix;
+	int host_ix;
+	int first_seen;
+	int last_seen;
+	int iter_cnt;
+	int now;
+	int hit_cnt_resp;
+	int l_count;
+	
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+	const char *tok2 = ":";
+	char *token2;
+	char *token2_save;
+	
+	size_t dst_buf_sz = MEDIUM_DEST_BUF;
+	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
+	char *host_ip = (char*) malloc(60);
+	
+	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
+	/*
+	std::cout << hosts_all_buf << std::endl;
+	std::cout << strlen(hosts_all_buf) << std::endl;
+	*/
+	
+	if (ret == 0) {
+		
+		token1 = strtok_r(hosts_all_buf, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			iter_cnt = 0;
+			token2 = strtok_r(token1, tok2, &token2_save);
+			
+			while (token2 != NULL) {
+				
+				if (iter_cnt == 0) {
+					host_ix = atoi(token2);
+				} else if (iter_cnt == 1) {
+					snprintf(host_ip, 60, "%s", token2);
+				} else if (iter_cnt == 2) {
+					first_seen = atoi(token2);
+				} else if (iter_cnt == 3) {
+					last_seen = atoi(token2);
+				}
+				
+				iter_cnt++;
+				token2 = strtok_r(NULL, tok2, &token2_save);
+			}
+
+			if (!exists_in_iptables_entries(host_ix)) {
+				
+				now = (int) time(NULL);
+				if ((now - last_seen) >= LAST_SEEN_THRESHOLD) {
+					/*
+					 * the following must be done in order to
+					 * minimize the overall intensity of the
+					 * analysis process as it can peg a CPU at
+					 * close to 100% when there is a lot of data
+					 * to process
+					 * 
+					 * the next steps will remove all traces of
+					 * a particular host if we havent encountered
+					 * it in over LAST_SEEN_THRESHOLD (5 days by
+					 * default)
+					 */
+					
+					// delete all records for this host_ix from hosts_ports_hits table
+					remove_host_ports_all(host_ix, DB_LOCATION);
+					// delete the host record
+					remove_host(host_ix, DB_LOCATION);
+					
+					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", "removing record",
+							VIOLATOR_SYSLOG, host_ip, "first_seen", first_seen, "last_seen", last_seen);
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	free(hosts_all_buf);
+	free(host_ip);
+}
+
 
 
 int main() {
