@@ -360,7 +360,8 @@ void query_for_multiple_ports_hits_last_seen() {
 
 void run_analysis() {
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", (int) time(NULL));
+	int start_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", start_time);
 	
 	IPTABLES_ENTRIES.clear();
 	get_white_list_addrs();
@@ -426,7 +427,9 @@ void run_analysis() {
 	query_for_single_port_hits_last_seen();
 	query_for_multiple_ports_hits_last_seen();
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", (int) time(NULL));
+	int end_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", end_time);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "analysis process took", end_time - start_time, "seconds");
 	
 	free(l_hosts);
 	free(host_ip);

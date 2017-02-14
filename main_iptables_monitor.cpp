@@ -66,7 +66,8 @@ void handle_signal (int signum) {
 
 void run_monitor() {
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", (int) time(NULL));
+	int start_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", start_time);
 
 	int iter_cnt;
 	//int resp3;
@@ -183,7 +184,9 @@ void run_monitor() {
 		}
 	}
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", (int) time(NULL));
+	int end_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");
 	
 	free(l_hosts3);
 	free(host_ip);
