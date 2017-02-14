@@ -740,50 +740,6 @@ size_t remove_host(size_t ip_addr_ix, const char *db_loc) {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-/*
-int modify_host_set_processed_ix(int the_ix) {
-	
-    char cwd[SQL_CMD_MAX/2];
-    char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
-    } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-    }
-
-	sqlite3 *db;
-	sqlite3_stmt *stmt;
-	int rc;
-
-	char sql[SQL_CMD_MAX];
-
-	rc = sqlite3_open(DB_LOCATION, &db);
-	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [modify_host_set_processed_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
-		return 1;
-	}
-
-	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET active=0, processed=1 WHERE ix = ?1", DETECTED_HOSTS_TABLE);
-	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-	sqlite3_bind_int(stmt, 1, the_ix);
-
-	rc = sqlite3_step(stmt);
-	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR updating data from function [modify_host_set_processed_ix]: %s", sqlite3_errmsg(db));
-		
-		sqlite3_finalize(stmt);
-		sqlite3_close(db);
-		
-		return -1;
-	}
-
-	sqlite3_finalize(stmt);
-	sqlite3_close(db);
-
-	return 0;
-}
-*/
-
 
 int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *db_loc) {
 	
@@ -961,76 +917,6 @@ int get_all_host_one_port_threshold(int the_port, int threshold, char *dst, size
 
 	return 0;
 }
-
-
-/*
-int get_detected_hosts_all_active_unprocessed_ix(char *dst, size_t sz_dst) {
-	
-    char cwd[SQL_CMD_MAX/2];
-    char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
-    } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-    }
-
-	sqlite3 *db;
-	sqlite3_stmt *stmt;
-	int rc;
-
-	//char final_set[SMALL_DEST_BUF];
-	//char l_buf[LOCAL_BUF_SZ];
-	//char sql[SQL_CMD_MAX];
-
-	char *final_set;
-	final_set = (char*) malloc (SMALL_DEST_BUF);
-	char *l_buf;
-	l_buf = (char*) malloc (LOCAL_BUF_SZ);
-	char *sql;
-	sql = (char*) malloc (SQL_CMD_MAX);
-
-	rc = sqlite3_open(DB_LOCATION, &db);
-	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
-
-		free(l_buf);
-		free(sql);
-		free(final_set);
-
-		return 1;
-	}
-
-	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE active = 1 AND processed = 0", DETECTED_HOSTS_TABLE);
-	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-
-	*final_set = 0;
-	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-		snprintf(l_buf, LOCAL_BUF_SZ, "%d>", sqlite3_column_int(stmt, 0));
-		strncat(final_set, l_buf, SMALL_DEST_BUF-strlen(final_set)-1);
-	}
-	size_t final_set_len = strlen(final_set);
-	final_set[final_set_len] = '\0';
-
-	sqlite3_finalize(stmt);
-	sqlite3_close(db);
-	//strcpy(dst, final_set);
-	if (final_set_len+1 > sz_dst) {
-
-		free(l_buf);
-		free(sql);
-		free(final_set);
-
-		return 1;
-	}
-	memcpy (dst, final_set, final_set_len+1);
-
-	free(l_buf);
-	free(sql);
-	free(final_set);
-
-	return 0;
-}
-*/
 
 
 int get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, const char *db_loc) {
@@ -1275,7 +1161,7 @@ size_t get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1314,147 +1200,6 @@ size_t get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 
 	return 0;
 }
-
-
-/*
-int get_detected_hosts_all_active_unprocessed(char *dst, size_t sz_dst) {
-	
-    char cwd[SQL_CMD_MAX/2];
-    char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
-    } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-    }
-
-	sqlite3 *db;
-	sqlite3_stmt *stmt;
-	int rc;
-
-	//char final_set[SMALL_DEST_BUF];
-	//char l_buf[LOCAL_BUF_SZ];
-	//char sql[SQL_CMD_MAX];
-
-	char *final_set;
-	final_set = (char*) malloc (SMALL_DEST_BUF);
-	char *l_buf;
-	l_buf = (char*) malloc (LOCAL_BUF_SZ);
-	char *sql;
-	sql = (char*) malloc (SQL_CMD_MAX);
-
-	rc = sqlite3_open(DB_LOCATION, &db);
-	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed]: %s", DB_LOCATION, sqlite3_errmsg(db));
-
-		free(l_buf);
-		free(sql);
-		free(final_set);
-
-		return 1;
-	}
-
-	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE active = 1 AND processed = 0", DETECTED_HOSTS_TABLE);
-	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-
-	*final_set = 0;
-	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-		//printf("%d:%d:%d:%d:%d\n", sqlite3_column_int(stmt, 0), sqlite3_column_int(stmt, 1), sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3), sqlite3_column_int(stmt, 4));
-		snprintf(l_buf, LOCAL_BUF_SZ, "%d:%d:%d:%d:%d>", sqlite3_column_int(stmt, 0), sqlite3_column_int(stmt, 1), sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3), sqlite3_column_int(stmt, 4));
-		//strncat(final_set, l_buf, sizeof(final_set)-strlen(final_set)-1);
-		//strncat(final_set, ">", sizeof(final_set)-strlen(final_set)-1);
-		strncat(final_set, l_buf, SMALL_DEST_BUF-strlen(final_set)-1);       
-	}
-	size_t final_set_len = strlen(final_set);
-	final_set[final_set_len] = '\0';
-
-	sqlite3_finalize(stmt);
-	sqlite3_close(db);
-	//strcpy(dst, final_set);
-	if (final_set_len+1 > sz_dst) {
-
-		free(l_buf);
-		free(sql);
-		free(final_set);
-
-		return 1;
-	}
-	memcpy (dst, final_set, final_set_len+1);
-
-	free(l_buf);
-	free(sql);
-	free(final_set);
-
-	return 0;
-}
-*/
-
-/*
-int get_detected_hosts_all_active_unprocessed_host_ix(char *dst, size_t sz_dst) {
-	
-    char cwd[SQL_CMD_MAX/2];
-    char DB_LOCATION[SQL_CMD_MAX+1];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    	return 1;
-    } else {
-    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-    }
-
-	sqlite3 *db;
-	sqlite3_stmt *stmt;
-	int rc;
-
-	//char final_set[SMALL_DEST_BUF];
-	//char l_buf[LOCAL_BUF_SZ];
-	//char sql[SQL_CMD_MAX];
-
-	char *final_set;
-	final_set = (char*) malloc (SMALL_DEST_BUF);
-	char *l_buf;
-	l_buf = (char*) malloc (LOCAL_BUF_SZ);
-	char *sql;
-	sql = (char*) malloc (SQL_CMD_MAX);
-
-	rc = sqlite3_open(DB_LOCATION, &db);
-	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all_active_unprocessed_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
-
-		free(l_buf);
-		free(sql);
-		free(final_set);
-
-		return 1;
-	}
-
-	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE active = 1 AND processed = 0", DETECTED_HOSTS_TABLE);
-	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
-
-	*final_set = 0;
-	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-		snprintf(l_buf, LOCAL_BUF_SZ, "%d>", sqlite3_column_int(stmt, 0));
-		strncat(final_set, l_buf, SMALL_DEST_BUF-strlen(final_set)-1);
-	}
-	size_t final_set_len = strlen(final_set);
-	final_set[final_set_len] = '\0';
-
-	sqlite3_finalize(stmt);
-	sqlite3_close(db);
-	if (final_set_len+1 > sz_dst) {
-
-		free(l_buf);
-		free(sql);
-		free(final_set);
-
-		return 1;
-	}
-	memcpy (dst, final_set, final_set_len+1);
-
-	free(l_buf);
-	free(sql);
-	free(final_set);
-
-	return 0;
-}
-*/
 
 
 size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char *db_loc) {

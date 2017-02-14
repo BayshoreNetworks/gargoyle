@@ -910,29 +910,8 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 		char *s_lchains3;
 		char *s_lchains4;
 
-
-		/*
-		// whats active in iptables?
-		resp = get_detected_hosts_all_active_unprocessed_host_ix(l_hosts, dst_buf_sz);
-		if (resp == 0) {
-			token1 = strtok_r(l_hosts, tok1, &token1_save);
-			while (token1 != NULL) {
-
-				*host_ip = 0;
-				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
-
-				//std::cout << "A: " << host_ip << std::endl;
-
-				ip_tables_entries.insert(host_ip);
-
-				token1 = strtok_r(NULL, tok1, &token1_save);
-			}
-		}
-		*/
-		// whats active in iptables?
-		
+		// whats active in iptables?		
 		iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
-		
 		if (l_hosts) {
 			token1 = strtok_r(l_hosts, tok1, &token1_save);
 			while (token1 != NULL) {
@@ -1209,31 +1188,7 @@ void GargoylePscandHandler::add_block_rules() {
 	added_host_ix = 0;
 	int tstamp;
 
-	/*
-	 * get current list of blocked ip's from the DB
-	 * 
-	 * seems faster this way cause iptables queries are
-	 * very expensive
-	 */
 	// whats active in iptables?
-	/*
-	resp = get_detected_hosts_all_active_unprocessed_host_ix(l_hosts, dst_buf_sz);
-	if (resp == 0) {
-		token1 = strtok_r(l_hosts, tok1, &token1_save);
-		while (token1 != NULL) {
-
-			*host_ip = 0;
-			get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1);
-
-			ip_tables_entries.insert(host_ip);
-
-			//std::cout << "IP: " << host_ip << " - STRLEN: " << strlen(host_ip) << std::endl;
-
-			token1 = strtok_r(NULL, tok1, &token1_save);
-		}
-	}
-	*/
-	
 	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_hosts) {

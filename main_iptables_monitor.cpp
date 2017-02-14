@@ -93,7 +93,6 @@ void run_monitor() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	//resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
 	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
 	
 	if (resp3 == 0) {
