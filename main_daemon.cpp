@@ -53,6 +53,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "string_functions.h"
+
 ///////////////////////////////////////////////////////////////////////////////////
 bool IGNORE_LISTENING_PORTS = true;
 bool IGNORE_LOCAL_IP_ADDRS = true;
@@ -82,6 +83,7 @@ void get_default_gateway_linux();
 void get_white_list_addrs();
 
 ///////////////////////////////////////////////////////////////////////////////////
+
 void nfqueue_signal_handler(int signum) {
 	graceful_exit(signum);
 }

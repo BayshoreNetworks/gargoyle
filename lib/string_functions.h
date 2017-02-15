@@ -38,7 +38,12 @@
 #define CMD_BUF_SZ 100
 
 
-inline bool case_insensitive_char_compare(char a, char b) {
+
+
+#ifdef __cplusplus
+
+
+bool case_insensitive_char_compare(char a, char b) {
 	return(toupper(a) == toupper(b));
 }
 
@@ -47,7 +52,6 @@ bool case_insensitive_compare(const std::string& s1, const std::string& s2) {
 }
 
 
-#ifdef __cplusplus
 extern "C" {
 #endif
 
