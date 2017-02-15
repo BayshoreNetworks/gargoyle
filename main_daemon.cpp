@@ -52,6 +52,7 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
+#include "string_functions.h"
 ///////////////////////////////////////////////////////////////////////////////////
 bool IGNORE_LISTENING_PORTS = true;
 bool IGNORE_LOCAL_IP_ADDRS = true;
@@ -553,7 +554,7 @@ void get_white_list_addrs() {
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-int main()
+int main(int argc, char *argv[])
 {
 	
     // Set up signal handlers
@@ -563,6 +564,27 @@ int main()
     if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
+    }
+    
+    /*
+     * in order to keep stuff lean and mean I
+     * am doing this manually here and not
+     * using a lib that parses command line args,
+     * maybe we replace this in the future ...
+     */
+    if (argc > 2 || argc < 1) {
+    	
+    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	return 1;
+    	
+    } else if (argc == 2) {
+    	
+    	std::string arg_one = argv[1];
+    	
+    	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
+    		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
+    	}
+    	return 0;
     }
     
     // Get port config data
