@@ -98,6 +98,12 @@ To compile and install:
 
 Notes:
 
+	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is syncronized with data in the DB and it is important for that synchronization is be respected.
+
+	- To start/stop the Gargoyle_pscand daemons use the init script, DO NOT do stuff like "kill -9 gargoyle_pscand" as that will leave your machine in a bad state. Bad state means that the iptables NFQUEUE rule is in place yet nothing (Gargoyle_pscand performs this action) is active to process packets coming off the queue.
+
+	- When one stops the dameons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
+
 	- Currently addresses TCP ports, UDP support will come soon
 	
 	- This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
@@ -108,9 +114,6 @@ Notes:
 		- any ip address bound to the local system (data comes from system call to "ip addr")
 		- any ip address whitelisted in the DB 
 		- system default gateway (data comes from "/proc/net/route")
-
-
-
 
 	- BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
@@ -125,8 +128,6 @@ Notes:
 
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
-
-	- When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
 	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep analysis performance acceptable.
 
