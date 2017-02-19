@@ -75,6 +75,17 @@ int Queue::_callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq
 
 void Queue::setVerdict(u_int32_t id, u_int32_t verdict, u_int32_t data_len, const unsigned char *buf)
 {
+	/* 
+	 * nfq_set_verdict is terminal, meaning once
+	 * we set this verdict the packets never get
+	 * passed to other iptables rules. This becomes
+	 * a problem when the INPUT chain has rules like
+	 * these on the bottom (like Fedora 25 does):
+	 * 
+	 * DROP       all  --  0.0.0.0/0            0.0.0.0/0            ctstate INVALID
+	 * REJECT     all  --  0.0.0.0/0            0.0.0.0/0            reject-with icmp-host-prohibited
+	 * 
+	 */
 	nfq_set_verdict(_handle, id, verdict, data_len, buf);
 }
 

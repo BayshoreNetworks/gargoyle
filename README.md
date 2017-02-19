@@ -3,7 +3,7 @@ Gargoyle Port Scan Detector
 
 This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
+Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
 
 Gargoyle_pscand is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 

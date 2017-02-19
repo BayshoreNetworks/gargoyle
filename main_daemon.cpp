@@ -141,9 +141,10 @@ void handle_chain() {
 	 * look for something like this: Chain BSN_test_Chain (1 references)
 	 * 2. add GARGOYLE_CHAIN_NAME at index 1 in chain INPUT
 	 * 3. add nfqueue rule to chain INPUT ...
-	 * this rule needs to either be last or right above DROP/REJECT rules
-	 * put there at a system level
-	 * ?? or does it need to be at index 2 ??
+	 * this rule needs to be the last one in the INPUT chain
+	 * since NFQUEUE is terminal (when we set verdict it
+	 * is final and packets will go no further in terms
+	 * of iptables rules
 	 */
 	///////////////////////////////////////////////////
 	// 1
@@ -229,7 +230,8 @@ void handle_chain() {
 	 * 
 	 * Any blocking rules that get added to the INPUT
 	 * chain after this one will not work, as in packets
-	 * will get through
+	 * will get through since we always set verdict
+	 * with NF_ACCEPT as the verdict
 	 * 
 	 * iptables -A INPUT -j NFQUEUE --queue-num 5
 	 */
@@ -253,7 +255,7 @@ void handle_chain() {
 	if (rule_ix == 0) {
 		//std::cout << rule_ix << std::endl;
 		/*
-		 * look for rules that start with DROP or REJECT,
+		 * look for rules that start with DROP or REJECT
 		 * we need to get injected before them
 		 */
 		iptables_list_chain_with_line_numbers(IPTABLES_INPUT_CHAIN, l_chains3, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
@@ -289,13 +291,34 @@ void handle_chain() {
 					}
 					//std::cout << token1 << std::endl;
 				}
+				
+				targ_ix = atoi(token1);
 				token1 = strtok_r(NULL, tok1, &token1_save);
 			}
 		}
 		
 		if (drop_ix > 0 && reject_ix > 0) {
-			targ_ix = std::min(drop_ix,reject_ix);
+			
+			//targ_ix = std::min(drop_ix,reject_ix);
+			//targ_ix = last rule index of INPUT
+			int drop_ix_delta = targ_ix - drop_ix;
+			int reject_ix_delta = targ_ix - reject_ix;
+			/*
+			std::cout << "DROPD: " << drop_ix_delta << std::endl;
+			std::cout << "REJECTD: " << reject_ix_delta << std::endl;
+			*/
+			if (drop_ix_delta < 2 && reject_ix_delta < 2) {
+				
+				std::cout << "Gargoyle_pscand cannot run with iptables (INPUT chain) rules " << drop_ix << " and " << reject_ix << " in place" << std::endl << std::endl;
+				// dont continue
+				graceful_exit(2);
+				exit(0);
+			}
 		}
+		
+		if (targ_ix >= 1)
+			targ_ix = targ_ix + 1;
+		
 		if (targ_ix == 0)
 			targ_ix = 2;
 
