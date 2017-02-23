@@ -608,8 +608,10 @@ int main(int argc, char *argv[])
     	
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c")) { }
+    	else {
+    		return 0;
     	}
-    	return 0;
     }
     
     // Get port config data
