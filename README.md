@@ -11,7 +11,7 @@ There are numerous run time entities:
 
 	1. gargoyle_pscand - runs as the main daemon and expects signal 2 (SIGINT) to be brought down as there is a complex cleanup process upon the reciept of SIGINT.
 
-		This is the main daemon that reads packet data right off the netfilter queue (set up as: "iptables -I INPUT -j NFQUEUE --queue-num 5")
+		This is the main daemon that reads packet data right off iptables via NFLOG (set up as: "iptables -I INPUT -j NFLOG --nflog-group 5")
 
 		There are multiple layers to this solution (as part of the running main daemon):
 
@@ -52,11 +52,11 @@ Required libs
 
 	Debian variant:
 
-		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev autoconf lsb-base
+		sudo apt-get install sqlite3 libsqlite3-dev autoconf lsb-base libnetfilter-log-dev
 
 	Fedora:
 
-		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel autoconf redhat-lsb-core
+		sudo dnf install sqlite3 libsqlite3x-devel autoconf redhat-lsb-core libnetfilter_log-devel
 
 
 Database:
@@ -100,7 +100,7 @@ Notes:
 
 	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is syncronized with data in the DB and it is important for that synchronization is be respected.
 
-	- To start/stop the Gargoyle_pscand daemons use the init script, DO NOT do stuff like "kill -9 gargoyle_pscand" as that will leave your machine in a bad state. Bad state means that the iptables NFQUEUE rule is in place yet nothing (Gargoyle_pscand performs this action) is active to process packets coming off the queue.
+	- To start/stop the Gargoyle_pscand daemons use the init script.
 
 	- When one stops the dameons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
