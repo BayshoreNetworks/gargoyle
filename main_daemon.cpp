@@ -195,7 +195,7 @@ void handle_chain() {
 		position = 1;
 		// insert this to INPUT chain at specific index 1
 		iptables_insert_chain_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, "1", GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s %d", "Adding", GARGOYLE_CHAIN_NAME, "to chain", IPTABLES_INPUT_CHAIN "at index", position);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s %d", "Adding", GARGOYLE_CHAIN_NAME, "to chain", IPTABLES_INPUT_CHAIN, "at index", position);
 	} else {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %d %s %s", GARGOYLE_CHAIN_NAME, "already exists at index", position, "in chain", IPTABLES_INPUT_CHAIN);
 	}
