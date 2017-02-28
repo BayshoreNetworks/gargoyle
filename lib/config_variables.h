@@ -54,6 +54,9 @@ class ConfigVariables {
 	
 public:
 	
+	ConfigVariables() { }
+	virtual ~ConfigVariables() { }
+	
 	/*
 	 * return 0 = ok
 	 * return 1 = not ok
