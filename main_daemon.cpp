@@ -47,12 +47,19 @@
 
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
-#include "nf_queue.h"
 #include "packet_handler.h"
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "string_functions.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <libnetfilter_log/libnetfilter_log.h>
+#ifdef __cplusplus
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////
 bool IGNORE_LISTENING_PORTS = true;
@@ -66,6 +73,13 @@ char DB_LOCATION[SQL_CMD_MAX+1];
 
 std::vector<int> IGNORE_PORTS;
 std::vector<std::string> LOCAL_IP_ADDRS;
+
+struct nflog_handle *nfl_handle;
+struct nflog_g_handle *qh;
+
+GargoylePscandHandler gargoyleHandler;
+
+int NFLOG_BIND_GROUP = 5;
 ///////////////////////////////////////////////////////////////////////////////////
 
 int hex_to_int(const char *);
@@ -100,26 +114,25 @@ void graceful_exit(int signum) {
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s %s", SIGNAL_CAUGHT_SYSLOG, signum, "destroying queue, cleaning up iptables entries and", PROG_TERM_SYSLOG);
 	
 	/*
-	 * 1. delete NFQUEUE rule from INPUT chain
+	 * 1. delete NFLOG rule from INPUT chain
 	 * 2. delete GARGOYLE_CHAIN_NAME rule from the INPUT chain
 	 * 3. flush (delete any rules that exist in) GARGOYLE_CHAIN_NAME
 	 * 4. clear items in DB table detected_hosts
-	 * 5. deete GARGOYLE_CHAIN_NAME
+	 * 5. delete GARGOYLE_CHAIN_NAME
 	 */
 	///////////////////////////////////////////////////
 	// 1
-	size_t rule_ix;
-	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE, IPTABLES_SUPPORTS_XLOCK);
+	int rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFLOG, "nflog-group", IPTABLES_SUPPORTS_XLOCK);
 	if (rule_ix > 0) {
 		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, rule_ix, IPTABLES_SUPPORTS_XLOCK);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %d", "Deleting NFLOG rule from chain", IPTABLES_INPUT_CHAIN, "at index", rule_ix);
 	}
 	///////////////////////////////////////////////////
 	// 2
-	size_t g_rule_ix;
-	g_rule_ix = iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
-	//syslog(LOG_INFO | LOG_LOCAL6, "%s: %zu, %s %s %s %s", "Rule", g_rule_ix, "is", GARGOYLE_CHAIN_NAME, "inside", IPTABLES_INPUT_CHAIN);
+	int g_rule_ix = iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	if (g_rule_ix > 0) {
 		iptables_delete_rule_from_chain(IPTABLES_INPUT_CHAIN, g_rule_ix, IPTABLES_SUPPORTS_XLOCK);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s %d", "Deleting", GARGOYLE_CHAIN_NAME, "from chain", IPTABLES_INPUT_CHAIN, "at index", g_rule_ix);
 	}
 	///////////////////////////////////////////////////
 	// 3
@@ -130,7 +143,9 @@ void graceful_exit(int signum) {
 	///////////////////////////////////////////////////
 	// 5
 	iptables_delete_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
-
+	///////////////////////////////////////////////////
+	
+	exit(0);
 }
 
 
@@ -138,13 +153,9 @@ void handle_chain() {
 
 	/*
 	 * 1. if the chain GARGOYLE_CHAIN_NAME doesnt exist create it
-	 * look for something like this: Chain BSN_test_Chain (1 references)
-	 * 2. add GARGOYLE_CHAIN_NAME at index 1 in chain INPUT
-	 * 3. add nfqueue rule to chain INPUT ...
-	 * this rule needs to be the last one in the INPUT chain
-	 * since NFQUEUE is terminal (when we set verdict it
-	 * is final and packets will go no further in terms
-	 * of iptables rules
+	 * look for something like this: Chain GARGOYLE_Input_Chain (1 references)
+	 * 2. add GARGOYLE_CHAIN_NAME at some index in chain INPUT
+	 * 3. add nflog rule to chain INPUT
 	 */
 	///////////////////////////////////////////////////
 	// 1
@@ -160,177 +171,49 @@ void handle_chain() {
 	iptables_list_all(l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_chains) {
-		//std::cout << l_chains << std::endl;
 		p_lchains = strstr (l_chains, GARGOYLE_CHAIN_NAME);
 		if (!p_lchains) {
 			// create new chain used just for this
-			//std::cout << "CREATING Chain " << GARGOYLE_CHAIN_NAME << std::endl;
 			iptables_create_new_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 			/*
 			 * example out:
 			 * 
 			 * Dec 22 11:55:29 shadow-box gargoyle_pscand[2278]: Creating Chain-GARGOYLE_Input_Chain
 			 */
-			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s", "Creating Chain", GARGOYLE_CHAIN_NAME);
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "Creating Chain", GARGOYLE_CHAIN_NAME);
 		}
 	}
 	///////////////////////////////////////////////////
 	// 2
-	size_t dst_buf_sz2 = DEST_BUF_SZ;
-	char *l_chains2 = (char*) malloc(dst_buf_sz2+1);
-	*l_chains2 = 0;
-	
-	const char *tok1 = "\n";
-	char *token1;
-	char *token1_save;
-	
-	char *p_lchains2;
-	char *s_lchains2;
-	
 	bool ADD_CHAIN_TO_INPUT = true;
 	
-	iptables_list_all_with_line_numbers(l_chains2, dst_buf_sz2, IPTABLES_SUPPORTS_XLOCK);
-	if (l_chains2) {
-		token1 = strtok_r(l_chains2, tok1, &token1_save);
-		while (token1 != NULL) {
-			p_lchains2 = strstr (token1, GARGOYLE_CHAIN_NAME);
-			if (p_lchains2) {
-				s_lchains2 = strstr (token1, "Chain");
-				if (s_lchains2) {
-					int position = s_lchains2 - token1;
-					if (position != 0) {
-						ADD_CHAIN_TO_INPUT = false;
-						break;
-					}
-				}
-			}
-			token1 = strtok_r(NULL, tok1, &token1_save);
-		}
-	}
+	int position = iptables_find_rule_in_chain(IPTABLES_INPUT_CHAIN, GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
+	if (position > 0)
+		ADD_CHAIN_TO_INPUT = false;
 
 	if (ADD_CHAIN_TO_INPUT) {
+		position = 1;
 		// insert this to INPUT chain at specific index 1
 		iptables_insert_chain_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, "1", GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s %d", "Adding", GARGOYLE_CHAIN_NAME, "to chain", IPTABLES_INPUT_CHAIN "at index", position);
+	} else {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %d %s %s", GARGOYLE_CHAIN_NAME, "already exists at index", position, "in chain", IPTABLES_INPUT_CHAIN);
 	}
-	
-	int drop_ix;
-	int reject_ix;
-	int	targ_ix;
-		
-	drop_ix = 0;
-	reject_ix = 0;
-	targ_ix = 0;	
 	///////////////////////////////////////////////////
 	// 3
-	/*
-	 * setup nfqueue rule last as we want the
-	 * blocking rules from Chain (GARGOYLE_CHAIN_NAME)
-	 * to be executed before packets get handed
-	 * off to the nfqueue
-	 * 
-	 * Any blocking rules that get added to the INPUT
-	 * chain after this one will not work, as in packets
-	 * will get through since we always set verdict
-	 * with NF_ACCEPT as the verdict
-	 * 
-	 * iptables -A INPUT -j NFQUEUE --queue-num 5
-	 */
-	size_t rule_ix;
-	rule_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFQUEUE, NFQUEUE_NUM_LINE, IPTABLES_SUPPORTS_XLOCK);
-	
-	size_t d_buf_sz = DEST_BUF_SZ * 2;
-	char *l_chains3 = (char*) malloc(d_buf_sz);
-	*l_chains3 = 0;
-	
-	char *p_lchains3;
-	char *s_lchains3;
-	char *drop_ix_buf = (char*) malloc(5);
-	*drop_ix_buf = 0;
-	
-	char *p_lchains4;
-	char *s_lchains4;
-	char *reject_ix_buf = (char*) malloc(5);
-	*reject_ix_buf = 0;
-	
-	if (rule_ix == 0) {
-		//std::cout << rule_ix << std::endl;
-		/*
-		 * look for rules that start with DROP or REJECT
-		 * we need to get injected before them
-		 */
-		iptables_list_chain_with_line_numbers(IPTABLES_INPUT_CHAIN, l_chains3, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
-		if (l_chains3) {
-			token1 = strtok_r(l_chains3, tok1, &token1_save);
-			while (token1 != NULL) {
-				
-				p_lchains3 = strstr (token1, "DROP ");
-				p_lchains4 = strstr (token1, "REJECT ");
-				
-				if (p_lchains3) {
-					s_lchains3 = strstr (token1, " ");
-					if (s_lchains3) {
-						int position2 = s_lchains3 - token1;
-						strncpy(drop_ix_buf, token1, position2);
-						drop_ix_buf[position2] = '\0';
-						drop_ix = atoi(drop_ix_buf);
-						/*
-						std::cout << position2 << std::endl;
-						std::cout << drop_ix_buf << " - " << strlen(drop_ix_buf) << std::endl;
-						*/
-					}
-					//std::cout << token1 << std::endl;
-				}
-				
-				if (p_lchains4) {
-					s_lchains4 = strstr (token1, " ");
-					if (s_lchains4) {
-						int position3 = s_lchains4 - token1;
-						strncpy(reject_ix_buf, token1, position3);
-						reject_ix_buf[position3] = '\0';
-						reject_ix = atoi(reject_ix_buf);
-					}
-					//std::cout << token1 << std::endl;
-				}
-				
-				targ_ix = atoi(token1);
-				token1 = strtok_r(NULL, tok1, &token1_save);
-			}
-		}
-		
-		if (drop_ix > 0 && reject_ix > 0) {
-			
-			//targ_ix = std::min(drop_ix,reject_ix);
-			//targ_ix = last rule index of INPUT
-			int drop_ix_delta = targ_ix - drop_ix;
-			int reject_ix_delta = targ_ix - reject_ix;
-			/*
-			std::cout << "DROPD: " << drop_ix_delta << std::endl;
-			std::cout << "REJECTD: " << reject_ix_delta << std::endl;
-			*/
-			if (drop_ix_delta < 2 && reject_ix_delta < 2) {
-				
-				std::cout << "Gargoyle_pscand cannot run with iptables (INPUT chain) rules " << drop_ix << " and " << reject_ix << " in place" << std::endl << std::endl;
-				// dont continue
-				graceful_exit(2);
-				exit(0);
-			}
-		}
-		
-		if (targ_ix >= 1)
-			targ_ix = targ_ix + 1;
-		
-		if (targ_ix == 0)
-			targ_ix = 2;
+	int targ_ix = iptables_find_rule_in_chain_two_criteria(IPTABLES_INPUT_CHAIN, NFLOG, "nflog-group", IPTABLES_SUPPORTS_XLOCK);
 
-		iptables_insert_nfqueue_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, targ_ix, IPTABLES_SUPPORTS_XLOCK);
+	if (targ_ix == 0) {
+		targ_ix = position + 1;
 
+		iptables_insert_nflog_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, targ_ix, IPTABLES_SUPPORTS_XLOCK);
+		//iptables_insert_nflog_rule_to_chain_at_index(IPTABLES_INPUT_CHAIN, 2, IPTABLES_SUPPORTS_XLOCK);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %d", "Adding NFLOG rule to chain", IPTABLES_INPUT_CHAIN, "at index", targ_ix);
+	} else {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s %s", "NFLOG rule already exists at index", targ_ix, "in chain", IPTABLES_INPUT_CHAIN);
 	}
 	///////////////////////////////////////////////////
 	free(l_chains);
-	free(l_chains2);
-	free(l_chains3);
-	free(drop_ix_buf);
-	free(reject_ix_buf);
 }
 
 
@@ -608,8 +491,8 @@ int main(int argc, char *argv[])
     	
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
-    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
-    	else {
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
+    	} else {
     		return 0;
     	}
     }
@@ -780,20 +663,11 @@ int main(int argc, char *argv[])
 		}
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
 	}
-	
-	Library lib;
-	lib.bind(AF_INET);
-	
-	CompoundHandler c_handlers;
-	
-	GargoylePscandHandler gargoyleHandler;
-	
-	/*
-	 * this can be more elegant but works for now
-	 */
+
 	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
 		gargoyleHandler.add_to_ip_entries(*i);
 	}
+
 	gargoyleHandler.set_ignore_local_ip_addrs(IGNORE_LOCAL_IP_ADDRS);
 	gargoyleHandler.set_ephemeral_low(EPHEMERAL_LOW);
 	gargoyleHandler.set_ephemeral_high(EPHEMERAL_HIGH);
@@ -803,24 +677,69 @@ int main(int argc, char *argv[])
 		gargoyleHandler.set_single_ip_scan_threshold(single_ip_scan_threshold);
 	if (single_port_scan_threshold > 0)
 		gargoyleHandler.set_single_port_scan_threshold(single_port_scan_threshold);
-	
-	/*
-	 * this can be more elegant but works for now
-	 */
+
 	for (std::vector<int>::const_iterator i = IGNORE_PORTS.begin(); i != IGNORE_PORTS.end(); ++i) {
 		gargoyleHandler.add_to_ports_entries(*i);
 	}
 	gargoyleHandler.set_iptables_supports_xlock(IPTABLES_SUPPORTS_XLOCK);
 	gargoyleHandler.set_db_location(DB_LOCATION);
-	
-	c_handlers.add_handler(gargoyleHandler);
-	
-	Queue queue(lib, 5, c_handlers);
-	
-	lib.loop();
 
+
+	int rv, fd;
+	char buf[4096] __attribute__ ((aligned));
+
+	nfl_handle = nflog_open();
+	if (!nfl_handle) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Error obtaining netfilter log connection handle");
+		return 1;
+	}
+
+	// unbinding existing nf_log handler for AF_INET (if any)
+	if (nflog_unbind_pf(nfl_handle, AF_INET) < 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Error unbinding the netfilter_log kernel logging backend");
+		return 1;
+	}
+
+	// binding nfnetlink_log to AF_INET
+	if (nflog_bind_pf(nfl_handle, AF_INET) < 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Error binding the netfilter_log kernel logging backend");
+		return 1;
+	}
+	
+	// binding socket to group NFLOG_BIND_GROUP
+	qh = nflog_bind_group(nfl_handle, NFLOG_BIND_GROUP);
+	if (!qh) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "Error aquiring handle for nflog group", NFLOG_BIND_GROUP);
+		return 1;
+	}
+
+	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, 0xffff) < 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Error setting packet copy mode");
+		return 1;
+	}
+
+	fd = nflog_fd(nfl_handle);
+	nflog_callback_register(qh, &GargoylePscandHandler::packet_handle, &gargoyleHandler);
+
+	// main loop to get data via nflog
+	//while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {
+	while (TEMP_FAILURE_RETRY((rv = recv(fd, buf, sizeof(buf), 0)))) {
+		
+		
+		// handle message in packet that just arrived
+		nflog_handle_packet(nfl_handle, buf, rv);
+	}
+
+	if (qh) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s: %zu", "Unbinding from group", NFLOG_BIND_GROUP);
+		nflog_unbind_group(qh);
+	}
+	if (nfl_handle) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "closing handle to NFLOG");
+		nflog_close(nfl_handle);
+	}
+	
 	graceful_exit(SIGINT);
 	
 	return 0;
 }
-
