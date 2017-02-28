@@ -731,7 +731,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (qh) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s: %zu", "Unbinding from group", NFLOG_BIND_GROUP);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s: %d", "Unbinding from group", NFLOG_BIND_GROUP);
 		nflog_unbind_group(qh);
 	}
 	if (nfl_handle) {
