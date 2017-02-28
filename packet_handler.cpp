@@ -29,6 +29,7 @@
  *****************************************************************************/
 #include <iostream>
 #include <algorithm>
+#include <cstdlib>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -65,7 +66,7 @@ int BASE_TIME;
 int PROCESS_TIME_CHECK = 60;
 size_t PH_SINGLE_IP_SCAN_THRESHOLD = 6;
 size_t PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
-size_t PROCESSING_LIMIT = 100;
+size_t PROCESSING_LIMIT = 200;
 /////////////////////////////////////////////////////////////////////////////////
 std::vector<int> calculate_flags(int dec) {
 
@@ -115,21 +116,7 @@ void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, s
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void CompoundHandler::add_handler(PacketHandler& handler) {
-	_handlers.push_back(&handler);
-}
 
-
-int CompoundHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
-	for (list_t::iterator it = _handlers.begin(); it != _handlers.end(); ++it)
-	{
-		int ret = (*it)->handle_packet(queue, nfmsg, nfad);
-		if (ret < 0)
-			return ret;
-	}
-	return 0;
-}
-/////////////////////////////////////////////////////////////////////////////////
 GargoylePscandHandler::GargoylePscandHandler() {
 	BASE_TIME = (int) time(NULL);
 	ENFORCE = true;
@@ -137,212 +124,223 @@ GargoylePscandHandler::GargoylePscandHandler() {
 	PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
 }
 
-int GargoylePscandHandler::handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad)
+
+int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *ldata)
 {
-	int id = 0;
-
-	//printf("%s", _prefix.c_str());
-
-	struct nfqnl_msg_packet_hdr* ph = nfq_get_msg_packet_hdr(nfad);
-	if (ph)
-	{
-		id = ntohl(ph->packet_id);
-		//printf("hw_protocol=0x%04x hook=%u id=%u ", ntohs(ph->hw_protocol), ph->hook, id);
-	}
-
-	struct nfqnl_msg_packet_hw* hwph = nfq_get_packet_hw(nfad);
-	if (hwph)
-	{
-		int i, hlen = ntohs(hwph->hw_addrlen);
+	
+	GargoylePscandHandler* _this = (GargoylePscandHandler *)ldata;
+	
+	if (_this) {
+		
+		int id = 0;
+		
 		/*
-		printf("hw_src_addr=");
-		for (i = 0; i < hlen-1; i++)
-			printf("%02x:", hwph->hw_addr[i]);
-		printf("%02x ", hwph->hw_addr[hlen-1]);
-		 */
-	}
-	u_int32_t mark = nfq_get_nfmark(nfad);
-	/*
-	if (mark)
-		printf("mark=%u ", mark);
-	 */
-	u_int32_t ifi = nfq_get_indev(nfad);
-	/*
-	if (ifi)
-		printf("indev=%u ", ifi);
-	 */
-	ifi = nfq_get_outdev(nfad);
-	/*
-	if (ifi)
-		printf("outdev=%u ", ifi);
-	 */
-	ifi = nfq_get_physindev(nfad);
-	/*
-	if (ifi)
-		printf("physindev=%u ", ifi);
-	 */
-	ifi = nfq_get_physoutdev(nfad);
-	/*
-	if (ifi)
-		printf("physoutdev=%u ", ifi);
-	 */
-	unsigned char *data;
-	int ret = nfq_get_payload(nfad, &data);
-	/*
-	if (ret >= 0)
-		printf("payload_len=%d ", ret);
-	 */
-	if ((unsigned int)ret >= sizeof(struct iphdr))
-	{
-		struct iphdr* ip = (struct iphdr*)(data);
+		struct nfulnl_msg_packet_hdr* ph = nflog_get_msg_packet_hdr(nfa);
+		if (ph)
+		{
+			//id = ntohl(ph->packet_id);
+			//printf("hw_protocol=0x%04x hook=%u id=%u ", ntohs(ph->hw_protocol), ph->hook, id);
+		}
+		*/
+	
+		/*
+		struct nfulnl_msg_packet_hw* hwph = nflog_get_packet_hw(nfa);
+		if (hwph)
+		{
+			
+			int i, hlen = ntohs(hwph->hw_addrlen);
+			
+			printf("hw_src_addr=");
+			for (i = 0; i < hlen-1; i++)
+				printf("%02x:", hwph->hw_addr[i]);
+			printf("%02x ", hwph->hw_addr[hlen-1]);
+			
+		}
+		*/
+		
+		/*
+		u_int32_t mark = nflog_get_nfmark(nfa);
+		if (mark)
+			printf("mark=%u ", mark);
+		*/
+		
+		/*
+		u_int32_t ifi = nflog_get_indev(nfa);
+		if (ifi)
+			printf("indev=%u ", ifi);
 
-		// TCP
-		if (ip->protocol == IPPROTO_TCP) {
+		ifi = nflog_get_outdev(nfa);
+		if (ifi)
+			printf("outdev=%u ", ifi);
 
-			u_int16_t flags = ntohs(ip->frag_off);
+		ifi = nflog_get_physindev(nfa);
+		if (ifi)
+			printf("physindev=%u ", ifi);
 
-			struct tcphdr *tcp_info;
-			unsigned short dst_port;
-			unsigned short src_port;
-			unsigned short seq_num;
-			unsigned short ack_num;
+		ifi = nflog_get_physoutdev(nfa);
+		if (ifi)
+			printf("physoutdev=%u ", ifi);
+		*/
 
-			tcp_info = (struct tcphdr*)(data + sizeof(*ip));
+		char *data;
+		int ret = nflog_get_payload(nfa, &data);
+		
+		if (ret < 0)
+			return 0;
 
-			dst_port = ntohs(tcp_info->dest);
-			src_port = ntohs(tcp_info->source);
-			seq_num = ntohs(tcp_info->seq);
-			ack_num = ntohs(tcp_info->ack_seq);
-
-			/*
-			printf("\n    ip { version=%d, ihl=%d, tos=%d, len=%d, id=%d, flags=%d frag_off=%d, ttl=%d, protocol=%d, check=%d } ",
-					ip->version, ip->ihl, ip->tos, ntohs(ip->tot_len), ip->id, flags >> 13, flags & 0x1FFF, ip->ttl, ip->protocol, ntohs(ip->check)
-			);
-			 */
-
-			// DO WE IGNORE THIS DST IP?
-
-			// we don't ignore this port
-			if (ignore_this_port(dst_port) == false) {
-
+		if (ret >= sizeof(struct iphdr))
+		{
+	
+			struct iphdr* ip = (struct iphdr*)(data);
+	
+			// TCP
+			if (ip->protocol == IPPROTO_TCP) {
+	
+				u_int16_t flags = ntohs(ip->frag_off);
+	
+				struct tcphdr *tcp_info;
+				unsigned short dst_port;
+				unsigned short src_port;
+				unsigned short seq_num;
+				unsigned short ack_num;
+	
+				tcp_info = (struct tcphdr*)(data + sizeof(*ip));
+	
+				dst_port = ntohs(tcp_info->dest);
+				src_port = ntohs(tcp_info->source);
+				seq_num = ntohs(tcp_info->seq);
+				ack_num = ntohs(tcp_info->ack_seq);
+	
 				/*
-				 * in_addr - a statically allocated buffer, which subsequent calls overwrite
-				 * so it can't be used twice in a function, have to write out results and
-				 * do again
+				printf("\n    ip { version=%d, ihl=%d, tos=%d, len=%d, id=%d, flags=%d frag_off=%d, ttl=%d, protocol=%d, check=%d } ",
+						ip->version, ip->ihl, ip->tos, ntohs(ip->tot_len), ip->id, flags >> 13, flags & 0x1FFF, ip->ttl, ip->protocol, ntohs(ip->check)
+				);
 				 */
-				struct in_addr src_addr = {ip->saddr};
-				std::string s_src(inet_ntoa(src_addr));
-				struct in_addr dst_addr = {ip->daddr};
-				std::string s_dst(inet_ntoa(dst_addr));
+	
+				// DO WE IGNORE THIS DST IP?
+	
+				// we don't ignore this port
+				if (_this->ignore_this_port(dst_port) == false) {
+	
+					/*
+					 * in_addr - a statically allocated buffer, which subsequent calls overwrite
+					 * so it can't be used twice in a function, have to write out results and
+					 * do again
+					 */
+					struct in_addr src_addr = {ip->saddr};
+					std::string s_src(inet_ntoa(src_addr));
+					struct in_addr dst_addr = {ip->daddr};
+					std::string s_dst(inet_ntoa(dst_addr));
+					
+					
+					/*
+					printf("\n { src_ip=%s, dst_ip=%s, src_port=%d, dst_port=%d, seq_num=%d, ack_num=%d }\n",
+							s_src.c_str(),
+							s_dst.c_str(),
+							src_port,
+							dst_port,
+							seq_num,
+							ack_num
+							);
+					 */
+					/*
+					std::cout << "FLAGS: - " << flags << std::endl;
+					//std::vector<int> tcp_flags = calculate_flags(flags >> 13);
+					
+					std::cout << "URG: " << tcp_info->urg << std::endl;
+					std::cout << "ACK: " << tcp_info->ack << std::endl;
+					std::cout << "PSH: " << tcp_info->psh << std::endl;
+					std::cout << "RST: " << tcp_info->rst << std::endl;
+					std::cout << "SYN: " << tcp_info->syn << std::endl;
+					std::cout << "FIN: " << tcp_info->fin << std::endl;
+					*/
+					
+					/*
+					 * U  A  P R S F
+					 * 32 16 8 4 2 1
+					 */
+					std::vector<int> tcp_flags;
+					if (tcp_info->urg)
+						tcp_flags.push_back(32);
+					if (tcp_info->ack)
+						tcp_flags.push_back(16);
+					if (tcp_info->psh)
+						tcp_flags.push_back(8);
+					if (tcp_info->rst)
+						tcp_flags.push_back(4);
+					if (tcp_info->syn)
+						tcp_flags.push_back(2);
+					if (tcp_info->fin)
+						tcp_flags.push_back(1);
 
-				/*
-				printf("\n { src_ip=%s, dst_ip=%s, src_port=%d, dst_port=%d, seq_num=%d, ack_num=%d }\n",
-						s_src.c_str(),
-						s_dst.c_str(),
-						src_port,
-						dst_port,
-						seq_num,
-						ack_num
-						);
-				 */
-				/*
-				std::cout << "FLAGS: - " << flags << std::endl;
-				//std::vector<int> tcp_flags = calculate_flags(flags >> 13);
-				
-				std::cout << "URG: " << tcp_info->urg << std::endl;
-				std::cout << "ACK: " << tcp_info->ack << std::endl;
-				std::cout << "PSH: " << tcp_info->psh << std::endl;
-				std::cout << "RST: " << tcp_info->rst << std::endl;
-				std::cout << "SYN: " << tcp_info->syn << std::endl;
-				std::cout << "FIN: " << tcp_info->fin << std::endl;
-				*/
-				
-				/*
-				 * U  A  P R S F
-				 * 32 16 8 4 2 1
-				 */
-				std::vector<int> tcp_flags;
-				if (tcp_info->urg)
-					tcp_flags.push_back(32);
-				if (tcp_info->ack)
-					tcp_flags.push_back(16);
-				if (tcp_info->psh)
-					tcp_flags.push_back(8);
-				if (tcp_info->rst)
-					tcp_flags.push_back(4);
-				if (tcp_info->syn)
-					tcp_flags.push_back(2);
-				if (tcp_info->fin)
-					tcp_flags.push_back(1);
-				
-
-				/*
-				std::cout << "FLAGS: - " << tcp_flags.size() << std::endl;
-				for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
-					std::cout << *i << " ";
-				}
-				std::cout << std::endl;
-				*/
-
-				std::ostringstream testdata_tmp;
-				testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;		
-				std::string testdata = testdata_tmp.str();
-
-				/*
-				std::cout << "SRC: " << s_src << ", LEN: " << s_src.size() << " - " << ip->saddr << std::endl;
-				std::cout << "SRCPORT: " << src_port << std::endl;
-				std::cout << "DST: " << s_dst << ", LEN: " << s_dst.size() << " - " << ip->daddr << std::endl;
-				std::cout << "DSTPORT: " << dst_port << std::endl;
-				std::cout << "SEQ: " << seq_num << std::endl;
-				std::cout << "ACK: " << ack_num << std::endl;
-				std::cout << testdata << std::endl;
-				std::cout << "FLAG LEN: " << tcp_flags.size() << std::endl;
-				if (tcp_flags.size() > 0) {
-					std::cout << "FLAGS: " << std::endl;
+					/*
+					std::cout << "FLAGS: - " << tcp_flags.size() << std::endl;
 					for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
 						std::cout << *i << " ";
 					}
+					std::cout << std::endl;
+					*/
+	
+					if (s_src.size() > 0 && src_port > 0 && s_dst.size() > 0 && dst_port > 0) {
+						
+						std::ostringstream testdata_tmp;
+						testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;		
+						std::string testdata = testdata_tmp.str();
+		
+						/*
+						std::cout << "SRC: " << s_src << ", LEN: " << s_src.size() << " - " << ip->saddr << std::endl;
+						std::cout << "SRCPORT: " << src_port << std::endl;
+						std::cout << "DST: " << s_dst << ", LEN: " << s_dst.size() << " - " << ip->daddr << std::endl;
+						std::cout << "DSTPORT: " << dst_port << std::endl;
+						std::cout << "SEQ: " << seq_num << std::endl;
+						std::cout << "ACK: " << ack_num << std::endl;
+						std::cout << testdata << std::endl;
+						std::cout << "FLAG LEN: " << tcp_flags.size() << std::endl;
+						if (tcp_flags.size() > 0) {
+							std::cout << "FLAGS: " << std::endl;
+							for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
+								std::cout << *i << " ";
+							}
+						}
+						std::cout << std::endl << std::endl;
+						*/
+	
+						bool is_in = _this->THREE_WAY_HANDSHAKE.find(testdata) != _this->THREE_WAY_HANDSHAKE.end();
+						if (is_in == false)
+							_this->three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+		
+						_this->main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+						
+					}
 				}
-				std::cout << std::endl << std::endl;
-				 */
-
-				//twh_it = THREE_WAY_HANDSHAKE.find(testdata);
-				bool is_in = THREE_WAY_HANDSHAKE.find(testdata) != THREE_WAY_HANDSHAKE.end();
-				if (is_in == false)
-					three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
-
-				main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+			} // end of TCP handling
+	
+			// UDP
+			// TODO
+	
+			///////////////////////////////////////////////////////////////////////////////
+			/*
+			 * process to run at certain intervals (see PROCESS_TIME_CHECK)
+			 * this is what flushes data from memory and blocks stuff
+			 * if appropriate
+			 */
+			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
+				
+				// are there any new white list entries in the DB?
+				_this->process_ignore_ip_list();
+	
+				_this->add_block_rules();
+				BASE_TIME = (int)time(NULL);
 			}
-		} // end of TCP handling
-
-		// UDP
-		// TODO
-
-		///////////////////////////////////////////////////////////////////////////////
-		/*
-		 * process to run at certain intervals (2 minutes currently)
-		 * this is what flushes data from mempory and blocks stuff
-		 * if appropriate
-		 */
-		if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
-			//std::cout << "TIME CHECK" << BASE_TIME << std::endl;
-			
-			// are there any new white list entries in the DB?
-			process_ignore_ip_list();
-
-			add_block_rules();
-			BASE_TIME = (int)time(NULL);
+			///////////////////////////////////////////////////////////////////////////////
 		}
-		///////////////////////////////////////////////////////////////////////////////
 	}
-	// let packets go through here
-	queue.setVerdict(id, NF_ACCEPT, 0, NULL);
 	return 0;
 }
 
 
 
-void GargoylePscandHandler::three_way_check(
+void GargoylePscandHandler::three_way_check (
 		std::string src_ip,
 		int src_port,
 		std::string dst_ip,
@@ -1142,6 +1140,8 @@ bool GargoylePscandHandler::ignore_this_addr(std::string the_ip) {
 
 
 void GargoylePscandHandler::add_block_rules() {
+	
+	srand((int)time(0));
 
 	/*
 	 *
@@ -1231,8 +1231,6 @@ void GargoylePscandHandler::add_block_rules() {
 	 * process the ip addr is list BLACK_LISTED_HOSTS - no analysis needed
 	 * these just get blocked
 	 */
-
-
 	for (std::set<std::string>::iterator it=BLACK_LISTED_HOSTS.begin(); it!=BLACK_LISTED_HOSTS.end(); ++it) {
 
 		// don't process internally bound ip addresses
@@ -1284,7 +1282,6 @@ void GargoylePscandHandler::add_block_rules() {
 	 * PHASE 2
 	 */
 	//display_scanned_ports_dict();
-
 	std::string current_key;
 	std::string the_ip;
 	int the_port;
@@ -1292,103 +1289,111 @@ void GargoylePscandHandler::add_block_rules() {
 	std::map<std::string, int> LOCAL_IP_ROW_CNT;
 	
 	size_t limit_cnt = 0;
+	if (SCANNED_PORTS_CNT_DICT.size() > 0) {
 
-	std::map< std::string, std::pair <int, int> >::iterator s_port_it = SCANNED_PORTS_CNT_DICT.begin();
-	while(s_port_it != SCANNED_PORTS_CNT_DICT.end()) {
+		while(limit_cnt <= PROCESSING_LIMIT) {
 
-		//std::cout << s_port_it->first << " :: " << s_port_it->second.first << " :: " << s_port_it->second.second << std::endl;
-		current_key = "";
-		the_ip = "";
-		the_port = 0;
-		the_cnt = 0;
-		tstamp = (int)time(NULL);
-		added_host_ix = 0;
+			std::map< std::string, std::pair <int, int> >::iterator s_port_it = SCANNED_PORTS_CNT_DICT.begin();			
+			std::advance(s_port_it, rand() % SCANNED_PORTS_CNT_DICT.size());
 
-		current_key = s_port_it->first;
-		std::size_t pos = (s_port_it->first).find(":");
-		the_ip = (s_port_it->first).substr(0, pos);
-		the_port = atoi(((s_port_it->first).substr(pos + 1, (s_port_it->first).size())).c_str());
-		the_cnt = s_port_it->second.first;
-
-		/*
-		 * populate this to process when this while
-		 * loop is done
-		 */
-		if(LOCAL_IP_ROW_CNT.find(the_ip) != LOCAL_IP_ROW_CNT.end()) {
-			int curr_cnt = LOCAL_IP_ROW_CNT[the_ip];
-			LOCAL_IP_ROW_CNT[the_ip] = curr_cnt + 1;
-		} else {
-			LOCAL_IP_ROW_CNT.insert(std::make_pair(the_ip, 1));
-		}
-
-
-
-		if (the_ip.size() > 0 && the_cnt > 0) {
-			// add non blacklisted ip to db
-			added_host_ix = add_ip_to_hosts_table(the_ip);
-
-			if (the_cnt >= PH_SINGLE_PORT_SCAN_THRESHOLD) {
-
-				if (ip_tables_entries.count(the_ip) == 0) {
-
-					do_block_actions(the_ip, 7);
-
-					ip_tables_entries.insert(the_ip);
-				}
-				
-				if (is_in_scanned_ports_cnt_dict(current_key)) {
-					SCANNED_PORTS_CNT_DICT.erase(current_key);
-				}
-				break;
-				
+	
+			//std::cout << s_port_it->first << " :: " << s_port_it->second.first << " :: " << s_port_it->second.second << std::endl;
+			current_key = "";
+			the_ip = "";
+			the_port = 0;
+			the_cnt = 0;
+			tstamp = (int)time(NULL);
+			added_host_ix = 0;
+	
+			current_key = s_port_it->first;
+			std::size_t pos = (s_port_it->first).find(":");
+			the_ip = (s_port_it->first).substr(0, pos);
+			the_port = atoi(((s_port_it->first).substr(pos + 1, (s_port_it->first).size())).c_str());
+			the_cnt = s_port_it->second.first;
+	
+			/*
+			 * populate this to process when this while
+			 * loop is done
+			 */
+			if(LOCAL_IP_ROW_CNT.find(the_ip) != LOCAL_IP_ROW_CNT.end()) {
+				int curr_cnt = LOCAL_IP_ROW_CNT[the_ip];
+				LOCAL_IP_ROW_CNT[the_ip] = curr_cnt + 1;
 			} else {
+				LOCAL_IP_ROW_CNT.insert(std::make_pair(the_ip, 1));
+			}
+
+			if (the_ip.size() > 0 && the_cnt > 0) {
+				// add non blacklisted ip to db
+				added_host_ix = add_ip_to_hosts_table(the_ip);
+	
+				if (the_cnt >= PH_SINGLE_PORT_SCAN_THRESHOLD) {
+	
+					if (ip_tables_entries.count(the_ip) == 0) {
+	
+						do_block_actions(the_ip, 7);
+	
+						ip_tables_entries.insert(the_ip);
+					}
+					
+					if (is_in_scanned_ports_cnt_dict(current_key)) {
+						SCANNED_PORTS_CNT_DICT.erase(current_key);
+					}
+					break;
+					
+				} else {
+				
+					//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
+					
+					if (added_host_ix > 0 && is_in_ip_entries(the_ip) == false) {
+						add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
+					}
+					
+					/*
+					 * do some output to syslog in case
+					 * this data is being used for analytics
+					 */
+					if (SYSLOG_ALL_DETECTIONS) {
+						syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+								VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
+					}
+				}
+			}
+			//std::cout << "IP: " << the_ip << " - port " << the_port << " - CNT " << the_cnt << std::endl;
+	
+			if (is_in_scanned_ports_cnt_dict(current_key)) {
+				SCANNED_PORTS_CNT_DICT.erase(current_key);
+			}
+
+			if (limit_cnt == PROCESSING_LIMIT || SCANNED_PORTS_CNT_DICT.size() == 0)
+				break;
 			
-				//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
-				
-				if (added_host_ix > 0 && is_in_ip_entries(the_ip) == false) {
-					add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
-				}
-				
-				/*
-				 * do some output to syslog in case
-				 * this data is being used for analytics
-				 */
-				if (SYSLOG_ALL_DETECTIONS) {
-					syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
-							VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
-				}
-			}
+			s_port_it++;
+			limit_cnt++;
 		}
-		//std::cout << "IP: " << the_ip << " - port " << the_port << " - CNT " << the_cnt << std::endl;
-
-		if (is_in_scanned_ports_cnt_dict(current_key)) {
-			SCANNED_PORTS_CNT_DICT.erase(current_key);
-		}
-		s_port_it++;
-		limit_cnt++;
-		if (limit_cnt == PROCESSING_LIMIT)
-			break;
 	}
 
-	std::map<std::string, int>::iterator loc_ip_it = LOCAL_IP_ROW_CNT.begin();
-	while(loc_ip_it != LOCAL_IP_ROW_CNT.end()) {
-
-		//std::cout << "VIOLATOR: " << loc_ip_it->first << " - CNT: " << loc_ip_it->second << std::endl;
-
-		if (loc_ip_it->second >= PH_SINGLE_IP_SCAN_THRESHOLD) {
-
-			if (ip_tables_entries.count(loc_ip_it->first) == 0) {
-
-				do_block_actions(loc_ip_it->first, 6);
-
-				ip_tables_entries.insert(loc_ip_it->first);	
+	if (LOCAL_IP_ROW_CNT.size() > 0) {
+		std::map<std::string, int>::iterator loc_ip_it = LOCAL_IP_ROW_CNT.begin();
+		while(loc_ip_it != LOCAL_IP_ROW_CNT.end()) {
+	
+			//std::cout << "VIOLATOR: " << loc_ip_it->first << " - CNT: " << loc_ip_it->second << std::endl;
+	
+			if (loc_ip_it->second >= PH_SINGLE_IP_SCAN_THRESHOLD) {
+	
+				if (ip_tables_entries.count(loc_ip_it->first) == 0) {
+	
+					do_block_actions(loc_ip_it->first, 6);
+	
+					ip_tables_entries.insert(loc_ip_it->first);	
+				}
 			}
+			loc_ip_it++;
 		}
-		loc_ip_it++;
 	}
-
+	
 	free(l_hosts);
 	free(host_ip);
+	
 	if (LOCAL_IP_ROW_CNT.size() > 0)
 		LOCAL_IP_ROW_CNT.clear();
 }

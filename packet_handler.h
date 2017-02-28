@@ -30,7 +30,6 @@
 #ifndef _PACKETHANDLERS_H__
 #define _PACKETHANDLERS_H__
 
-#include "nf_queue.h"
 
 #include <list>
 #include <map>
@@ -39,29 +38,27 @@
 #include <vector>
 #include <sstream>
 
-
-
-class CompoundHandler:public PacketHandler
-{
-	public:
-		void add_handler(PacketHandler& handler);
-		int handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad);
-	protected:
-		typedef std::list<PacketHandler*> list_t;
-		list_t _handlers;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <libnetfilter_log/libnetfilter_log.h>
+#ifdef __cplusplus
+}
+#endif
 
 
 /* 
  * This handler recv's packets from the NetFilter
  * Queue and interacts with the DB and iptables
  */
-class GargoylePscandHandler:public PacketHandler
+class GargoylePscandHandler
 {
 	public:
 	GargoylePscandHandler();
-		
-	int handle_packet(Queue&, struct nfgenmsg *, struct nfq_data *);
+	
+	// netfilter callback
+	static int packet_handle(struct nflog_g_handle *, struct nfgenmsg *, struct nflog_data *, void *);
+	
 	void add_to_ip_entries(std::string);
 	void add_to_ports_entries(int);
 	void set_ignore_local_ip_addrs(bool);
