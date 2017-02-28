@@ -569,3 +569,28 @@ size_t iptables_list_chain_table(const char *chain_name, const char *table_name,
 }
 
 
+
+size_t iptables_insert_nflog_rule_to_chain_at_index(const char *chain_name, size_t ix_pos, size_t use_xlock) {
+
+	char cmd[CMD_BUF_SZ];
+	
+	//iptables -A INPUT -j NFLOG –nflog-group 10
+	
+	// construct iptables cmd
+	if (use_xlock)
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu %s %s %s", IPTABLES, "-w -I", chain_name, ix_pos, "-j", NFLOG, NFLOG_NUM_LINE);
+	else
+		snprintf(cmd, CMD_BUF_SZ, "%s %s %s %zu %s %s %s", IPTABLES, "-I", chain_name, ix_pos, "-j", NFLOG, NFLOG_NUM_LINE);
+	
+	FILE *in;
+	extern FILE *popen();
+
+	if(!(in = popen(cmd, "r"))){
+		return 1;
+	}
+	
+	pclose(in);
+	return 0;
+}
+
+

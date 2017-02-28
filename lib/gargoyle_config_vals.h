@@ -39,7 +39,7 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
-#define GARGOYLE_VERSION "1.0.4"
+#define GARGOYLE_VERSION "1.1"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
 #define IPTABLES_INPUT_CHAIN "INPUT"
@@ -48,6 +48,8 @@ extern "C" {
 //const char *NFQUEUE = "NFQUEUE";
 #define NFQUEUE "NFQUEUE"
 #define NFQUEUE_NUM_LINE "NFQUEUE num 5"
+#define NFLOG "NFLOG"
+#define NFLOG_NUM_LINE "--nflog-group 5"
 
 //static const char *VIOLATOR_SYSLOG = "violator";
 #define BLOCKED_SYSLOG "blocked"
