@@ -306,7 +306,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 							*/
 		
 							bool is_in = _this->THREE_WAY_HANDSHAKE.find(testdata) != _this->THREE_WAY_HANDSHAKE.end();
-							if (is_in == false)
+							if (!is_in)
 								_this->three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
 			
 							_this->main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);

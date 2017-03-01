@@ -51,7 +51,7 @@
 #include "string_functions.h"
 
 
-std::vector<std::string> LOCAL_IP_ADDRS;
+std::vector<std::string> WHITE_LISTED_IP_ADDRS;
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
 size_t SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -74,7 +74,7 @@ void do_block_actions(const char *, int, int);
 void query_for_single_port_hits_last_seen();
 void query_for_multiple_ports_hits_last_seen();
 void run_analysis();
-bool exists_in_ip_entries(std::string);
+bool is_white_listed_ip_addr(std::string);
 void add_to_ip_entries(std::string);
 void get_default_gateway_linux();
 void get_local_ip_addrs();
@@ -103,7 +103,7 @@ bool exists_in_iptables_entries(int s) {
 
 
 void add_to_iptables_entries(int s) {
-	if (exists_in_iptables_entries(s) == false)
+	if (!exists_in_iptables_entries(s))
 		IPTABLES_ENTRIES.push_back(s);
 }
 
@@ -113,7 +113,7 @@ void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 	if (the_ip and the_ix) {
 		
 		// we dont ignore this ip
-		if (exists_in_ip_entries(the_ip) == false) {
+		if (!is_white_listed_ip_addr(the_ip)) {
 			size_t ret;
 			int tstamp;
 			tstamp = (int) time(NULL);
@@ -207,7 +207,7 @@ void query_for_single_port_hits_last_seen() {
 				std::cout << "ROW/HOST/PORT/CNT: " << row_ix << " - " << host_ix
 						<< " - " << port_num << " - " << hit_count << std::endl;
 				*/
-				if (exists_in_iptables_entries(host_ix) == false) {
+				if (!exists_in_iptables_entries(host_ix)) {
 
 					size_t get_all_dst_sz = LOCAL_BUF_SZ;
 					char *h_all = (char*) malloc(get_all_dst_sz+1);
@@ -319,7 +319,7 @@ void query_for_multiple_ports_hits_last_seen() {
 			std::cout << host_ix << " - " << host_ip << " - " << first_seen << " - "
 					<< last_seen << std::endl << std::endl;
 			*/
-			if (exists_in_iptables_entries(host_ix) == false) {
+			if (!exists_in_iptables_entries(host_ix)) {
 				
 				now = (int) time(NULL);
 				if ((now - last_seen) <= LAST_SEEN_DELTA) {
@@ -436,12 +436,12 @@ void run_analysis() {
 }
 
 
-bool exists_in_ip_entries(std::string s){
+bool is_white_listed_ip_addr(std::string s){
 
 	std::vector<std::string>::const_iterator iter;
 
-	iter = std::find(LOCAL_IP_ADDRS.begin(), LOCAL_IP_ADDRS.end(), s);
-	if (iter != LOCAL_IP_ADDRS.end()) {
+	iter = std::find(WHITE_LISTED_IP_ADDRS.begin(), WHITE_LISTED_IP_ADDRS.end(), s);
+	if (iter != WHITE_LISTED_IP_ADDRS.end()) {
 		return true;
 	} else {
 		return false;
@@ -450,8 +450,8 @@ bool exists_in_ip_entries(std::string s){
 
 
 void add_to_ip_entries(std::string s) {
-	if (exists_in_ip_entries(s) == false)
-		LOCAL_IP_ADDRS.push_back(s);
+	if (!is_white_listed_ip_addr(s))
+		WHITE_LISTED_IP_ADDRS.push_back(s);
 }
 
 
@@ -626,7 +626,7 @@ void clean_up_stale_data() {
 				token2 = strtok_r(NULL, tok2, &token2_save);
 			}
 
-			if (!exists_in_iptables_entries(host_ix)) {
+			if (!exists_in_iptables_entries(host_ix) && !is_white_listed_ip_addr(host_ip)) {
 				
 				now = (int) time(NULL);
 				if ((now - last_seen) >= LAST_SEEN_THRESHOLD) {
@@ -754,15 +754,15 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	LOCAL_IP_ADDRS.push_back("0.0.0.0");
+	WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();
 	get_local_ip_addrs();
 	get_white_list_addrs();
 
 	std::stringstream ss;
 	int l_cnt = 1;
-	int v_cnt = LOCAL_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
+	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
+	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
 		//std::cout << *i << std::endl;
 		if (l_cnt == v_cnt)
 			ss << *i;
