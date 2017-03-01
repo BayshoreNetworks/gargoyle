@@ -665,7 +665,7 @@ int main(int argc, char *argv[])
 	}
 
 	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
-		gargoyleHandler.add_to_ip_entries(*i);
+		gargoyleHandler.add_to_white_listed_entries(*i);
 	}
 
 	gargoyleHandler.set_ignore_local_ip_addrs(IGNORE_LOCAL_IP_ADDRS);
@@ -724,8 +724,6 @@ int main(int argc, char *argv[])
 	// main loop to get data via nflog
 	//while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {
 	while (TEMP_FAILURE_RETRY((rv = recv(fd, buf, sizeof(buf), 0)))) {
-		
-		
 		// handle message in packet that just arrived
 		nflog_handle_packet(nfl_handle, buf, rv);
 	}

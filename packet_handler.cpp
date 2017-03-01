@@ -217,10 +217,8 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 				);
 				 */
 	
-				// DO WE IGNORE THIS DST IP?
-	
 				// we don't ignore this port
-				if (_this->ignore_this_port(dst_port) == false) {
+				if (!_this->ignore_this_port(dst_port)) {
 	
 					/*
 					 * in_addr - a statically allocated buffer, which subsequent calls overwrite
@@ -232,85 +230,88 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 					struct in_addr dst_addr = {ip->daddr};
 					std::string s_dst(inet_ntoa(dst_addr));
 					
-					
-					/*
-					printf("\n { src_ip=%s, dst_ip=%s, src_port=%d, dst_port=%d, seq_num=%d, ack_num=%d }\n",
-							s_src.c_str(),
-							s_dst.c_str(),
-							src_port,
-							dst_port,
-							seq_num,
-							ack_num
-							);
-					 */
-					/*
-					std::cout << "FLAGS: - " << flags << std::endl;
-					//std::vector<int> tcp_flags = calculate_flags(flags >> 13);
-					
-					std::cout << "URG: " << tcp_info->urg << std::endl;
-					std::cout << "ACK: " << tcp_info->ack << std::endl;
-					std::cout << "PSH: " << tcp_info->psh << std::endl;
-					std::cout << "RST: " << tcp_info->rst << std::endl;
-					std::cout << "SYN: " << tcp_info->syn << std::endl;
-					std::cout << "FIN: " << tcp_info->fin << std::endl;
-					*/
-					
-					/*
-					 * U  A  P R S F
-					 * 32 16 8 4 2 1
-					 */
-					std::vector<int> tcp_flags;
-					if (tcp_info->urg)
-						tcp_flags.push_back(32);
-					if (tcp_info->ack)
-						tcp_flags.push_back(16);
-					if (tcp_info->psh)
-						tcp_flags.push_back(8);
-					if (tcp_info->rst)
-						tcp_flags.push_back(4);
-					if (tcp_info->syn)
-						tcp_flags.push_back(2);
-					if (tcp_info->fin)
-						tcp_flags.push_back(1);
+					// we dont ignore this ip addr
+					if (!_this->is_white_listed_ip_addr(s_src)) {
 
-					/*
-					std::cout << "FLAGS: - " << tcp_flags.size() << std::endl;
-					for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
-						std::cout << *i << " ";
-					}
-					std::cout << std::endl;
-					*/
-	
-					if (s_src.size() > 0 && src_port > 0 && s_dst.size() > 0 && dst_port > 0) {
-						
-						std::ostringstream testdata_tmp;
-						testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;		
-						std::string testdata = testdata_tmp.str();
-		
 						/*
-						std::cout << "SRC: " << s_src << ", LEN: " << s_src.size() << " - " << ip->saddr << std::endl;
-						std::cout << "SRCPORT: " << src_port << std::endl;
-						std::cout << "DST: " << s_dst << ", LEN: " << s_dst.size() << " - " << ip->daddr << std::endl;
-						std::cout << "DSTPORT: " << dst_port << std::endl;
-						std::cout << "SEQ: " << seq_num << std::endl;
-						std::cout << "ACK: " << ack_num << std::endl;
-						std::cout << testdata << std::endl;
-						std::cout << "FLAG LEN: " << tcp_flags.size() << std::endl;
-						if (tcp_flags.size() > 0) {
-							std::cout << "FLAGS: " << std::endl;
-							for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
-								std::cout << *i << " ";
-							}
-						}
-						std::cout << std::endl << std::endl;
-						*/
-	
-						bool is_in = _this->THREE_WAY_HANDSHAKE.find(testdata) != _this->THREE_WAY_HANDSHAKE.end();
-						if (is_in == false)
-							_this->three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
-		
-						_this->main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+						printf("\n { src_ip=%s, dst_ip=%s, src_port=%d, dst_port=%d, seq_num=%d, ack_num=%d }\n",
+								s_src.c_str(),
+								s_dst.c_str(),
+								src_port,
+								dst_port,
+								seq_num,
+								ack_num
+								);
+						 */
+						/*
+						std::cout << "FLAGS: - " << flags << std::endl;
+						//std::vector<int> tcp_flags = calculate_flags(flags >> 13);
 						
+						std::cout << "URG: " << tcp_info->urg << std::endl;
+						std::cout << "ACK: " << tcp_info->ack << std::endl;
+						std::cout << "PSH: " << tcp_info->psh << std::endl;
+						std::cout << "RST: " << tcp_info->rst << std::endl;
+						std::cout << "SYN: " << tcp_info->syn << std::endl;
+						std::cout << "FIN: " << tcp_info->fin << std::endl;
+						*/
+						
+						/*
+						 * U  A  P R S F
+						 * 32 16 8 4 2 1
+						 */
+						std::vector<int> tcp_flags;
+						if (tcp_info->urg)
+							tcp_flags.push_back(32);
+						if (tcp_info->ack)
+							tcp_flags.push_back(16);
+						if (tcp_info->psh)
+							tcp_flags.push_back(8);
+						if (tcp_info->rst)
+							tcp_flags.push_back(4);
+						if (tcp_info->syn)
+							tcp_flags.push_back(2);
+						if (tcp_info->fin)
+							tcp_flags.push_back(1);
+	
+						/*
+						std::cout << "FLAGS: - " << tcp_flags.size() << std::endl;
+						for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
+							std::cout << *i << " ";
+						}
+						std::cout << std::endl;
+						*/
+		
+						if (s_src.size() > 0 && src_port > 0 && s_dst.size() > 0 && dst_port > 0) {
+							
+							std::ostringstream testdata_tmp;
+							testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;		
+							std::string testdata = testdata_tmp.str();
+			
+							/*
+							std::cout << "SRC: " << s_src << ", LEN: " << s_src.size() << " - " << ip->saddr << std::endl;
+							std::cout << "SRCPORT: " << src_port << std::endl;
+							std::cout << "DST: " << s_dst << ", LEN: " << s_dst.size() << " - " << ip->daddr << std::endl;
+							std::cout << "DSTPORT: " << dst_port << std::endl;
+							std::cout << "SEQ: " << seq_num << std::endl;
+							std::cout << "ACK: " << ack_num << std::endl;
+							std::cout << testdata << std::endl;
+							std::cout << "FLAG LEN: " << tcp_flags.size() << std::endl;
+							if (tcp_flags.size() > 0) {
+								std::cout << "FLAGS: " << std::endl;
+								for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
+									std::cout << *i << " ";
+								}
+							}
+							std::cout << std::endl << std::endl;
+							*/
+		
+							bool is_in = _this->THREE_WAY_HANDSHAKE.find(testdata) != _this->THREE_WAY_HANDSHAKE.end();
+							if (is_in == false)
+								_this->three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+			
+							_this->main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+							
+						}
 					}
 				}
 			} // end of TCP handling
@@ -449,12 +450,11 @@ bool GargoylePscandHandler::is_in_three_way_handshake(std::string s) {
 }
 
 
-bool GargoylePscandHandler::is_in_ip_entries(std::string s) {
-
+bool GargoylePscandHandler::is_white_listed_ip_addr(std::string s) {
 
 	std::vector<std::string>::const_iterator local_ip_iter;
-	local_ip_iter = std::find(LOCAL_IP_ADDRS.begin(), LOCAL_IP_ADDRS.end(), s);
-	if (local_ip_iter != LOCAL_IP_ADDRS.end())
+	local_ip_iter = std::find(WHITE_LISTED_IP_ADDRS.begin(), WHITE_LISTED_IP_ADDRS.end(), s);
+	if (local_ip_iter != WHITE_LISTED_IP_ADDRS.end())
 		return true;
 	return false;
 
@@ -479,9 +479,9 @@ bool GargoylePscandHandler::is_in_ports_entries(int s) {
 
 
 
-void GargoylePscandHandler::add_to_ip_entries(std::string s) {
-	if (is_in_ip_entries(s) == false)
-		LOCAL_IP_ADDRS.push_back(s);
+void GargoylePscandHandler::add_to_white_listed_entries(std::string s) {
+	if (is_white_listed_ip_addr(s) == false)
+		WHITE_LISTED_IP_ADDRS.push_back(s);
 }
 
 
@@ -596,8 +596,8 @@ void GargoylePscandHandler::main_port_scan_check(
 	 * 
 	 * But we ignore locally bound ip addr's if that flag is set
 	 */
-	if (IGNORE_LOCAL_IP_ADDRS) {
-		if (is_in_ip_entries(src_ip) == false) {
+	if (IGNORE_WHITE_LISTED_IP_ADDRS) {
+		if (is_white_listed_ip_addr(src_ip) == false) {
 			add_to_scanned_ports_dict(src_ip, dst_port);
 		}
 	}
@@ -747,8 +747,8 @@ void GargoylePscandHandler::add_to_scanned_ports_dict(std::string the_ip, int th
 	 * 	value = hit_count:last_timestamp
 	 */
 
-	if (IGNORE_LOCAL_IP_ADDRS) {
-		if (is_in_ip_entries(the_ip) == true) {
+	if (IGNORE_WHITE_LISTED_IP_ADDRS) {
+		if (is_white_listed_ip_addr(the_ip) == true) {
 			return;
 		}
 	}
@@ -796,7 +796,7 @@ void GargoylePscandHandler::add_to_scanned_ports_dict(std::string the_ip, int th
 
 
 void GargoylePscandHandler::set_ignore_local_ip_addrs(bool val) {
-	IGNORE_LOCAL_IP_ADDRS = val;
+	IGNORE_WHITE_LISTED_IP_ADDRS = val;
 }
 
 
@@ -852,7 +852,7 @@ void GargoylePscandHandler::display_local_ip_addr() {
 	//local_ip_iter
 
 	//std::cout << "IP_ADDR: " << LOCAL_IP_ADDRS.size() << std::endl;
-	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
+	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
 		std::cout << *i << " ";
 	}
 	std::cout << std::endl << std::endl;
@@ -871,8 +871,8 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 	if (the_ip.size() > 0) {
 
 		// don't process internally bound ip addresses
-		if (IGNORE_LOCAL_IP_ADDRS) {
-			if (is_in_ip_entries(the_ip) == true) {
+		if (IGNORE_WHITE_LISTED_IP_ADDRS) {
+			if (is_white_listed_ip_addr(the_ip) == true) {
 				if (is_in_black_listed_hosts(the_ip)) {
 					BLACK_LISTED_HOSTS.erase(the_ip);
 				}
@@ -997,7 +997,7 @@ int GargoylePscandHandler::xmas_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false || is_in_ip_entries(src_ip) == false) {
+	if (ignore_this_port(dst_port) == false || is_white_listed_ip_addr(src_ip) == false) {
 		if((tcp_flags.size() == 3) &&
 				(std::find(tcp_flags.begin(), tcp_flags.end(), 1) != tcp_flags.end()) &&
 				(std::find(tcp_flags.begin(), tcp_flags.end(), 8) != tcp_flags.end()) &&
@@ -1033,7 +1033,7 @@ int GargoylePscandHandler::fin_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false || is_in_ip_entries(src_ip) == false) {
+	if (ignore_this_port(dst_port) == false || is_white_listed_ip_addr(src_ip) == false) {
 		if (is_in_three_way_handshake(three_way_check_dat.str()) == false) {
 
 			if(tcp_flags.size() == 1 && tcp_flags[0] == 1) { // flags = FIN - len flags = 1
@@ -1068,7 +1068,7 @@ int GargoylePscandHandler::null_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false || is_in_ip_entries(src_ip) == false) {
+	if (ignore_this_port(dst_port) == false || is_white_listed_ip_addr(src_ip) == false) {
 		if(tcp_flags.size() == 0) {
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
@@ -1234,8 +1234,8 @@ void GargoylePscandHandler::add_block_rules() {
 	for (std::set<std::string>::iterator it=BLACK_LISTED_HOSTS.begin(); it!=BLACK_LISTED_HOSTS.end(); ++it) {
 
 		// don't process internally bound ip addresses
-		if (IGNORE_LOCAL_IP_ADDRS) {
-			if (is_in_ip_entries(*it) == true) {
+		if (IGNORE_WHITE_LISTED_IP_ADDRS) {
+			if (is_white_listed_ip_addr(*it) == true) {
 				BLACK_LISTED_HOSTS.erase(*it);
 				break;
 			}
@@ -1344,7 +1344,7 @@ void GargoylePscandHandler::add_block_rules() {
 				
 					//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
 					
-					if (added_host_ix > 0 && is_in_ip_entries(the_ip) == false) {
+					if (added_host_ix > 0 && is_white_listed_ip_addr(the_ip) == false) {
 						add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
 					}
 					
@@ -1437,7 +1437,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 	if (the_ip.size() > 0 and host_ix > 0) {
 		
 		// we dont ignore this ip
-		if (is_in_ip_entries(the_ip) == false) {
+		if (is_white_listed_ip_addr(the_ip) == false) {
 
 			size_t ret;
 			int tstamp;
@@ -1507,7 +1507,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
 				
 				if (strcmp(host_ip, "") != 0) {
-					add_to_ip_entries(host_ip);
+					add_to_white_listed_entries(host_ip);
 				
 				
 					/*

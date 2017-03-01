@@ -59,7 +59,7 @@ class GargoylePscandHandler
 	// netfilter callback
 	static int packet_handle(struct nflog_g_handle *, struct nfgenmsg *, struct nflog_data *, void *);
 	
-	void add_to_ip_entries(std::string);
+	void add_to_white_listed_entries(std::string);
 	void add_to_ports_entries(int);
 	void set_ignore_local_ip_addrs(bool);
 	void set_ephemeral_low(size_t);
@@ -100,7 +100,7 @@ class GargoylePscandHandler
 	bool is_in_waiting(std::string);
 	bool is_in_half_scan_dict(std::string);
 	bool is_in_black_listed_hosts(std::string);
-	bool is_in_ip_entries(std::string);
+	bool is_white_listed_ip_addr(std::string);
 	bool is_in_ports_entries(int);
 	bool is_in_scanned_ports_cnt_dict(std::string);
 	bool is_in_three_way_handshake(std::string);
@@ -110,7 +110,7 @@ class GargoylePscandHandler
 	
 	private:
 	
-	bool IGNORE_LOCAL_IP_ADDRS;
+	bool IGNORE_WHITE_LISTED_IP_ADDRS;
 	int EPHEMERAL_LOW;
 	int EPHEMERAL_HIGH;
 	std::string CHAIN_NAME;
@@ -125,7 +125,7 @@ class GargoylePscandHandler
 	std::ostringstream src_ip_dst_ip_dat;
 	std::ostringstream reverse_src_ip_dst_ip_dat;
 	
-	std::vector<std::string> LOCAL_IP_ADDRS;
+	std::vector<std::string> WHITE_LISTED_IP_ADDRS;
 	//std::vector<std::string>::const_iterator local_ip_iter;
 	std::vector<int> IGNORE_PORTS;
 	std::vector<int>::const_iterator ports_iter;
