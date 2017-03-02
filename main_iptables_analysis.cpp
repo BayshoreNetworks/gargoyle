@@ -80,6 +80,8 @@ void get_default_gateway_linux();
 void get_local_ip_addrs();
 void get_white_list_addrs();
 void clean_up_stale_data();
+void clean_up_iptables_dupe_data();
+
 
 void handle_signal (int signum) {
 	stop = 1;
@@ -426,6 +428,7 @@ void run_analysis() {
 	clean_up_stale_data();
 	query_for_single_port_hits_last_seen();
 	query_for_multiple_ports_hits_last_seen();
+	clean_up_iptables_dupe_data();
 	
 	int end_time = (int) time(NULL);
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", end_time);
@@ -657,6 +660,100 @@ void clean_up_stale_data() {
 	}
 	free(hosts_all_buf);
 	free(host_ip);
+}
+
+
+void clean_up_iptables_dupe_data() {
+	
+	size_t dst_buf_sz = DEST_BUF_SZ;
+	char *l_chains = (char*) malloc(dst_buf_sz + 1);
+	*l_chains = 0;
+	char *l_chains2 = (char*) malloc(dst_buf_sz + 1);
+	*l_chains2 = 0;
+	
+	const char *tok1 = "\n";
+	char *token1;
+	char *token1_save;
+	
+	char *token2;
+	char *token2_save;
+	
+	const char *dash_dash = "--  ";
+	size_t dash_dash_len = 4;
+	const char *w_space = " ";
+	
+	char *s_lchains1;
+	char *s_lchains2;
+	char *s_lchains3;
+	char *s_lchains4;
+	
+	char *host_ip = (char*) malloc(60);
+	char *host_ip2 = (char*) malloc(60);
+	
+	size_t rule_ix1;
+	size_t rule_ix2;
+
+	iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
+	
+	if (l_chains) {
+		token1 = strtok_r(l_chains, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			rule_ix1 = atoi(token1);
+			s_lchains1 = strstr (token1, dash_dash);
+			
+			if (s_lchains1) {
+				
+				size_t position1 = s_lchains1 - token1;
+				s_lchains2 = strstr (token1 + position1 + dash_dash_len, w_space);
+				size_t position2 = s_lchains2 - token1;
+
+				*host_ip = 0;
+				
+				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
+				if (host_ip) {
+
+					iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains2, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
+					
+					if (l_chains2) {
+						
+						token2 = strtok_r(l_chains2, tok1, &token2_save);
+						while (token2 != NULL) {
+							
+							rule_ix2 = atoi(token2);
+							s_lchains3 = strstr (token2, dash_dash);
+							if (s_lchains3) {
+								
+								size_t position3 = s_lchains3 - token2;
+								s_lchains4 = strstr (token2 + position3 + dash_dash_len, w_space);
+								size_t position4 = s_lchains4 - token2;
+
+								*host_ip2 = 0;
+								bayshoresubstring(position3 + dash_dash_len, position4, token2, host_ip2, 16);
+								if (host_ip2) {
+									//std::cout << host_ip << " - " << host_ip2 << " - " << strcmp(host_ip, host_ip2) << std::endl;
+									if ((strcmp(host_ip, host_ip2) == 0) && (rule_ix1 < rule_ix2)) {
+										/*
+										std::cout << host_ip << " - " << host_ip2 << std::endl;
+										std::cout << rule_ix1 << " - " << rule_ix2 << std::endl << std::endl;
+										*/
+										iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix2, IPTABLES_SUPPORTS_XLOCK);
+										rule_ix2 = 0;
+									}
+								}
+							}
+							token2 = strtok_r(NULL, tok1, &token2_save);
+						}
+					}
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	free(l_chains);
+	free(l_chains2);
+	free(host_ip);
+	free(host_ip2);
 }
 
 
