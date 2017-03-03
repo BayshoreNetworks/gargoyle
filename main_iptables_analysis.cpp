@@ -33,6 +33,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <map>
 
 #include <errno.h>
 #include <ctype.h>
@@ -49,6 +50,13 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "string_functions.h"
+
+
+struct greater_val
+{
+    template<class T>
+    bool operator()(T const &a, T const &b) const { return a > b; }
+};
 
 
 std::vector<std::string> WHITE_LISTED_IP_ADDRS;
@@ -672,11 +680,12 @@ void clean_up_iptables_dupe_data() {
 	*l_chains2 = 0;
 	
 	const char *tok1 = "\n";
+	
 	char *token1;
 	char *token1_save;
-	
 	char *token2;
 	char *token2_save;
+	
 	
 	const char *dash_dash = "--  ";
 	size_t dash_dash_len = 4;
@@ -690,11 +699,12 @@ void clean_up_iptables_dupe_data() {
 	char *host_ip = (char*) malloc(60);
 	char *host_ip2 = (char*) malloc(60);
 	
-	size_t rule_ix1;
-	size_t rule_ix2;
-
-	iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
+	int rule_ix1;
+	int rule_ix2;
 	
+	std::map<std::string, int> iptables_map;
+	
+	iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	if (l_chains) {
 		token1 = strtok_r(l_chains, tok1, &token1_save);
 		while (token1 != NULL) {
@@ -712,42 +722,66 @@ void clean_up_iptables_dupe_data() {
 				
 				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
 				if (host_ip) {
-
-					iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains2, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
-					
-					if (l_chains2) {
-						
-						token2 = strtok_r(l_chains2, tok1, &token2_save);
-						while (token2 != NULL) {
-							
-							rule_ix2 = atoi(token2);
-							s_lchains3 = strstr (token2, dash_dash);
-							if (s_lchains3) {
-								
-								size_t position3 = s_lchains3 - token2;
-								s_lchains4 = strstr (token2 + position3 + dash_dash_len, w_space);
-								size_t position4 = s_lchains4 - token2;
-
-								*host_ip2 = 0;
-								bayshoresubstring(position3 + dash_dash_len, position4, token2, host_ip2, 16);
-								if (host_ip2) {
-									//std::cout << host_ip << " - " << host_ip2 << " - " << strcmp(host_ip, host_ip2) << std::endl;
-									if ((strcmp(host_ip, host_ip2) == 0) && (rule_ix1 < rule_ix2)) {
-										/*
-										std::cout << host_ip << " - " << host_ip2 << std::endl;
-										std::cout << rule_ix1 << " - " << rule_ix2 << std::endl << std::endl;
-										*/
-										iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix2, IPTABLES_SUPPORTS_XLOCK);
-										rule_ix2 = 0;
-									}
-								}
-							}
-							token2 = strtok_r(NULL, tok1, &token2_save);
-						}
-					}
+					iptables_map.insert(std::pair<std::string,int>(host_ip,rule_ix1));
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+
+	std::map<std::string,int>::iterator it = iptables_map.begin();
+	/*
+	for (it=iptables_map.begin(); it!=iptables_map.end(); ++it) {
+			
+		std::cout << it->first << " => " << it->second << '\n';
+	}
+	*/
+	std::vector<int> vec;
+	for (it=iptables_map.begin(); it!=iptables_map.end(); ++it) {
+		
+	    //std::cout << it->first << " => " << it->second << '\n';
+		iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains2, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
+							
+		if (l_chains2) {
+			
+			token2 = strtok_r(l_chains2, tok1, &token2_save);
+			while (token2 != NULL) {
+				
+				rule_ix2 = atoi(token2);
+				s_lchains3 = strstr (token2, dash_dash);
+				if (s_lchains3) {
+					
+					size_t position3 = s_lchains3 - token2;
+					s_lchains4 = strstr (token2 + position3 + dash_dash_len, w_space);
+					size_t position4 = s_lchains4 - token2;
+
+					*host_ip2 = 0;
+					bayshoresubstring(position3 + dash_dash_len, position4, token2, host_ip2, 16);
+					if (host_ip2) {
+
+						if ((strcmp((it->first).c_str(), host_ip2) == 0) && (it->second < rule_ix2)) {
+							/*
+							std::cout << it->first << " - " << host_ip2 << std::endl;
+							std::cout << it->second << " - " << rule_ix2 << std::endl << std::endl;
+							*/
+							vec.push_back(rule_ix2);
+						}
+					}
+				}
+				token2 = strtok_r(NULL, tok1, &token2_save);
+			}
+		}
+	}
+
+	if (vec.size() > 0) {
+		/*
+		 * We have to remove rules from the bottom
+		 * up in iptables
+		 */
+		std::sort(vec.begin(), vec.end(), greater_val());
+		for (std::vector<int>::const_iterator itv=vec.begin(); itv!=vec.end(); ++itv) {
+			//std::cout << *itv << " ";
+			iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, *itv, IPTABLES_SUPPORTS_XLOCK);
 		}
 	}
 	free(l_chains);
