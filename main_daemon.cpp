@@ -230,7 +230,7 @@ int hex_to_int(const char *hex) {
     	else if (*hex > 96 && *hex < 103)
     		res += (*hex - 87);
     	else
-    		return res;
+    		return 0;
     	
     	if (*++hex)
     		res <<= 4;
