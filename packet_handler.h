@@ -61,6 +61,7 @@ class GargoylePscandHandler
 	
 	void add_to_white_listed_entries(std::string);
 	void add_to_ports_entries(int);
+	void add_to_hot_ports_list(int);
 	void set_ignore_local_ip_addrs(bool);
 	void set_ephemeral_low(size_t);
 	void set_ephemeral_high(size_t);
@@ -71,6 +72,7 @@ class GargoylePscandHandler
 	void set_iptables_supports_xlock(size_t);
 	void set_db_location(const char *);
 	
+
 	protected:
 	
 	void three_way_check(std::string, int, std::string, int, int, int, std::vector<int>);
@@ -88,6 +90,7 @@ class GargoylePscandHandler
 	
 	void display_scanned_ports_dict();
 	void display_local_ip_addr();
+	void display_hot_ports();
 	
 	int half_connect_scan(std::string, int, std::string, int, int, int, std::vector<int>);
 	int full_connect_scan(std::string, int, std::string, int, int, int, std::vector<int>);
@@ -107,6 +110,7 @@ class GargoylePscandHandler
 	bool is_in_ephemeral_range(int);
 	bool ignore_this_port(int);
 	bool ignore_this_addr(std::string);
+	bool is_in_hot_ports(int);
 	
 	private:
 	
@@ -129,6 +133,7 @@ class GargoylePscandHandler
 	//std::vector<std::string>::const_iterator local_ip_iter;
 	std::vector<int> IGNORE_PORTS;
 	std::vector<int>::const_iterator ports_iter;
+	std::vector<int> HOT_PORTS;
 	
 	std::set<std::string> THREE_WAY_HANDSHAKE;
 	std::set<std::string>::iterator twh_it;

@@ -542,6 +542,7 @@ int main(int argc, char *argv[])
 	size_t single_ip_scan_threshold = 0;
 	size_t single_port_scan_threshold = 0;
 	std::string ports_to_ignore;
+	std::string hot_ports;
 	
 	const char *config_file;
 	config_file = getenv("GARGOYLE_CONFIG");
@@ -557,6 +558,7 @@ int main(int argc, char *argv[])
 		single_port_scan_threshold = cvv.get_port_scan_threshold();
 		
 		ports_to_ignore = cvv.get_ports_to_ignore();
+		hot_ports = cvv.get_hot_ports();
 		
 	} else {
 		return 1;
@@ -642,7 +644,52 @@ int main(int argc, char *argv[])
 		}
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring ports:", (ss.str().c_str()));
 	}
-
+	
+	
+	// process list of hot ports
+	if (hot_ports.size() > 0) {
+		// tokenize , delimited
+		if (EPHEMERAL_LOW > 0 && EPHEMERAL_HIGH > 0) {
+			
+			const char *tok1 = ",";
+			char *token1;
+			char *token1_save;
+			int the_port;
+			char *ret_dash;
+			
+			token1 = strtok_r(&hot_ports[0], tok1, &token1_save);
+			while (token1 != NULL) {
+				
+				/*
+				 * look for dash and process this
+				 * as a range of ports
+				 */
+				ret_dash = strstr(token1, "-");
+				if (ret_dash) {
+					
+					int start_port = atoi(token1);
+					int end_port = atoi(ret_dash + 1);
+					
+					if (start_port < end_port && start_port > 0) {
+						for(int x = start_port; x <= end_port; x++) {
+							std::cout << x << std::endl;
+							gargoyleHandler.add_to_hot_ports_list(x);
+						}
+					}
+				} else {
+					the_port = atoi(token1);
+					if(the_port > 0) {
+						if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
+							std::cout << the_port << std::endl;
+							gargoyleHandler.add_to_hot_ports_list(the_port);
+						}
+					}
+				}
+				token1 = strtok_r(NULL, tok1, &token1_save);
+			}
+		}
+	}
+	
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();
 	if (IGNORE_LOCAL_IP_ADDRS) {

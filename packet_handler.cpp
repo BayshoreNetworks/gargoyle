@@ -232,6 +232,44 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 					
 					// we dont ignore this ip addr
 					if (!_this->is_white_listed_ip_addr(s_src)) {
+						
+						/////////////////////////////////////////////////////////////////
+						/*
+						 * if there is a hit that is on the list
+						 * of "hot ports" then this warrants an
+						 * immediate block action as this means
+						 * the user wants no activity on the
+						 * specified port
+						 */
+						if (_this->is_in_hot_ports(dst_port)) {
+							
+							/*
+							 * We will not query iptables here as that overhead
+							 * is unacceptable, the analysis process should
+							 * catch and cleanup any dupes in iptables if that
+							 * situation arises
+							 */
+							
+							// get ix for ip_addr
+							int added_host_ix = add_host(s_src.c_str(), _this->DB_LOCATION.c_str());
+									
+							if (added_host_ix == -1) {
+								// get existing index
+								added_host_ix = get_host_ix(s_src.c_str(), _this->DB_LOCATION.c_str());
+							}
+									
+							//std:cout << added_host_ix << std::endl;
+
+							if (added_host_ix > 0) {
+
+								_this->add_block_rule(s_src, 9);
+								
+								_this->add_to_scanned_ports_dict(s_src.c_str(), dst_port);
+
+							}
+							return 0;
+						}
+						/////////////////////////////////////////////////////////////////
 
 						/*
 						printf("\n { src_ip=%s, dst_ip=%s, src_port=%d, dst_port=%d, seq_num=%d, ack_num=%d }\n",
@@ -480,13 +518,13 @@ bool GargoylePscandHandler::is_in_ports_entries(int s) {
 
 
 void GargoylePscandHandler::add_to_white_listed_entries(std::string s) {
-	if (is_white_listed_ip_addr(s) == false)
+	if (!is_white_listed_ip_addr(s))
 		WHITE_LISTED_IP_ADDRS.push_back(s);
 }
 
 
 void GargoylePscandHandler::add_to_ports_entries(int s) {
-	if (is_in_ports_entries(s) == false)
+	if (!is_in_ports_entries(s))
 		IGNORE_PORTS.push_back(s);
 }
 
@@ -658,7 +696,7 @@ int GargoylePscandHandler::half_connect_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false) {
+	if (!ignore_this_port(dst_port)) {
 		if (seq_num > 0 && ack_num == 0 && tcp_flags.size() == 1 && tcp_flags[0] == 2) { // flags = SYN - len flags = 1 - seq_num > 0 - ack_num = 0
 
 			std::ostringstream key1;
@@ -761,7 +799,7 @@ void GargoylePscandHandler::add_to_scanned_ports_dict(std::string the_ip, int th
 		 * legitimate functionality on the running host
 		 */
 		//if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
-		if (ignore_this_port(the_port) == false) {
+		if (!ignore_this_port(the_port)) {
 
 			int tstamp = (int) time(NULL);
 
@@ -858,6 +896,14 @@ void GargoylePscandHandler::display_local_ip_addr() {
 	std::cout << std::endl << std::endl;
 }
 
+
+void GargoylePscandHandler::display_hot_ports() {
+	
+	for (std::vector<int>::const_iterator i = HOT_PORTS.begin(); i != HOT_PORTS.end(); ++i) {
+			std::cout << *i << " ";
+		}
+		std::cout << std::endl << std::endl;
+}
 
 
 void GargoylePscandHandler::set_chain_name(std::string s) {
@@ -997,7 +1043,7 @@ int GargoylePscandHandler::xmas_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false || is_white_listed_ip_addr(src_ip) == false) {
+	if (!ignore_this_port(dst_port) || !is_white_listed_ip_addr(src_ip)) {
 		if((tcp_flags.size() == 3) &&
 				(std::find(tcp_flags.begin(), tcp_flags.end(), 1) != tcp_flags.end()) &&
 				(std::find(tcp_flags.begin(), tcp_flags.end(), 8) != tcp_flags.end()) &&
@@ -1033,7 +1079,7 @@ int GargoylePscandHandler::fin_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false || is_white_listed_ip_addr(src_ip) == false) {
+	if (!ignore_this_port(dst_port) || !is_white_listed_ip_addr(src_ip)) {
 		if (is_in_three_way_handshake(three_way_check_dat.str()) == false) {
 
 			if(tcp_flags.size() == 1 && tcp_flags[0] == 1) { // flags = FIN - len flags = 1
@@ -1068,7 +1114,7 @@ int GargoylePscandHandler::null_scan(
 		int ack_num,
 		std::vector<int> tcp_flags) {
 
-	if (ignore_this_port(dst_port) == false || is_white_listed_ip_addr(src_ip) == false) {
+	if (!ignore_this_port(dst_port) || !is_white_listed_ip_addr(src_ip)) {
 		if(tcp_flags.size() == 0) {
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
@@ -1344,7 +1390,7 @@ void GargoylePscandHandler::add_block_rules() {
 				
 					//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
 					
-					if (added_host_ix > 0 && is_white_listed_ip_addr(the_ip) == false) {
+					if (added_host_ix > 0 && !is_white_listed_ip_addr(the_ip)) {
 						add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
 					}
 					
@@ -1557,6 +1603,25 @@ void GargoylePscandHandler::set_iptables_supports_xlock(size_t support_xlock) {
 void GargoylePscandHandler::set_db_location(const char *db_loc) {
 	if (db_loc)
 		DB_LOCATION = db_loc;
+}
+
+
+bool GargoylePscandHandler::is_in_hot_ports(int the_port) {
+	
+	std::vector<int>::const_iterator hot_ports_iter = std::find(HOT_PORTS.begin(), HOT_PORTS.end(), the_port);
+	if (hot_ports_iter != HOT_PORTS.end())
+		return true;
+	return false;
+	
+}
+
+
+void GargoylePscandHandler::add_to_hot_ports_list(int the_port) {
+	if (the_port > 0) {
+		if (!is_in_hot_ports(the_port)) {
+			HOT_PORTS.push_back(the_port);
+		}
+	}
 }
 /////////////////////////////////////////////////////////////////////////////////
 

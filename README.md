@@ -88,6 +88,8 @@ Config data:
 
 		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic. A range of ports is supported if the format is properly used (x-y). Example (note no white spaces when specifying a range): ports_to_ignore:22,443,80-90,8080,8443-8448,502
 
+		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
+
 
 
 To compile and install:
@@ -125,6 +127,7 @@ Notes:
 		6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 		7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+		9:'Hot Port' triggered - This means the user wants an immediate block of any entity that touches this port
 
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
