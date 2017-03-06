@@ -229,6 +229,8 @@ int hex_to_int(const char *hex) {
     		res += (*hex - 55);
     	else if (*hex > 96 && *hex < 103)
     		res += (*hex - 87);
+    	else
+    		return res;
     	
     	if (*++hex)
     		res <<= 4;
@@ -254,9 +256,11 @@ void get_ports_to_ignore() {
 			if (target[0] != ' ') {
 				//std::cout << target << " - " << hex_to_int(target) << std::endl;
 				int the_port = hex_to_int(target);
-				if (EPHEMERAL_LOW > 0 && EPHEMERAL_HIGH > 0) {
-					if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
-						add_to_ports_entries(the_port);
+				if (the_port > 0) {
+					if (EPHEMERAL_LOW > 0 && EPHEMERAL_HIGH > 0) {
+						if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
+							add_to_ports_entries(the_port);
+						}
 					}
 				}
 			}
