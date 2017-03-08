@@ -635,7 +635,7 @@ void GargoylePscandHandler::main_port_scan_check(
 	 * But we ignore locally bound ip addr's if that flag is set
 	 */
 	if (IGNORE_WHITE_LISTED_IP_ADDRS) {
-		if (is_white_listed_ip_addr(src_ip) == false) {
+		if (!is_white_listed_ip_addr(src_ip)) {
 			add_to_scanned_ports_dict(src_ip, dst_port);
 		}
 	}
@@ -721,7 +721,7 @@ int GargoylePscandHandler::half_connect_scan(
 					add_block_rule(dst_ip, 4);
 				add_to_scanned_ports_dict(dst_ip, src_port);
 
-				if (is_in_black_listed_hosts(dst_ip) == false)
+				if (!is_in_black_listed_hosts(dst_ip))
 					BLACK_LISTED_HOSTS.insert(dst_ip);
 
 				return 0;
@@ -754,7 +754,7 @@ int GargoylePscandHandler::half_connect_scan(
 					add_block_rule(dst_ip, 4);
 				add_to_scanned_ports_dict(dst_ip, src_port);
 
-				if (is_in_black_listed_hosts(dst_ip) == false)
+				if (!is_in_black_listed_hosts(dst_ip))
 					BLACK_LISTED_HOSTS.insert(dst_ip);
 
 				return 2;
@@ -1060,7 +1060,7 @@ int GargoylePscandHandler::xmas_scan(
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
 
-			if (is_in_black_listed_hosts(src_ip) == false) {
+			if (!is_in_black_listed_hosts(src_ip)) {
 				BLACK_LISTED_HOSTS.insert(src_ip);
 			}
 			return 0;	
@@ -1080,7 +1080,7 @@ int GargoylePscandHandler::fin_scan(
 		std::vector<int> tcp_flags) {
 
 	if (!ignore_this_port(dst_port) || !is_white_listed_ip_addr(src_ip)) {
-		if (is_in_three_way_handshake(three_way_check_dat.str()) == false) {
+		if (!is_in_three_way_handshake(three_way_check_dat.str())) {
 
 			if(tcp_flags.size() == 1 && tcp_flags[0] == 1) { // flags = FIN - len flags = 1
 
@@ -1094,7 +1094,7 @@ int GargoylePscandHandler::fin_scan(
 
 				add_to_scanned_ports_dict(dst_ip, src_port);
 
-				if (is_in_black_listed_hosts(src_ip) == false) {
+				if (!is_in_black_listed_hosts(src_ip)) {
 					BLACK_LISTED_HOSTS.insert(src_ip);
 				}
 				return 0;	
@@ -1129,7 +1129,7 @@ int GargoylePscandHandler::null_scan(
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
 			
-			if (is_in_black_listed_hosts(src_ip) == false) {
+			if (!is_in_black_listed_hosts(src_ip)) {
 				BLACK_LISTED_HOSTS.insert(src_ip);
 			}
 			return 0;
@@ -1483,7 +1483,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 	if (the_ip.size() > 0 and host_ix > 0) {
 		
 		// we dont ignore this ip
-		if (is_white_listed_ip_addr(the_ip) == false) {
+		if (!is_white_listed_ip_addr(the_ip)) {
 
 			size_t ret;
 			int tstamp;
@@ -1510,7 +1510,7 @@ int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_ty
 
 
 void GargoylePscandHandler::set_enforce_mode(bool b_val) {
-	if (b_val == true || b_val == false)
+	if (b_val || !b_val)
 		ENFORCE = b_val;
 }
 

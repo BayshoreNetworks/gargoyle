@@ -299,13 +299,13 @@ bool exists_in_ip_entries(std::string s){
 
 
 void add_to_ports_entries(int s) {
-	if (exists_in_ports_entries(s) == false)
+	if (!exists_in_ports_entries(s))
 		IGNORE_PORTS.push_back(s);
 }
 
 
 void add_to_ip_entries(std::string s) {
-	if (exists_in_ip_entries(s) == false)
+	if (!exists_in_ip_entries(s))
 		LOCAL_IP_ADDRS.push_back(s);
 }
 
