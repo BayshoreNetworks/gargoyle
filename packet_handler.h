@@ -82,6 +82,7 @@ class GargoylePscandHandler
 	void add_block_rules();
 	void add_to_hosts_port_table(int, int, int);
 
+	void refresh_white_listed_entries();
 	void process_ignore_ip_list();
 	void clear_three_way_check_dat();
 	void clear_reverse_three_way_check_dat();
