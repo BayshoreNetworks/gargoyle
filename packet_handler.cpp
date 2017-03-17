@@ -1556,28 +1556,12 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 	char *token3;
 	char *token3_save;
 
-
 	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
 	char *l_hosts = (char*) malloc(dst_buf_sz);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	char DB_LOCATION[SQL_CMD_MAX+1];
-	const char *gargoyle_db_file;
-	gargoyle_db_file = getenv("GARGOYLE_DB");
-	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
-	} else {
-		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
-	}
-
-
     WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
-
     //get_local_ip_addrs();
     fp = popen("ip addr", "r");
 	if (fp) {
@@ -1596,9 +1580,10 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 						iter_cnt = 0;
 						token2 = strtok_r(token1, tok2, &token2_save);
 						while (token2 != NULL) {
-							if (iter_cnt == 0)
+							if (iter_cnt == 0) {
 								//add_to_ip_entries(token2);
                                 add_to_white_listed_entries(token2);
+							}
 							iter_cnt++;
 							token2 = strtok_r(NULL, tok2, &token2_save);
 						}
@@ -1612,18 +1597,16 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 	pclose(fp);
 
     //get_white_list_addrs();
-
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION);
-	
+	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
 	if (resp == 0) {
 
 		token3 = strtok_r(l_hosts, tok3, &token3_save);
 		while (token3 != NULL) {
 			
 			if (atoi(token3) > 0) {
-			
-				get_host_by_ix(atoi(token3), host_ip, dst_buf_sz1, DB_LOCATION);
-				
+
+				get_host_by_ix(atoi(token3), host_ip, dst_buf_sz1, DB_LOCATION.c_str());
+
 				if (strcmp(host_ip, "") != 0) {
                     //add_to_ip_entries(host_ip);
                     add_to_white_listed_entries(host_ip);
@@ -1632,11 +1615,8 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 			token3 = strtok_r(NULL, tok3, &token3_save);
 		}
 	}
-
 	free(l_hosts);
 	free(host_ip);
-
-    
 
     std::stringstream ss;
     int l_cnt = 1;
@@ -1650,9 +1630,8 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 		l_cnt++;
 	}
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
-
-
 }
+
 
 void GargoylePscandHandler::process_ignore_ip_list() {
 
@@ -1721,7 +1700,6 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	free(l_hosts);
 	free(host_ip);
 }
-
 
 
 void GargoylePscandHandler::set_iptables_supports_xlock(size_t support_xlock) {
