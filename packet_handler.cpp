@@ -51,6 +51,8 @@
 #include "packet_handler.h"
 #include "gargoyle_config_vals.h"
 
+#define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
+
 int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
 
 /*
@@ -116,21 +118,22 @@ void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, s
 }
 
 
-unsigned int levenshtein_distance(const std::string& s1, const std::string& s2) {
-	const std::size_t len1 = s1.size(), len2 = s2.size();
-	std::vector<unsigned int> col(len2+1), prevCol(len2+1);
-	
-	for (unsigned int i = 0; i < prevCol.size(); i++)
-		prevCol[i] = i;
-	for (unsigned int i = 0; i < len1; i++) {
-		col[0] = i+1;
-		for (unsigned int j = 0; j < len2; j++)
-                        // note that std::min({arg1, arg2, arg3}) works only in C++11,
-                        // for C++98 use std::min(std::min(arg1, arg2), arg3)
-			col[j+1] = std::min({ prevCol[1 + j] + 1, col[j] + 1, prevCol[j] + (s1[i]==s2[j] ? 0 : 1) });
-		col.swap(prevCol);
-	}
-	return prevCol[len2];
+int levenshtein(const char *s1, const char *s2) {
+    unsigned int s1len, s2len, x, y, lastdiag, olddiag;
+    s1len = strlen(s1);
+    s2len = strlen(s2);
+    unsigned int column[s1len+1];
+    for (y = 1; y <= s1len; y++)
+        column[y] = y;
+    for (x = 1; x <= s2len; x++) {
+        column[0] = x;
+        for (y = 1, lastdiag = x-1; y <= s1len; y++) {
+            olddiag = column[y];
+            column[y] = MIN3(column[y] + 1, column[y-1] + 1, lastdiag + (s1[y-1] == s2[x-1] ? 0 : 1));
+            lastdiag = olddiag;
+        }
+    }
+    return(column[s1len]);
 }
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -1755,9 +1758,9 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 			ss << *i << ",";
 		l_cnt++;
 	}
-	
-	std::string white_list_new = ss.str();
-	if (levenshtein_distance(white_list_orig, white_list_new) > 0) {
+
+	std::string white_list_new = ss.str();	
+	if (levenshtein(white_list_orig.c_str(), white_list_new.c_str()) > 0) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (white_list_new.c_str()));
 	}
 }
