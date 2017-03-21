@@ -87,8 +87,7 @@ std::vector<int> calculate_flags(int dec) {
 }
 
 
-static uint16_t checksum(const uint16_t* buf, unsigned int nbytes)
-{
+static uint16_t checksum(const uint16_t* buf, unsigned int nbytes) {
 	uint32_t sum = 0;
 
 	for (; nbytes > 1; nbytes -= 2)
@@ -108,8 +107,7 @@ static uint16_t checksum(const uint16_t* buf, unsigned int nbytes)
 }
 
 
-void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
-{
+void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size) {
 	int count = stop - start;
 	if ( count >= --size ) {
 		count = size;
@@ -117,6 +115,23 @@ void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, s
 	sprintf(dst, "%.*s", count, src + start);
 }
 
+
+unsigned int levenshtein_distance(const std::string& s1, const std::string& s2) {
+	const std::size_t len1 = s1.size(), len2 = s2.size();
+	std::vector<unsigned int> col(len2+1), prevCol(len2+1);
+	
+	for (unsigned int i = 0; i < prevCol.size(); i++)
+		prevCol[i] = i;
+	for (unsigned int i = 0; i < len1; i++) {
+		col[0] = i+1;
+		for (unsigned int j = 0; j < len2; j++)
+                        // note that std::min({arg1, arg2, arg3}) works only in C++11,
+                        // for C++98 use std::min(std::min(arg1, arg2), arg3)
+			col[j+1] = std::min({ prevCol[1 + j] + 1, col[j] + 1, prevCol[j] + (s1[i]==s2[j] ? 0 : 1) });
+		col.swap(prevCol);
+	}
+	return prevCol[len2];
+}
 /////////////////////////////////////////////////////////////////////////////////
 
 GargoylePscandHandler::GargoylePscandHandler() {
@@ -1659,6 +1674,20 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	char *l_hosts = (char*) malloc(dst_buf_sz);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+	
+	
+	std::stringstream ss_orig;
+	int l_cnt_orig = 1;
+	int v_cnt_orig = WHITE_LISTED_IP_ADDRS.size();
+	for (std::vector<std::string>::const_iterator ii = WHITE_LISTED_IP_ADDRS.begin(); ii != WHITE_LISTED_IP_ADDRS.end(); ++ii) {
+		if (l_cnt_orig == v_cnt_orig)
+			ss_orig << *ii;
+		else
+			ss_orig << *ii << ",";
+		l_cnt_orig++;
+	}
+	std::string white_list_orig = ss_orig.str();
+	
 
 	WHITE_LISTED_IP_ADDRS.clear();
     refresh_white_listed_entries();
@@ -1715,18 +1744,22 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	free(l_hosts);
 	free(host_ip);
 	
-    std::stringstream ss;
-    int l_cnt = 1;
+	std::stringstream ss;
+	int l_cnt = 1;
 	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
 	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
-	    //std::cout << *i << std::endl;
+		//std::cout << *i << std::endl;
 		if (l_cnt == v_cnt)
 			ss << *i;
 		else
 			ss << *i << ",";
 		l_cnt++;
 	}
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+	
+	std::string white_list_new = ss.str();
+	if (levenshtein_distance(white_list_orig, white_list_new) > 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (white_list_new.c_str()));
+	}
 }
 
 
