@@ -1530,8 +1530,37 @@ void GargoylePscandHandler::set_single_port_scan_threshold(size_t t_val) {
 	}
 }
 
-void GargoylePscandHandler::refresh_white_listed_entries(){
+void GargoylePscandHandler::refresh_white_listed_entries() {
 
+    WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
+    
+    /////////////////////////////////////////////////////
+    // get default gateway
+	FILE *gw_fp;
+	char *gw_dot;
+	char *default_gway = (char*) malloc(1024);
+	
+	const char *gw_tok1 = " ";
+	char *gw_token1;
+	char *gw_token1_save;
+	
+	gw_fp = popen("ip route | grep default", "r");
+	if (gw_fp) {
+		while (fgets(default_gway, 1024, gw_fp) != NULL) {
+			//std::cout << "--- " << default_gway << " --- " << strlen(default_gway) << std::endl;
+			gw_token1 = strtok_r(default_gway, gw_tok1, &gw_token1_save);
+			while (gw_token1 != NULL) {
+				gw_dot = strstr (gw_token1, ".");
+				if (gw_dot) {
+					add_to_white_listed_entries(gw_token1);
+				}
+				gw_token1 = strtok_r(NULL, gw_tok1, &gw_token1_save);
+			}
+		}
+	}
+	free(default_gway);
+	pclose(gw_fp);
+    /////////////////////////////////////////////////////
     //for get_local_ip_addrs    
     FILE *fp;
 	
@@ -1551,18 +1580,7 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 	
 	int iter_cnt;
 
-    //for get_white_list_addrs
-    const char *tok3 = ">";
-	char *token3;
-	char *token3_save;
-
-	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
-	char *l_hosts = (char*) malloc(dst_buf_sz);
-	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
-	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
-
-    WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
-    //get_local_ip_addrs();
+    //get_local_ip_addrs
     fp = popen("ip addr", "r");
 	if (fp) {
 		while (fgets(ip_addrs, 1024, fp) != NULL) {
@@ -1595,8 +1613,18 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 	}
 	free(ip_addrs);
 	pclose(fp);
+    /////////////////////////////////////////////////////
+    //for get_white_list_addrs
+    const char *tok3 = ">";
+	char *token3;
+	char *token3_save;
+	
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-    //get_white_list_addrs();
+    //get_white_list_addrs
 	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
 	if (resp == 0) {
 
@@ -1617,19 +1645,7 @@ void GargoylePscandHandler::refresh_white_listed_entries(){
 	}
 	free(l_hosts);
 	free(host_ip);
-
-    std::stringstream ss;
-    int l_cnt = 1;
-	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
-	    //std::cout << *i << std::endl;
-		if (l_cnt == v_cnt)
-			ss << *i;
-		else
-			ss << *i << ",";
-		l_cnt++;
-	}
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+    /////////////////////////////////////////////////////
 }
 
 
@@ -1646,7 +1662,6 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 
 	WHITE_LISTED_IP_ADDRS.clear();
     refresh_white_listed_entries();
-	syslog(LOG_INFO, "%s", WHITE_LISTED_IP_ADDRS[1]);
 
 	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
 	
@@ -1699,6 +1714,19 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	}
 	free(l_hosts);
 	free(host_ip);
+	
+    std::stringstream ss;
+    int l_cnt = 1;
+	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
+	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
+	    //std::cout << *i << std::endl;
+		if (l_cnt == v_cnt)
+			ss << *i;
+		else
+			ss << *i << ",";
+		l_cnt++;
+	}
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
 }
 
 
