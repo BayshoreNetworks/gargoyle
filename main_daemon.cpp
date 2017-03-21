@@ -256,7 +256,7 @@ void get_ports_to_ignore() {
 			if (target[0] != ' ') {
 				//std::cout << target << " - " << hex_to_int(target) << std::endl;
 				int the_port = hex_to_int(target);
-				if (the_port > 0) {
+				if (the_port > 0 && the_port <= 65535) {
 					if (EPHEMERAL_LOW > 0 && EPHEMERAL_HIGH > 0) {
 						if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
 							add_to_ports_entries(the_port);
@@ -610,7 +610,7 @@ int main(int argc, char *argv[])
 						int start_port = atoi(token1);
 						int end_port = atoi(ret_dash + 1);
 						
-						if (start_port < end_port && start_port > 0) {
+						if (start_port < end_port && start_port > 0 && start_port <= 65535) {
 						
 							//std::cout << start_port << std::endl;
 							//std::cout << end_port << std::endl;
@@ -619,7 +619,7 @@ int main(int argc, char *argv[])
 						}
 					} else {
 						the_port = atoi(token1);
-						if(the_port > 0) {
+						if(the_port > 0 && the_port <= 65535) {
 							if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
 								add_to_ports_entries(the_port);
 							}
@@ -676,7 +676,7 @@ int main(int argc, char *argv[])
 					
 					if (start_port < end_port && start_port > 0) {
 						for(int x = start_port; x <= end_port; x++) {
-							std::cout << x << std::endl;
+							//std::cout << x << std::endl;
 							gargoyleHandler.add_to_hot_ports_list(x);
 						}
 					}
@@ -684,7 +684,7 @@ int main(int argc, char *argv[])
 					the_port = atoi(token1);
 					if(the_port > 0) {
 						if (the_port < EPHEMERAL_LOW || the_port > EPHEMERAL_HIGH) {
-							std::cout << the_port << std::endl;
+							//std::cout << the_port << std::endl;
 							gargoyleHandler.add_to_hot_ports_list(the_port);
 						}
 					}
