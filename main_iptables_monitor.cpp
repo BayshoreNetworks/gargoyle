@@ -47,6 +47,7 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
+#include "string_functions.h"
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
@@ -66,7 +67,8 @@ void handle_signal (int signum) {
 
 void run_monitor() {
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", (int) time(NULL));
+	int start_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", start_time);
 
 	int iter_cnt;
 	//int resp3;
@@ -92,7 +94,6 @@ void run_monitor() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	//resp3 = get_detected_hosts_all_active_unprocessed(l_hosts3, dst_buf_sz);
 	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
 	
 	if (resp3 == 0) {
@@ -183,20 +184,45 @@ void run_monitor() {
 		}
 	}
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", (int) time(NULL));
+	int end_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");
 	
 	free(l_hosts3);
 	free(host_ip);
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
 
 	signal(SIGINT, handle_signal);
 	
     if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
+    }
+    
+    /*
+     * in order to keep stuff lean and mean I
+     * am doing this manually here and not
+     * using a lib that parses command line args,
+     * maybe we replace this in the future ...
+     */
+    if (argc > 2 || argc < 1) {
+    	
+    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	return 1;
+    	
+    } else if (argc == 2) {
+    	
+    	std::string arg_one = argv[1];
+    	
+    	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
+    		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
+    	else {
+    		return 0;
+    	}
     }
 
 	/*

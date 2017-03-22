@@ -37,7 +37,21 @@
 #define DEST_BUF_SZ 524288
 #define CMD_BUF_SZ 100
 
+
+
+
 #ifdef __cplusplus
+
+
+bool case_insensitive_char_compare(char a, char b) {
+	return(toupper(a) == toupper(b));
+}
+
+bool case_insensitive_compare(const std::string& s1, const std::string& s2) {
+	return((s1.size() == s2.size()) && equal(s1.begin(), s1.end(), s2.begin(), case_insensitive_char_compare));
+}
+
+
 extern "C" {
 #endif
 

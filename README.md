@@ -3,7 +3,7 @@ Gargoyle Port Scan Detector
 
 This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, Fedora and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
+Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
 
 Gargoyle_pscand is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 
@@ -11,7 +11,7 @@ There are numerous run time entities:
 
 	1. gargoyle_pscand - runs as the main daemon and expects signal 2 (SIGINT) to be brought down as there is a complex cleanup process upon the reciept of SIGINT.
 
-		This is the main daemon that reads packet data right off the netfilter queue (set up as: "iptables -I INPUT -j NFQUEUE --queue-num 5")
+		This is the main daemon that reads packet data right off iptables via NFLOG (set up as: "iptables -I INPUT -j NFLOG --nflog-group 5")
 
 		There are multiple layers to this solution (as part of the running main daemon):
 
@@ -52,11 +52,11 @@ Required libs
 
 	Debian variant:
 
-		sudo apt-get install libnetfilter-queue-dev sqlite3 libsqlite3-dev autoconf lsb-base
+		sudo apt-get install sqlite3 libsqlite3-dev autoconf lsb-base libnetfilter-log-dev
 
 	Fedora:
 
-		sudo dnf install libnetfilter_queue-devel sqlite3 libsqlite3x-devel autoconf redhat-lsb-core
+		sudo dnf install sqlite3 libsqlite3x-devel autoconf redhat-lsb-core libnetfilter_log-devel
 
 
 Database:
@@ -88,6 +88,8 @@ Config data:
 
 		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic. A range of ports is supported if the format is properly used (x-y). Example (note no white spaces when specifying a range): ports_to_ignore:22,443,80-90,8080,8443-8448,502
 
+		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
+
 
 
 To compile and install:
@@ -97,6 +99,12 @@ To compile and install:
 
 
 Notes:
+
+	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is syncronized with data in the DB and it is important for that synchronization is be respected.
+
+	- To start/stop the Gargoyle_pscand daemons use the init script.
+
+	- When one stops the dameons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
 	- Currently addresses TCP ports, UDP support will come soon
 	
@@ -109,9 +117,6 @@ Notes:
 		- any ip address whitelisted in the DB 
 		- system default gateway (data comes from "/proc/net/route")
 
-
-
-
 	- BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
 		1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
@@ -122,11 +127,13 @@ Notes:
 		6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 		7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
+		9:'Hot Port' triggered - This means the user wants an immediate block of any entity that touches this port
 
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
-	- When one stops the dameons (or sends SIGINT) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
+	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep analysis performance acceptable.
+
 
 
 

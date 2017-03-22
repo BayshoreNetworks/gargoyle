@@ -33,6 +33,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <map>
 
 #include <errno.h>
 #include <ctype.h>
@@ -51,7 +52,14 @@
 #include "string_functions.h"
 
 
-std::vector<std::string> LOCAL_IP_ADDRS;
+struct greater_val
+{
+    template<class T>
+    bool operator()(T const &a, T const &b) const { return a > b; }
+};
+
+
+std::vector<std::string> WHITE_LISTED_IP_ADDRS;
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
 size_t SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -60,6 +68,8 @@ size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 size_t LAST_SEEN_DELTA = 28800;
 bool ENFORCE = true;
 size_t IPTABLES_SUPPORTS_XLOCK;
+// 5 days
+size_t LAST_SEEN_THRESHOLD = 432000;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 
@@ -72,11 +82,13 @@ void do_block_actions(const char *, int, int);
 void query_for_single_port_hits_last_seen();
 void query_for_multiple_ports_hits_last_seen();
 void run_analysis();
-bool exists_in_ip_entries(std::string);
+bool is_white_listed_ip_addr(std::string);
 void add_to_ip_entries(std::string);
 void get_default_gateway_linux();
 void get_local_ip_addrs();
 void get_white_list_addrs();
+void clean_up_stale_data();
+void clean_up_iptables_dupe_data();
 
 
 void handle_signal (int signum) {
@@ -101,7 +113,7 @@ bool exists_in_iptables_entries(int s) {
 
 
 void add_to_iptables_entries(int s) {
-	if (exists_in_iptables_entries(s) == false)
+	if (!exists_in_iptables_entries(s))
 		IPTABLES_ENTRIES.push_back(s);
 }
 
@@ -109,11 +121,9 @@ void add_to_iptables_entries(int s) {
 void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
 
 	if (the_ip and the_ix) {
+		
 		// we dont ignore this ip
-		
-		std::cout << exists_in_ip_entries(the_ip) << std::endl;
-		
-		if (exists_in_ip_entries(the_ip) == false) {
+		if (!is_white_listed_ip_addr(the_ip)) {
 			size_t ret;
 			int tstamp;
 			tstamp = (int) time(NULL);
@@ -207,7 +217,7 @@ void query_for_single_port_hits_last_seen() {
 				std::cout << "ROW/HOST/PORT/CNT: " << row_ix << " - " << host_ix
 						<< " - " << port_num << " - " << hit_count << std::endl;
 				*/
-				if (exists_in_iptables_entries(host_ix) == false) {
+				if (!exists_in_iptables_entries(host_ix)) {
 
 					size_t get_all_dst_sz = LOCAL_BUF_SZ;
 					char *h_all = (char*) malloc(get_all_dst_sz+1);
@@ -297,7 +307,7 @@ void query_for_multiple_ports_hits_last_seen() {
 		token1 = strtok_r(hosts_all_buf, tok1, &token1_save);
 		while (token1 != NULL) {
 			
-			iter_cnt =0;
+			iter_cnt = 0;
 			token2 = strtok_r(token1, tok2, &token2_save);
 			
 			while (token2 != NULL) {
@@ -319,7 +329,7 @@ void query_for_multiple_ports_hits_last_seen() {
 			std::cout << host_ix << " - " << host_ip << " - " << first_seen << " - "
 					<< last_seen << std::endl << std::endl;
 			*/
-			if (exists_in_iptables_entries(host_ix) == false) {
+			if (!exists_in_iptables_entries(host_ix)) {
 				
 				now = (int) time(NULL);
 				if ((now - last_seen) <= LAST_SEEN_DELTA) {
@@ -360,7 +370,8 @@ void query_for_multiple_ports_hits_last_seen() {
 
 void run_analysis() {
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", (int) time(NULL));
+	int start_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", start_time);
 	
 	IPTABLES_ENTRIES.clear();
 	get_white_list_addrs();
@@ -422,24 +433,26 @@ void run_analysis() {
 		}
 	}
 
+	clean_up_stale_data();
 	query_for_single_port_hits_last_seen();
 	query_for_multiple_ports_hits_last_seen();
+	clean_up_iptables_dupe_data();
 	
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", (int) time(NULL));
-	
-	//free(l_hosts3);
+	int end_time = (int) time(NULL);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", end_time);
+	syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "analysis process took", end_time - start_time, "seconds");
 	
 	free(l_hosts);
 	free(host_ip);
 }
 
 
-bool exists_in_ip_entries(std::string s){
+bool is_white_listed_ip_addr(std::string s){
 
 	std::vector<std::string>::const_iterator iter;
 
-	iter = std::find(LOCAL_IP_ADDRS.begin(), LOCAL_IP_ADDRS.end(), s);
-	if (iter != LOCAL_IP_ADDRS.end()) {
+	iter = std::find(WHITE_LISTED_IP_ADDRS.begin(), WHITE_LISTED_IP_ADDRS.end(), s);
+	if (iter != WHITE_LISTED_IP_ADDRS.end()) {
 		return true;
 	} else {
 		return false;
@@ -448,8 +461,8 @@ bool exists_in_ip_entries(std::string s){
 
 
 void add_to_ip_entries(std::string s) {
-	if (exists_in_ip_entries(s) == false)
-		LOCAL_IP_ADDRS.push_back(s);
+	if (!is_white_listed_ip_addr(s))
+		WHITE_LISTED_IP_ADDRS.push_back(s);
 }
 
 
@@ -571,13 +584,244 @@ void get_white_list_addrs() {
 }
 
 
-int main() {
+void clean_up_stale_data() {
+	
+	int ret;
+	int row_ix;
+	int host_ix;
+	int first_seen;
+	int last_seen;
+	int iter_cnt;
+	int now;
+	int hit_cnt_resp;
+	int l_count;
+	
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+	const char *tok2 = ":";
+	char *token2;
+	char *token2_save;
+	
+	size_t dst_buf_sz = MEDIUM_DEST_BUF;
+	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
+	char *host_ip = (char*) malloc(60);
+	
+	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
+	/*
+	std::cout << hosts_all_buf << std::endl;
+	std::cout << strlen(hosts_all_buf) << std::endl;
+	*/
+	
+	if (ret == 0) {
+		
+		token1 = strtok_r(hosts_all_buf, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			iter_cnt = 0;
+			token2 = strtok_r(token1, tok2, &token2_save);
+			
+			while (token2 != NULL) {
+				
+				if (iter_cnt == 0) {
+					host_ix = atoi(token2);
+				} else if (iter_cnt == 1) {
+					snprintf(host_ip, 60, "%s", token2);
+				} else if (iter_cnt == 2) {
+					first_seen = atoi(token2);
+				} else if (iter_cnt == 3) {
+					last_seen = atoi(token2);
+				}
+				
+				iter_cnt++;
+				token2 = strtok_r(NULL, tok2, &token2_save);
+			}
+
+			if (!exists_in_iptables_entries(host_ix) && !is_white_listed_ip_addr(host_ip)) {
+				
+				now = (int) time(NULL);
+				if ((now - last_seen) >= LAST_SEEN_THRESHOLD) {
+					/*
+					 * the following must be done in order to
+					 * minimize the overall intensity of the
+					 * analysis process as it can peg a CPU at
+					 * close to 100% when there is a lot of data
+					 * to process
+					 * 
+					 * the next steps will remove all traces of
+					 * a particular host if we havent encountered
+					 * it in over LAST_SEEN_THRESHOLD (5 days by
+					 * default)
+					 */
+					
+					// delete all records for this host_ix from hosts_ports_hits table
+					remove_host_ports_all(host_ix, DB_LOCATION);
+					// delete the host record
+					remove_host(host_ix, DB_LOCATION);
+					
+					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", "removing record",
+							VIOLATOR_SYSLOG, host_ip, "first_seen", first_seen, "last_seen", last_seen);
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	free(hosts_all_buf);
+	free(host_ip);
+}
+
+
+void clean_up_iptables_dupe_data() {
+	
+	size_t dst_buf_sz = DEST_BUF_SZ;
+	char *l_chains = (char*) malloc(dst_buf_sz + 1);
+	*l_chains = 0;
+	char *l_chains2 = (char*) malloc(dst_buf_sz + 1);
+	*l_chains2 = 0;
+	
+	const char *tok1 = "\n";
+	
+	char *token1;
+	char *token1_save;
+	char *token2;
+	char *token2_save;
+	
+	
+	const char *dash_dash = "--  ";
+	size_t dash_dash_len = 4;
+	const char *w_space = " ";
+	
+	char *s_lchains1;
+	char *s_lchains2;
+	char *s_lchains3;
+	char *s_lchains4;
+	
+	char *host_ip = (char*) malloc(60);
+	char *host_ip2 = (char*) malloc(60);
+	
+	int rule_ix1;
+	int rule_ix2;
+	
+	std::map<std::string, int> iptables_map;
+	
+	iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
+	if (l_chains) {
+		token1 = strtok_r(l_chains, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			rule_ix1 = atoi(token1);
+			s_lchains1 = strstr (token1, dash_dash);
+			
+			if (s_lchains1) {
+				
+				size_t position1 = s_lchains1 - token1;
+				s_lchains2 = strstr (token1 + position1 + dash_dash_len, w_space);
+				size_t position2 = s_lchains2 - token1;
+
+				*host_ip = 0;
+				
+				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
+				if (host_ip) {
+					iptables_map.insert(std::pair<std::string,int>(host_ip,rule_ix1));
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+
+	std::map<std::string,int>::iterator it = iptables_map.begin();
+	/*
+	for (it=iptables_map.begin(); it!=iptables_map.end(); ++it) {
+			
+		std::cout << it->first << " => " << it->second << '\n';
+	}
+	*/
+	std::vector<int> vec;
+	for (it=iptables_map.begin(); it!=iptables_map.end(); ++it) {
+		
+	    //std::cout << it->first << " => " << it->second << '\n';
+		iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains2, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
+							
+		if (l_chains2) {
+			
+			token2 = strtok_r(l_chains2, tok1, &token2_save);
+			while (token2 != NULL) {
+				
+				rule_ix2 = atoi(token2);
+				s_lchains3 = strstr (token2, dash_dash);
+				if (s_lchains3) {
+					
+					size_t position3 = s_lchains3 - token2;
+					s_lchains4 = strstr (token2 + position3 + dash_dash_len, w_space);
+					size_t position4 = s_lchains4 - token2;
+
+					*host_ip2 = 0;
+					bayshoresubstring(position3 + dash_dash_len, position4, token2, host_ip2, 16);
+					if (host_ip2) {
+
+						if ((strcmp((it->first).c_str(), host_ip2) == 0) && (it->second < rule_ix2)) {
+							/*
+							std::cout << it->first << " - " << host_ip2 << std::endl;
+							std::cout << it->second << " - " << rule_ix2 << std::endl << std::endl;
+							*/
+							vec.push_back(rule_ix2);
+						}
+					}
+				}
+				token2 = strtok_r(NULL, tok1, &token2_save);
+			}
+		}
+	}
+
+	if (vec.size() > 0) {
+		/*
+		 * We have to remove rules from the bottom
+		 * up in iptables
+		 */
+		std::sort(vec.begin(), vec.end(), greater_val());
+		for (std::vector<int>::const_iterator itv=vec.begin(); itv!=vec.end(); ++itv) {
+			//std::cout << *itv << " ";
+			iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, *itv, IPTABLES_SUPPORTS_XLOCK);
+		}
+	}
+	free(l_chains);
+	free(l_chains2);
+	free(host_ip);
+	free(host_ip2);
+}
+
+
+
+int main(int argc, char *argv[]) {
 
 	signal(SIGINT, handle_signal);
 	
     if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
+    }
+    
+    /*
+     * in order to keep stuff lean and mean I
+     * am doing this manually here and not
+     * using a lib that parses command line args,
+     * maybe we replace this in the future ...
+     */
+    if (argc > 2 || argc < 1) {
+    	
+    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	return 1;
+    	
+    } else if (argc == 2) {
+    	
+    	std::string arg_one = argv[1];
+    	
+    	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
+    		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
+    	else {
+    		return 0;
+    	}
     }
 	
 	int analysis_port;
@@ -641,15 +885,15 @@ int main() {
 		return 1;
 	}
 	
-	LOCAL_IP_ADDRS.push_back("0.0.0.0");
+	WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();
 	get_local_ip_addrs();
 	get_white_list_addrs();
 
 	std::stringstream ss;
 	int l_cnt = 1;
-	int v_cnt = LOCAL_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
+	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
+	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
 		//std::cout << *i << std::endl;
 		if (l_cnt == v_cnt)
 			ss << *i;

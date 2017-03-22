@@ -30,7 +30,6 @@
 #ifndef _PACKETHANDLERS_H__
 #define _PACKETHANDLERS_H__
 
-#include "nf_queue.h"
 
 #include <list>
 #include <map>
@@ -39,30 +38,30 @@
 #include <vector>
 #include <sstream>
 
-
-class CompoundHandler:public PacketHandler
-{
-	public:
-		void add_handler(PacketHandler& handler);
-		int handle_packet(Queue& queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad);
-	protected:
-		typedef std::list<PacketHandler*> list_t;
-		list_t _handlers;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <libnetfilter_log/libnetfilter_log.h>
+#ifdef __cplusplus
+}
+#endif
 
 
 /* 
  * This handler recv's packets from the NetFilter
  * Queue and interacts with the DB and iptables
  */
-class GargoylePscandHandler:public PacketHandler
+class GargoylePscandHandler
 {
 	public:
 	GargoylePscandHandler();
-		
-	int handle_packet(Queue&, struct nfgenmsg *, struct nfq_data *);
-	void add_to_ip_entries(std::string);
+	
+	// netfilter callback
+	static int packet_handle(struct nflog_g_handle *, struct nfgenmsg *, struct nflog_data *, void *);
+	
+	void add_to_white_listed_entries(std::string);
 	void add_to_ports_entries(int);
+	void add_to_hot_ports_list(int);
 	void set_ignore_local_ip_addrs(bool);
 	void set_ephemeral_low(size_t);
 	void set_ephemeral_high(size_t);
@@ -73,6 +72,7 @@ class GargoylePscandHandler:public PacketHandler
 	void set_iptables_supports_xlock(size_t);
 	void set_db_location(const char *);
 	
+
 	protected:
 	
 	void three_way_check(std::string, int, std::string, int, int, int, std::vector<int>);
@@ -82,6 +82,7 @@ class GargoylePscandHandler:public PacketHandler
 	void add_block_rules();
 	void add_to_hosts_port_table(int, int, int);
 
+	void refresh_white_listed_entries();
 	void process_ignore_ip_list();
 	void clear_three_way_check_dat();
 	void clear_reverse_three_way_check_dat();
@@ -90,6 +91,7 @@ class GargoylePscandHandler:public PacketHandler
 	
 	void display_scanned_ports_dict();
 	void display_local_ip_addr();
+	void display_hot_ports();
 	
 	int half_connect_scan(std::string, int, std::string, int, int, int, std::vector<int>);
 	int full_connect_scan(std::string, int, std::string, int, int, int, std::vector<int>);
@@ -102,17 +104,18 @@ class GargoylePscandHandler:public PacketHandler
 	bool is_in_waiting(std::string);
 	bool is_in_half_scan_dict(std::string);
 	bool is_in_black_listed_hosts(std::string);
-	bool is_in_ip_entries(std::string);
+	bool is_white_listed_ip_addr(std::string);
 	bool is_in_ports_entries(int);
 	bool is_in_scanned_ports_cnt_dict(std::string);
 	bool is_in_three_way_handshake(std::string);
 	bool is_in_ephemeral_range(int);
 	bool ignore_this_port(int);
 	bool ignore_this_addr(std::string);
+	bool is_in_hot_ports(int);
 	
 	private:
 	
-	bool IGNORE_LOCAL_IP_ADDRS;
+	bool IGNORE_WHITE_LISTED_IP_ADDRS;
 	int EPHEMERAL_LOW;
 	int EPHEMERAL_HIGH;
 	std::string CHAIN_NAME;
@@ -127,10 +130,11 @@ class GargoylePscandHandler:public PacketHandler
 	std::ostringstream src_ip_dst_ip_dat;
 	std::ostringstream reverse_src_ip_dst_ip_dat;
 	
-	std::vector<std::string> LOCAL_IP_ADDRS;
+	std::vector<std::string> WHITE_LISTED_IP_ADDRS;
 	//std::vector<std::string>::const_iterator local_ip_iter;
 	std::vector<int> IGNORE_PORTS;
 	std::vector<int>::const_iterator ports_iter;
+	std::vector<int> HOT_PORTS;
 	
 	std::set<std::string> THREE_WAY_HANDSHAKE;
 	std::set<std::string>::iterator twh_it;

@@ -39,7 +39,6 @@
 #define LOCAL_BUF_SZ 60
 #define SMALL_DEST_BUF 2097152
 #define MEDIUM_DEST_BUF 5242880
-//#define MEDIUM_DEST_BUF 10485760
 #define SQL_CMD_MAX 512
 
 #define DETECTED_HOSTS_TABLE "detected_hosts"
@@ -56,10 +55,6 @@ extern "C" {
 // detected_hosts table
 size_t add_detected_host(size_t, size_t, const char *);
 size_t get_detected_hosts_all(char *, size_t, const char *);
-//int get_detected_hosts_all_active_unprocessed(char *, size_t); // - in the monitor
-//int modify_host_set_processed_ix(int);
-//int get_detected_hosts_all_active_unprocessed_ix(char *, size_t);
-//int get_detected_hosts_all_active_unprocessed_host_ix(char *, size_t);
 size_t get_detected_hosts_row_ix_by_host_ix(size_t, const char *);
 size_t remove_detected_host(size_t, const char *);
 size_t remove_detected_hosts_all(const char *);
@@ -71,6 +66,7 @@ int get_host_all_by_ix(int, char *, size_t, const char *);
 int add_host(const char *, const char *);
 int get_host_ix(const char *, const char *);
 size_t update_host_last_seen(size_t, const char *);
+size_t remove_host(size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_ports_hits table
 int get_unique_list_of_ports(char *, size_t, const char *);

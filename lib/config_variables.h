@@ -48,11 +48,15 @@ using namespace std;
  * 	gargoyle_pscand_monitor
  * 	enforce
  * 	ports_to_ignore
+ * 	hot_ports
  * 	
  */
 class ConfigVariables {
 	
 public:
+	
+	ConfigVariables() { }
+	virtual ~ConfigVariables() { }
 	
 	/*
 	 * return 0 = ok
@@ -210,6 +214,17 @@ public:
 			return "";
 		} else {
 			return key_vals[ports_to_ignore];
+		}
+	}
+	
+	
+	string get_hot_ports() {
+		
+		string hot_ports = "hot_ports";
+		if ( key_vals.find(hot_ports) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[hot_ports];
 		}
 	}
 

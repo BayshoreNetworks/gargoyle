@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
     }
-
+    
 	/*
 	 * Get location for the DB file
 	 */
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 						remove_detected_host(row_ix, DB_LOCATION);
 						
 						int tstamp = (int) time(NULL);
-						
+
 						// add to ignore ip table
 						add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
 						
