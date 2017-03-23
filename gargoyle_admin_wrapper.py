@@ -27,6 +27,11 @@
   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+  Code within starred lines:
+  Project: ipaddr-py https://github.com/google/ipaddr-py/blob/master/ipaddr.py
+  Copyright (c) 2007, Google Inc.
+  License (Apache) http://www.apache.org/licenses/LICENSE-2.0
+
 '''
 from subprocess import *
 import sqlite3
@@ -35,6 +40,7 @@ import os
 import time
 import struct
 
+''' *********************************************************************************************************** '''
 IPV4LENGTH = 32
 IPV6LENGTH = 128
 
@@ -1325,6 +1331,8 @@ def IPAddress(address, version=None):
 
     #raise ValueError('%r does not appear to be an IPv4 or IPv6 address' % address)
     return 1
+
+''' *********************************************************************************************************** '''
 
 def default_config():
 
