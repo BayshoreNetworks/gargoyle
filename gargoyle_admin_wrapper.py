@@ -1334,21 +1334,6 @@ def IPAddress(address, version=None):
 
 ''' *********************************************************************************************************** '''
 
-def default_config():
-
-    try:
-        config_file = os.environ["GARGOYLE_CONFIG"]
-    except KeyError:
-        config_file = '.gargoyle_config'
-    file = open(config_file,'w')
-    file.write('enforce:1\n')
-    file.write('port_scan_threshold:15\n')
-    file.write('single_ip_scan_threshold:6\n')
-    file.write('overall_port_scan_threshold:8\n')
-    file.write('last_seen_delta:28800\n')
-    file.write('lockout_time:32400\n')
-    file.close()
-
 def list_of_ports(list):
 
     ports = []
