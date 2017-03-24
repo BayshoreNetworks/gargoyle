@@ -91,6 +91,25 @@ Config data:
 		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
 
 
+gargoyle_admin_wrapper.py - wrapper to multiple Gargoyle administrative functions.
+
+    Functions included:
+
+        1. get_current_config - Input: None. Output: Current configuration in .gargoyle_config as a json object
+
+        2. set_config - Input: Json object containing new desired configuration of .gargoyle_config. Functionality: Updates .gargoyle_config with the key-value pairs. Output: Integer
+
+        3. unblock_ip - Input: String of an ip address to be unblocked. Functionality: Unblocks the desired ip. Output: Integer
+
+        4. get_current_white_list - Input: None. Output: List of ip addresses currently in the white list(db table 'ignore_ip_list')
+
+        5. add_to_white_list - Input: String of an ip address to add to the white list. Functionality: Adds the desired ip to the white list. Output: Integer
+
+        6. remove_from_white_list - Input: String of an ip address to remove from the white list. Functionality: Removes the desired ip from the white list. Output: Integer
+
+        7. get_current_from_iptables - Input: None. Output: Returns list of ip addresses currently being blocked
+
+    Note: For any admin functions above that return an integer, a return value of 0 indicates success of the functionality while 1 indicates some sort of failure. 
 
 To compile and install:
 
