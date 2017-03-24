@@ -1414,10 +1414,6 @@ def set_config(objct):
     if 'ports_to_ignore' and 'hot_ports' in data.keys():
         if is_there_conflict(data['ports_to_ignore'],data['hot_ports']):
             return 1
-    
-    for key in current.keys():
-        if key not in data.keys():
-            data[key] = current[key]
 
     for key in data:
 
