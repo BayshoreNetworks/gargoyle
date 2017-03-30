@@ -1620,6 +1620,7 @@ returns list of string of ips in iptables
 def get_current_from_iptables():
     
     ips_in_iptables = []
+    blocked_ips = {}
 
     cmd = ['iptables -L GARGOYLE_Input_Chain -n']
     p = Popen(cmd, stdout=PIPE, shell=True)
@@ -1632,6 +1633,34 @@ def get_current_from_iptables():
             each_line = line.split()
             if each_line[0] == 'DROP':
                 ips_in_iptables.append(each_line[3])
-    return ips_in_iptables
+    
+    host_ix = None
+    db_loc = get_db()
+    
+    try:
+        table = sqlite3.connect(db_loc)
+        cursor = table.cursor()
+    except sqlite3.Error as e:
+        print(e)
+
+    for ip in ips_in_iptables:
+        try:
+            with table:
+                cursor.execute("SELECT first_seen FROM hosts_table WHERE host = '{}'".format(ip))
+                first_seen = cursor.fetchone()[0]
+        except TypeError:
+            pass
+
+        try:
+            with table:
+                cursor.execute("SELECT last_seen FROM hosts_table WHERE host = '{}'".format(ip))
+                last_seen = cursor.fetchone()[0]
+        except TypeError:
+            pass
+
+        blocked_ips[ip] = [first_seen,last_seen]
+        
+    return blocked_ips
+ 
 
 
