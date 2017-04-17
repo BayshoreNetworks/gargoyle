@@ -141,8 +141,8 @@ Notes:
 		1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
 		2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
 		3:'XMAS Scan' (Stealth technique) - sends packets with the URG, PUSH, FIN flags set
-		4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response.
-		5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection.
+		4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response [deprecated]
+		5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection [deprecated]
 		6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 		7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection

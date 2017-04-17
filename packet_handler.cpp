@@ -515,15 +515,6 @@ bool GargoylePscandHandler::is_white_listed_ip_addr(std::string s) {
 	if (local_ip_iter != WHITE_LISTED_IP_ADDRS.end())
 		return true;
 	return false;
-
-	/*
-	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
-		std::cout << *i << " - " << s << " - " << (*i).compare(s) << std::endl;
-		if ((*i).compare(s) == 0)
-			return true;
-	}
-	return false;
-	 */
 }
 
 
@@ -592,25 +583,8 @@ void GargoylePscandHandler::main_port_scan_check(
 		return;
 	}
 
-	int full_connect_ret;
-	full_connect_ret = 1;
-	if (half_connect_ret == 1) {
-		full_connect_ret = full_connect_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
-
-		if (full_connect_ret == 0 || full_connect_ret == 2) {
-			if (full_connect_ret == 2) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (reverse_three_way_check_dat.str()).c_str(), "FULL Connect port scan detected");
-			}
-			if (full_connect_ret == 0) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", "Generic port scan (full connection) detected - attempt to connect to closed port", (reverse_three_way_check_dat.str()).c_str());
-			}
-			return;
-		}
-	}
-
-
 	int xmas_scan_ret;
-	if (full_connect_ret == 1) {
+	if (half_connect_ret == 1) {
 		xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "xmas_scan_ret: " << xmas_scan_ret << std::endl;
@@ -663,41 +637,6 @@ void GargoylePscandHandler::main_port_scan_check(
 	//std::cout << "WTF1 -" << three_way_check_dat.str() << std::endl << reverse_three_way_check_dat.str() << std::endl << src_ip_dst_ip_dat.str() << std::endl << reverse_src_ip_dst_ip_dat.str() << "WTF2" << std::endl;
 
 
-}
-
-
-/*
- * return 0 = "Generic port scan (full connection) detected - attempt to connect to closed port"
- * return 1 = nothing discovered here
- * return 2 = "Full Connect port scan detected"
- */
-int GargoylePscandHandler::full_connect_scan(
-		std::string src_ip,
-		int src_port,
-		std::string dst_ip,
-		int dst_port,
-		int seq_num,
-		int ack_num,
-		std::vector<int> tcp_flags) {
-
-	// TODO
-
-	/*
-	if (is_in_three_way_handshake(three_way_check_dat.str())) {
-
-		if ((tcp_flags.size() == 2) &&
-				(std::find(tcp_flags.begin(), tcp_flags.end(), 4) != tcp_flags.end()) && 
-				(std::find(tcp_flags.begin(), tcp_flags.end(), 16) != tcp_flags.end())) { // flags = ACK,RST - len flags = 2
-
-		}
-
-	} else {
-
-	}
-
-	 */
-
-	return 1;
 }
 
 
@@ -1795,5 +1734,3 @@ void GargoylePscandHandler::add_to_hot_ports_list(int the_port) {
 	}
 }
 /////////////////////////////////////////////////////////////////////////////////
-
-

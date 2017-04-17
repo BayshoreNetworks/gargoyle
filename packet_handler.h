@@ -142,7 +142,6 @@ class GargoylePscandHandler
 	std::set<std::string> BLACK_LISTED_HOSTS;
 	
 	std::map<std::string, std::string> HALF_SCAN_DICT;
-	//std::map< std::string, std::pair <int, std::string> > SCANNED_PORTS_CNT_DICT;
 	std::map< std::string, std::pair <int, int> > SCANNED_PORTS_CNT_DICT;
 };
 
