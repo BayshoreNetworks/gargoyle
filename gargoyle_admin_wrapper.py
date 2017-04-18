@@ -1622,7 +1622,7 @@ def get_current_from_iptables():
     ips_in_iptables = []
     blocked_ips = {}
 
-    cmd = ['iptables -L GARGOYLE_Input_Chain -n']
+    cmd = ['sudo iptables -L GARGOYLE_Input_Chain -n']
     p = Popen(cmd, stdout=PIPE, shell=True)
     out,err = p.communicate()
     
