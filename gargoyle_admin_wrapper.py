@@ -1540,7 +1540,6 @@ def add_to_white_list(ip_addr=''):
 
     except TypeError:
         ''' insert into hosts_table first '''
-        print "not found in hosts table. inserting now"
         tstamp = int(time.mktime(time.localtime()))
         with table:
             cursor.execute("INSERT INTO hosts_table (host, first_seen, last_seen) VALUES (?,?,?)",(ip_addr, tstamp, tstamp))
@@ -1560,7 +1559,6 @@ def add_to_white_list(ip_addr=''):
     
         ''' exists actively in iptables '''
         if detected_host_ix:
-            print "in detected_hosts so have to unblock first"
             '''
                 note that the unblock program performs
                 the insert into ignore_ip_list
