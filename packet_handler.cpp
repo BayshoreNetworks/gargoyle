@@ -476,14 +476,6 @@ bool GargoylePscandHandler::is_in_waiting(std::string s) {
 }
 
 
-bool GargoylePscandHandler::is_in_half_scan_dict(std::string s) {
-
-	if(HALF_SCAN_DICT.find(s) != HALF_SCAN_DICT.end())
-		return true;
-	return false;
-}
-
-
 bool GargoylePscandHandler::is_in_scanned_ports_cnt_dict(std::string s) {
 
 	if(SCANNED_PORTS_CNT_DICT.find(s) != SCANNED_PORTS_CNT_DICT.end())
@@ -527,7 +519,6 @@ bool GargoylePscandHandler::is_in_ports_entries(int s) {
 }
 
 
-
 void GargoylePscandHandler::add_to_white_listed_entries(std::string s) {
 	if (!is_white_listed_ip_addr(s))
 		WHITE_LISTED_IP_ADDRS.push_back(s);
@@ -568,33 +559,14 @@ void GargoylePscandHandler::main_port_scan_check(
 	reverse_src_ip_dst_ip_dat << dst_ip << "->" << src_ip;
 	//reverse_src_ip_dst_ip_dat = dst_ip + "->" + src_ip
 
-	int half_connect_ret;
-	half_connect_ret = half_connect_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
-	//std::cout << "half_connect_ret: " << half_connect_ret << std::endl;
-	if (half_connect_ret == 0 || half_connect_ret == 2) {
-
-		if (half_connect_ret == 2) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "Half Connect (SYN scan) port scan detected");
-		}
-		if (half_connect_ret == 0) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", "Generic port scan (half connection) detected - attempt to connect to closed port", (three_way_check_dat.str()).c_str());
-		}
+	int xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+	if (xmas_scan_ret == 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
 		return;
 	}
 
-	int xmas_scan_ret;
-	if (half_connect_ret == 1) {
-		xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
-
-		//std::cout << "xmas_scan_ret: " << xmas_scan_ret << std::endl;
-
-		if (xmas_scan_ret == 0) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
-			return;
-		}
-	}
-
+	
 	int fin_scan_ret;
 	if (xmas_scan_ret == 1) {
 		fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
@@ -637,90 +609,6 @@ void GargoylePscandHandler::main_port_scan_check(
 	//std::cout << "WTF1 -" << three_way_check_dat.str() << std::endl << reverse_three_way_check_dat.str() << std::endl << src_ip_dst_ip_dat.str() << std::endl << reverse_src_ip_dst_ip_dat.str() << "WTF2" << std::endl;
 
 
-}
-
-
-
-/*
- * return 0 = "Generic port scan (half connection) detected - attempt to connect to closed port"
- * return 1 = nothing discovered here
- * return 2 = "Half Connect (SYN scan) port scan detected"
- */
-int GargoylePscandHandler::half_connect_scan(
-		std::string src_ip,
-		int src_port,
-		std::string dst_ip,
-		int dst_port,
-		int seq_num,
-		int ack_num,
-		std::vector<int> tcp_flags) {
-
-	if (!ignore_this_port(dst_port)) {
-		if (seq_num > 0 && ack_num == 0 && tcp_flags.size() == 1 && tcp_flags[0] == 2) { // flags = SYN - len flags = 1 - seq_num > 0 - ack_num = 0
-
-			std::ostringstream key1;
-			key1 << src_ip_dst_ip_dat.str() << "_" << seq_num;
-			std::ostringstream val1;
-			val1 << src_ip_dst_ip_dat.str() << "_SYN_ACK_" << seq_num << "_" << ack_num;
-			HALF_SCAN_DICT.insert(std::make_pair(key1.str(), val1.str()));
-			//HALF_SCAN_DICT["{}_{}".format(src_ip_dst_ip_dat, str(seq_num))] = "{}_SYN_ACK_{}_{}".format(src_ip_dst_ip_dat, str(seq_num), str(ack_num))
-
-		} else if ((tcp_flags.size() == 2) &&
-				(std::find(tcp_flags.begin(), tcp_flags.end(), 4) != tcp_flags.end()) && 
-				(std::find(tcp_flags.begin(), tcp_flags.end(), 16) != tcp_flags.end())) { // flags = ACK,RST - len flags = 2
-
-			std::ostringstream key1;
-			key1 << reverse_src_ip_dst_ip_dat.str() << "_" << (ack_num - 1);
-
-			if (is_in_half_scan_dict(key1.str())) {
-
-				HALF_SCAN_DICT.erase(key1.str());
-
-				if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE)
-					add_block_rule(dst_ip, 4);
-				add_to_scanned_ports_dict(dst_ip, src_port);
-
-				if (!is_in_black_listed_hosts(dst_ip))
-					BLACK_LISTED_HOSTS.insert(dst_ip);
-
-				return 0;
-			}
-		} else if((tcp_flags.size() == 2) &&
-				(std::find(tcp_flags.begin(), tcp_flags.end(), 2) != tcp_flags.end()) && 
-				(std::find(tcp_flags.begin(), tcp_flags.end(), 16) != tcp_flags.end())) { // flags = SYN,ACK - len flags = 2
-
-			std::ostringstream key1;
-			key1 << reverse_src_ip_dst_ip_dat.str() << "_" << (ack_num - 1);
-
-			if (is_in_half_scan_dict(key1.str())) {
-
-				HALF_SCAN_DICT.erase(key1.str());
-
-				std::ostringstream key2;
-				key2 << reverse_src_ip_dst_ip_dat.str() << "_" << ack_num;
-				std::ostringstream val1;
-				val1 << src_ip_dst_ip_dat.str() << "_RST_" << seq_num << "_" << ack_num;
-				HALF_SCAN_DICT.insert(std::make_pair(key2.str(), val1.str()));
-			}
-		} else if (tcp_flags.size() == 1 && tcp_flags[0] == 4) { // flags = RST - len flags = 1
-
-			std::ostringstream key1;
-			key1 << src_ip_dst_ip_dat.str() << "_" << seq_num;
-
-			if (is_in_half_scan_dict(key1.str())) {
-
-				if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE)
-					add_block_rule(dst_ip, 4);
-				add_to_scanned_ports_dict(dst_ip, src_port);
-
-				if (!is_in_black_listed_hosts(dst_ip))
-					BLACK_LISTED_HOSTS.insert(dst_ip);
-
-				return 2;
-			}
-		}
-	}
-	return 1;
 }
 
 
