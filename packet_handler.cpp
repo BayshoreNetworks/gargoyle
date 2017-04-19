@@ -1024,14 +1024,6 @@ bool GargoylePscandHandler::ignore_this_port(int the_port) {
 }
 
 
-bool GargoylePscandHandler::ignore_this_addr(std::string the_ip) {
-
-
-
-	return false;
-}
-
-
 void GargoylePscandHandler::add_block_rules() {
 	
 	srand((int)time(0));

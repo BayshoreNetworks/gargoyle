@@ -109,7 +109,6 @@ class GargoylePscandHandler
 	bool is_in_three_way_handshake(std::string);
 	bool is_in_ephemeral_range(int);
 	bool ignore_this_port(int);
-	bool ignore_this_addr(std::string);
 	bool is_in_hot_ports(int);
 	
 	private:
