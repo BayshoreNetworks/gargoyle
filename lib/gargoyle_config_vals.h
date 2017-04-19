@@ -39,7 +39,7 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
-#define GARGOYLE_VERSION "1.1.3"
+#define GARGOYLE_VERSION "1.1.4"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
 #define IPTABLES_INPUT_CHAIN "INPUT"
