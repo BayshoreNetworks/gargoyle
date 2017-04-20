@@ -1434,10 +1434,11 @@ def set_config(objct):
     file = open(config_file,'w')
 
     for key in current:
-        file.write(key)
-        file.write(':')
-        file.write(str(current[key]))
-        file.write('\n')
+        if key in data.keys():
+            file.write(key)
+            file.write(':')
+            file.write(str(current[key]))
+            file.write('\n')
     file.close()
         
     return 0
