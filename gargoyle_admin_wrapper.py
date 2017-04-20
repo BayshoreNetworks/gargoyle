@@ -1456,10 +1456,9 @@ def unblock_ip(ip_addr='',version=None):
     as the correct GARGOYLE_DB environment variable is set
     '''
 
-    cmd = ['sudo gargoyle_pscand_unblockip {}'.format(ip_addr)]
-    p = Popen(cmd, stdout=PIPE, shell=True)
-    out,err = p.communicate()
-    
+    cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_unblockip {}'.format(ip_addr)]
+    call(cmd)
+
     return 0
 
 def get_db():
@@ -1662,5 +1661,7 @@ def get_current_from_iptables():
         
     return blocked_ips
  
-
+def main():
+    unblock_ip('192.168.1.220')
+main()
 
