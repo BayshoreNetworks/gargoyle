@@ -1391,10 +1391,11 @@ def get_current_config():
     cur = {}
     for x in lines:
         key_val = x.split(':')
-        if  ',' in key_val[1] or '-' in key_val[1]:
-            cur[key_val[0]] = key_val[1]
-        else:
-            cur[key_val[0]] = int(key_val[1])
+        if len(key_val) > 1:
+            if  ',' in key_val[1] or '-' in key_val[1]:
+                cur[key_val[0]] = key_val[1]
+            else:
+                cur[key_val[0]] = int(key_val[1])
     file.close()
 
     return json.dumps(cur)
