@@ -559,17 +559,63 @@ void GargoylePscandHandler::main_port_scan_check(
 	reverse_src_ip_dst_ip_dat << dst_ip << "->" << src_ip;
 	//reverse_src_ip_dst_ip_dat = dst_ip + "->" + src_ip
 
-
-	int xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
-	if (xmas_scan_ret == 0) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
-		return;
-	}
-
+	size_t tcp_flags_sz = tcp_flags.size();
 	
-	int fin_scan_ret;
-	if (xmas_scan_ret == 1) {
-		fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+	
+	if (tcp_flags_sz == 0) {
+		
+		int null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+
+		//std::cout << "null_scan_ret: " << null_scan_ret << std::endl;
+
+		if (null_scan_ret == 0) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "NULL port scan detected");
+			return;
+		}
+		
+	} else if (tcp_flags_sz == 1) {
+		
+		int fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+
+		//std::cout << "fin_scan_ret: " << fin_scan_ret << std::endl;
+
+		if (fin_scan_ret == 0) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "FIN port scan detected");
+			return;
+		}
+		
+	} else if (tcp_flags_sz == 3) {
+		
+		int xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+		
+		if (xmas_scan_ret == 0) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
+			return;
+		}
+		
+	}
+	
+	
+	
+	/*
+	if (tcp_flags.size() == 3) {
+		
+		int xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+		
+		if (xmas_scan_ret == 0) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
+			return;
+		}
+	}
+	*/
+	
+	/*
+	//int fin_scan_ret;
+	//if (xmas_scan_ret == 1) {
+	//	fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+	if (tcp_flags.size() == 1) {
+		
+		int fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "fin_scan_ret: " << fin_scan_ret << std::endl;
 
@@ -578,11 +624,15 @@ void GargoylePscandHandler::main_port_scan_check(
 			return;
 		}
 	}
+	*/
 
-
-	int null_scan_ret;
-	if (fin_scan_ret == 1) {
-		null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+	/*
+	//int null_scan_ret;
+	//if (fin_scan_ret == 1) {
+	//	null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
+	if (tcp_flags.size() == 0) {
+		
+		int null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "null_scan_ret: " << null_scan_ret << std::endl;
 
@@ -591,7 +641,7 @@ void GargoylePscandHandler::main_port_scan_check(
 			return;
 		}
 	}
-
+	*/
 
 	/*
 	 * if we are here that means that none of the
@@ -607,7 +657,6 @@ void GargoylePscandHandler::main_port_scan_check(
 	}
 
 	//std::cout << "WTF1 -" << three_way_check_dat.str() << std::endl << reverse_three_way_check_dat.str() << std::endl << src_ip_dst_ip_dat.str() << std::endl << reverse_src_ip_dst_ip_dat.str() << "WTF2" << std::endl;
-
 
 }
 
