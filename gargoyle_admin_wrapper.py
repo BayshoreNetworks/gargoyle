@@ -1660,8 +1660,5 @@ def get_current_from_iptables():
         blocked_ips[ip] = [first_seen,last_seen]
         
     return blocked_ips
- 
-def main():
-    unblock_ip('192.168.1.220')
-main()
+
 
