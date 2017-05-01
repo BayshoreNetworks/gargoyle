@@ -768,6 +768,12 @@ int main(int argc, char *argv[])
 		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Error setting packet copy mode");
 		return 1;
 	}
+	
+	// 128 * 1024 - max buffer size
+	if (nflog_set_nlbufsiz(qh, 131072) < 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Could not set group buffer size");
+	    return 1;
+	}
 
 	fd = nflog_fd(nfl_handle);
 	nflog_callback_register(qh, &GargoylePscandHandler::packet_handle, &gargoyleHandler);
