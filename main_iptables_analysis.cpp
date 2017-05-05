@@ -796,11 +796,11 @@ int main(int argc, char *argv[]) {
 
 	signal(SIGINT, handle_signal);
 	
-    if (geteuid() != 0) {
+	if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
     }
-    
+
     /*
      * in order to keep stuff lean and mean I
      * am doing this manually here and not

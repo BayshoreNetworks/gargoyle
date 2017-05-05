@@ -1,5 +1,10 @@
 # gargoyle
-Gargoyle Port Scan Detector
+Gargoyle Protection for Linux
+
+There are 2 main components to Gargoyle:
+
+	1. Gargoyle_pscand (port scan detection)
+	2. Gargoyle_lscand (log scanner)
 
 This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
@@ -119,15 +124,15 @@ To compile and install:
 
 Notes:
 
-	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is syncronized with data in the DB and it is important for that synchronization is be respected.
+	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with data in the DB and it is important for that synchronization is be respected.
 
 	- To start/stop the Gargoyle_pscand daemons use the init script.
 
-	- When one stops the dameons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
+	- When one stops the daemons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
 	- Currently addresses TCP ports, UDP support will come soon
 	
-	- This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
+	- This  port scanning detection software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
 
 		- any port that the system is aware of (data comes from "/proc/net/tcp")
 		- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
@@ -136,7 +141,7 @@ Notes:
 		- any ip address whitelisted in the DB 
 		- system default gateway (data comes from "/proc/net/route")
 
-	- BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
+	- Port scan detection BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
 		1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
 		2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
@@ -148,10 +153,13 @@ Notes:
 		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
 		9:'Hot Port' triggered - This means the user wants an immediate block of any entity that touches this port
 
+	- Log scan detection BLOCK TYPES:
+
+		50:'SSH brute force attack detected' - An SSH brute force attack was detected and blocked
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
-	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep analysis performance acceptable.
+	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
 
 
 
