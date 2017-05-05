@@ -1640,8 +1640,9 @@ void GargoylePscandHandler::set_iptables_supports_xlock(size_t support_xlock) {
 
 
 void GargoylePscandHandler::set_db_location(const char *db_loc) {
-	if (db_loc)
+	if (db_loc) {
 		DB_LOCATION = db_loc;
+	}
 }
 
 
