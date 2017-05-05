@@ -83,6 +83,7 @@ size_t remove_host_ports_all(size_t, const char *);
 // ignore_ip_list table
 size_t add_host_to_ignore(size_t, size_t, const char *);
 size_t get_hosts_to_ignore_all(char *, size_t, const char *);
+int is_host_ignored(int, const char *);
 
 
 #ifdef __cplusplus
