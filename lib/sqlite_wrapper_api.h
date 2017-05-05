@@ -35,7 +35,8 @@
 #include <stdint.h>
 
 
-#define DB_PATH "/db/port_scan_detect.db"
+//#define DB_PATH "/db/port_scan_detect.db"
+#define DB_PATH "/db/gargoyle_attack_detect.db"
 #define LOCAL_BUF_SZ 60
 #define SMALL_DEST_BUF 2097152
 #define MEDIUM_DEST_BUF 5242880

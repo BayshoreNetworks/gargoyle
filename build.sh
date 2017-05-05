@@ -24,8 +24,8 @@ fi
 
 mkdir -p ${DESTDIR}${DEPLOY_TO}/db/
 
-if [ ! -f ${DESTDIR}${DEPLOY_TO}/db/port_scan_detect.db ]; then
-   cp db/port_scan_detect.db ${DESTDIR}${DEPLOY_TO}/db/
+if [ ! -f ${DESTDIR}${DEPLOY_TO}/db/gargoyle_attack_detect.db ]; then
+   cp db/gargoyle_attack_detect.db ${DESTDIR}${DEPLOY_TO}/db/
 fi
 
 if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_config ]; then

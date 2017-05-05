@@ -61,9 +61,9 @@ Required libs
 
 Database:
 
-	The database file name is "port_scan_detect.db"
+	The database file name is "gargoyle_attack_detect.db"
 
-	By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/port_scan_detect.db"
+	By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/gargoyle_attack_detect.db"
 
 
 Config data:

@@ -1463,7 +1463,8 @@ def unblock_ip(ip_addr='',version=None):
 
 def get_db():
     
-    DB_PATH = "/db/port_scan_detect.db"
+    #DB_PATH = "/db/port_scan_detect.db"
+    DB_PATH = "/db/gargoyle_attack_detect.db"
     db_file = None
         
     try:
