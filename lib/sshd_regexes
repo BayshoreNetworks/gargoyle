@@ -1,0 +1,7 @@
+ROOT LOGIN REFUSED.* FROM (.*)\\s*
+[Ff]ailed password for .* from (.*) port
+User .+ from (.*) not allowed because not listed in AllowUsers\\s*
+User .+ from (.*) not allowed because listed in DenyUsers\\s*
+User .+ from (.*) not allowed because not in any group\\s*
+User .+ from (.*) not allowed because a group is listed in DenyGroups\\s*
+User .+ from (.*) not allowed because none of user's groups are listed in AllowGroups\\s*
