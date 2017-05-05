@@ -80,9 +80,6 @@ int do_block_actions(std::string the_ip,
 	int host_ix;
 	host_ix = 0;
 	
-	std::cout << "YEAH BITCHES" << std::endl;
-
-	
 	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip, db_loc);
@@ -119,5 +116,33 @@ int do_block_actions(std::string the_ip,
 }
 
 
+int add_to_hosts_port_table(std::string the_ip, int the_port, int the_cnt, std::string db_loc) {
+	
+	int host_ix;
+	host_ix = 0;
+	
+	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
+	if (host_ix == 0)
+		host_ix = add_ip_to_hosts_table(the_ip, db_loc);
 
+	/*
+	 * call get_host_port_hit to see if the ip addr/port combo
+	 * already exists in the DB. if it does then call the update
+	 * function, otherwise add the data into a new record
+	 */
+	if (host_ix > 0 && the_port > 0 && the_cnt > 0) {
+
+		int resp;
+		//number of hits registered in the DB
+		resp = get_host_port_hit(host_ix, the_port, db_loc.c_str());
+
+		// new record
+		if (resp == 0) {
+			add_host_port_hit(host_ix, the_port, the_cnt, db_loc.c_str());
+		} else if (resp >= 1) {
+			int u_cnt = resp + the_cnt;
+			update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
+		}
+	}
+}
 

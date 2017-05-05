@@ -491,7 +491,7 @@ size_t add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_detected_host] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		//syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_detected_host] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
