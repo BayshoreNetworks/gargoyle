@@ -35,8 +35,9 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([strchr strstr malloc free atoi snprintf strncat strtok_r])
 
-GARG_CPPFLAGS=" -Ilib"
-AC_SUBST(GARG_CPPFLAGS)
+GARG_CPPFLAGS="-std=c++11 -Ilib"
+
+AC_SUBST([AM_CXXFLAGS], [-std=c++11])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
