@@ -1322,6 +1322,7 @@ size_t get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc) {
  * the ip addr in question is not white listed
  */
 int is_host_ignored(int ip_addr_ix, const char *db_loc) {
+	
 	int ret;
 	ret = 0;
 	
@@ -1361,4 +1362,48 @@ int is_host_ignored(int ip_addr_ix, const char *db_loc) {
 
 	return ret;
 }
+
+
+int is_host_detected(int ip_addr_ix, const char *db_loc) {
+	
+	int ret;
+	ret = 0;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [is_host_detected]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return -1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1", DETECTED_HOSTS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+		ret = sqlite3_column_int(stmt, 0);
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return ret;
+}
+
 

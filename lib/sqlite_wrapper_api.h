@@ -59,6 +59,7 @@ size_t get_detected_hosts_all(char *, size_t, const char *);
 size_t get_detected_hosts_row_ix_by_host_ix(size_t, const char *);
 size_t remove_detected_host(size_t, const char *);
 size_t remove_detected_hosts_all(const char *);
+int is_host_detected(int, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_table table
 int get_hosts_all(char *, size_t, const char *);
