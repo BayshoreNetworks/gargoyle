@@ -1,8 +1,8 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
- * main daemon
+ * main daemon - port scan detection and protection
  *
  * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
  * All rights reserved.

@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * Program to detect and block SSH brute force attacks
  *
@@ -65,6 +65,7 @@
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
+#include "system_functions.h"
 
 
 char DB_LOCATION[SQL_CMD_MAX+1];
@@ -74,6 +75,13 @@ std::map<std::string, int[2]> IP_HITMAP;
 
 size_t IPTABLES_SUPPORTS_XLOCK;
 
+
+size_t get_regexes(const char *);
+void signal_handler(int);
+bool validate_ip_address(const std::string &);
+int handle_log_line(const std::string &);
+std::string which_sshd_log();
+void process_iteration(int, int);
 
 size_t get_regexes(const char *fname) {
 	
@@ -92,7 +100,7 @@ size_t get_regexes(const char *fname) {
 }
 
 
-void signal_handler( int signum ) {
+void signal_handler(int signum) {
 
    syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 
@@ -110,7 +118,12 @@ bool validate_ip_address(const std::string &ip_address)
 }
 
 
-int handle_log_line(std::string line) {
+std::string which_sshd_log() {
+	
+}
+
+
+int handle_log_line(const std::string &line) {
 	
 	std::smatch match;
 	/*
@@ -178,41 +191,81 @@ int handle_log_line(std::string line) {
 
 	} else {
 
-		for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
+		if (sshd_regexes.size() > 0) {
 			
-			/* std::cout << *it; ... */
-			std::regex testreg(*it);
-			
-			//std::cout << "SZ: " << match.size() << std::endl;
-			
-			//if (std::regex_search(line, match, testreg) && match.size() > 1) {
-			if (std::regex_search(line, match, testreg) && match.size() == 2) {
-
-				std::string ip_addr = match.str(1);
-				if (validate_ip_address(ip_addr)) {
-
-					std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
-					
-					if(it != IP_HITMAP.end()) {
-															
-						// element exists
-							
-						IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
+			for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
+				
+				/* std::cout << *it; ... */
+				std::regex testreg(*it);
+				
+				//std::cout << "SZ: " << match.size() << std::endl;
+				
+				//if (std::regex_search(line, match, testreg) && match.size() > 1) {
+				if (std::regex_search(line, match, testreg) && match.size() == 2) {
+	
+					std::string ip_addr = match.str(1);
+					if (validate_ip_address(ip_addr)) {
+	
+						std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
 						
-						add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
-
-					} else {
+						if(it != IP_HITMAP.end()) {
+																
+							// element exists
+								
+							IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
 							
-						IP_HITMAP[ip_addr][0] = (int) time(NULL);
-						IP_HITMAP[ip_addr][1] = 1;
-						
-						add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
-
+							add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+	
+						} else {
+								
+							IP_HITMAP[ip_addr][0] = (int) time(NULL);
+							IP_HITMAP[ip_addr][1] = 1;
+							
+							add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+	
+						}
 					}
+					break;
 				}
-				break;
 			}
 		}
+	}
+}
+
+
+
+void process_iteration(int num_seconds, int num_hits) {
+	
+	for (const auto &p : IP_HITMAP) {
+		
+	    //std::cout << "[" << p.first << "] = " << IP_HITMAP[p.first][0] << " - " << IP_HITMAP[p.first][1] << std::endl << std::endl;
+	    
+	    std::string ip_addr = p.first;
+	    int now = (int) time(NULL);
+	    int now_delta = now - IP_HITMAP[p.first][0];
+	    int l_num_hits = IP_HITMAP[p.first][1];
+	    
+	    //std::cout << "PAST THRESH? NOW DELTA: " << now_delta << ", NUM SEC: " << num_seconds << std::endl;
+	    
+	    if (now_delta > (num_seconds * 3)) {
+	    	
+	    	if (l_num_hits >= (num_hits * 2)) {
+	    		
+	    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
+	    	
+	    	}
+	    	
+	    	IP_HITMAP.erase(ip_addr);
+
+	    } else if (now_delta <= num_seconds) {
+	    
+	    	if (l_num_hits >= num_hits) {
+
+	    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
+	    		IP_HITMAP.erase(ip_addr);
+	    		
+	    	}
+	    }
 	}
 }
 
@@ -252,73 +305,73 @@ int main(int argc, char *argv[])
      */
 	if (argc == 5) {
 	
-		std::ifstream ifs(argv[1]);
+		std::string jctl = "journalctl";
+		std::string log_entity = argv[1];
+		bool use_journalctl = false;
+		
+		if (log_entity.find(jctl) != std::string::npos) {
+			use_journalctl = true;
+		}
+
+		if (!use_journalctl) {
+			if (!does_file_exist(log_entity.c_str())) {
+				syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" does not exist, cannot continue", log_entity.c_str());
+				return 1;
+			}
+		}
+		
+		/*
+		 * if the file with a list of regexes (one per
+		 * line) exists then process it
+		 */
+		if (does_file_exist(argv[2])) {
+			// populate vector sshd_regexes with regex strings
+			get_regexes(argv[2]);
+			
+			/*
+			for(std::vector<std::string>::iterator iit = sshd_regexes.begin(); iit != sshd_regexes.end(); ++iit)
+				std::cout << *iit << std::endl;
+			*/
+		}
+
 		// default = 6
 		size_t num_hits = atoi(argv[3]);
 		// default = 120
 		size_t num_seconds = atoi(argv[4]);
-		// populate vector sshd_regexes with regex strings
-		get_regexes(argv[2]);
-		
 
 		/*
-		for(std::vector<std::string>::iterator iit = sshd_regexes.begin(); iit != sshd_regexes.end(); ++iit)
-		    std::cout << *iit << std::endl;
-		*/
-		if (ifs.is_open()) {
+		 * handle standard type of log file where we
+		 * control the tail style functionality
+		 */
+		if (!use_journalctl) {
 			
-			std::string line;
-			while (true) {
+			std::ifstream ifs(log_entity.c_str());
 
-				while (std::getline(ifs, line)) {
-					
-					//std::cout << line << std::endl;
-					handle_log_line(line);
-
-				}
+			if (ifs.is_open()) {
 				
-				if (!ifs.eof()) {
-					break;
-				}
-				ifs.clear();
+				std::string line;
+				while (true) {
 	
-				// sleep here to avoid being a CPU hog.
-				std::this_thread::sleep_for (std::chrono::seconds(3));
-				
-				
-				for (const auto &p : IP_HITMAP) {
+					while (std::getline(ifs, line)) {
+						
+						//std::cout << line << std::endl;
+						handle_log_line(line);
+	
+					}
 					
-				    //std::cout << "[" << p.first << "] = " << IP_HITMAP[p.first][0] << " - " << IP_HITMAP[p.first][1] << std::endl << std::endl;
-				    
-				    std::string ip_addr = p.first;
-				    int now = (int) time(NULL);
-				    int now_delta = now - IP_HITMAP[p.first][0];
-				    int l_num_hits = IP_HITMAP[p.first][1];
-				    
-				    //std::cout << "PAST THRESH? NOW DELTA: " << now_delta << ", NUM SEC: " << num_seconds << std::endl;
-				    
-				    if (now_delta > (num_seconds * 3)) {
-				    	
-				    	if (l_num_hits >= (num_hits * 2)) {
-				    		
-				    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
-				    	
-				    	}
-				    	
-				    	IP_HITMAP.erase(ip_addr);
-
-				    } else if (now_delta <= num_seconds) {
-				    
-				    	if (l_num_hits >= num_hits) {
-
-				    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
-				    		IP_HITMAP.erase(ip_addr);
-				    		
-				    	}
-				    }
+					if (!ifs.eof()) {
+						break;
+					}
+					ifs.clear();
+		
+					// sleep here to avoid being a CPU hog.
+					std::this_thread::sleep_for (std::chrono::seconds(3));
+					process_iteration(num_seconds, num_hits);
 				}
 			}
 		}
+		
+		
 	}
     return 0;
 }
