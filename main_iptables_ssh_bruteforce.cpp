@@ -45,6 +45,16 @@
  * 
  * 		sudo journalctl -f -u sshd
  * 
+ * 
+ * Note:
+ * 
+ * even if the SSH port isnt 22 it doesnt matter so
+ * we will just use FAKE_PORT as the default. The goal here
+ * is to put enough real data in to the hosts_port_hits
+ * table so that if relevant the gargoyle analysis process
+ * can detect slow and low attacks that go under this
+ * radar
+ * 
  */
 #include <iostream>
 #include <string>
@@ -69,6 +79,7 @@
 
 
 char DB_LOCATION[SQL_CMD_MAX+1];
+int FAKE_PORT = 65537;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
@@ -161,15 +172,7 @@ int handle_log_line(const std::string &line) {
 
 		if (validate_ip_address(ip_addr)) {
 
-			/*
-			 * even if the SSH port isnt 22 it doesnt matter so
-			 * we will just use it as the default. The goal here
-			 * is to put enough real data in to the hosts_port_hits
-			 * so that if relevant the gargoyle analysis process
-			 * can detecte slow and low attacks that go under this
-			 * radar
-			 */
-			add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 			
 		}
 		
@@ -183,7 +186,7 @@ int handle_log_line(const std::string &line) {
 
 		if (validate_ip_address(ip_addr)) {
 			
-			add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 			
 		}
 		
@@ -214,14 +217,14 @@ int handle_log_line(const std::string &line) {
 								
 							IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
 							
-							add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+							add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 	
 						} else {
 								
 							IP_HITMAP[ip_addr][0] = (int) time(NULL);
 							IP_HITMAP[ip_addr][1] = 1;
 							
-							add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+							add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 	
 						}
 					}
