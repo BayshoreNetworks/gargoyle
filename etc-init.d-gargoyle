@@ -78,6 +78,11 @@ case "$1" in
 
 	log_daemon_msg "Starting Gargoyle Portscan monitoring daemon" || true
         ./gargoyle_pscand_monitor &
+
+       log_daemon_msg "Starting Gargoyle Logscan bruteforce daemon" || true
+        # TO DO: try to dynamically figure out where ssh failures log to based on distro/flavor
+        ./gargoyle_lscand_ssh_bruteforce /var/log/auth.log APPDIR/sshd_regexes 6 120 &
+
         
 	    log_end_msg 0 || true
 	;;
