@@ -110,6 +110,113 @@ bool validate_ip_address(const std::string &ip_address)
 }
 
 
+int handle_log_line(std::string line) {
+	
+	std::smatch match;
+	/*
+	 * handle instant block regexes first
+	 */
+	std::regex invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*");
+	std::regex max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
+	// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
+	std::regex bad_algo("Unable to negotiate with (.*) port");
+
+	//if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
+	if (std::regex_search(line, match, max_exceeded) && match.size() == 2) {
+		
+		std::string ip_addr = match.str(1);
+		
+		// if we are here then do an instant block because sshd already did
+		// the work for us of detecting too many login attempts
+		
+		//std::cout << "TESTING MAX EXCEEDED" << std::endl;
+		//std::cout << "INSTANT BLOCK HERE - " << ip_addr << std::endl;
+
+		if (validate_ip_address(ip_addr)) {
+			
+			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
+			
+		}
+
+		return 0;
+		
+	} else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
+
+		std::string ip_addr = match.str(1);
+		
+		//std::cout << "TESTING INVALID USER" << std::endl;
+
+		if (validate_ip_address(ip_addr)) {
+
+			/*
+			 * even if the SSH port isnt 22 it doesnt matter so
+			 * we will just use it as the default. The goal here
+			 * is to put enough real data in to the hosts_port_hits
+			 * so that if relevant the gargoyle analysis process
+			 * can detecte slow and low attacks that go under this
+			 * radar
+			 */
+			add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+			
+		}
+		
+		return 0;						
+		
+	} else if (std::regex_search(line, match, bad_algo) && match.size() == 2) {
+		
+		std::string ip_addr = match.str(1);
+		
+		//std::cout << "TESTING BAD ALGO" << std::endl;
+
+		if (validate_ip_address(ip_addr)) {
+			
+			add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+			
+		}
+		
+		return 0;	
+
+	} else {
+
+		for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
+			
+			/* std::cout << *it; ... */
+			std::regex testreg(*it);
+			
+			//std::cout << "SZ: " << match.size() << std::endl;
+			
+			//if (std::regex_search(line, match, testreg) && match.size() > 1) {
+			if (std::regex_search(line, match, testreg) && match.size() == 2) {
+
+				std::string ip_addr = match.str(1);
+				if (validate_ip_address(ip_addr)) {
+
+					std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
+					
+					if(it != IP_HITMAP.end()) {
+															
+						// element exists
+							
+						IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
+						
+						add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+
+					} else {
+							
+						IP_HITMAP[ip_addr][0] = (int) time(NULL);
+						IP_HITMAP[ip_addr][1] = 1;
+						
+						add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
+
+					}
+				}
+				break;
+			}
+		}
+	}
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -152,7 +259,6 @@ int main(int argc, char *argv[])
 		size_t num_seconds = atoi(argv[4]);
 		// populate vector sshd_regexes with regex strings
 		get_regexes(argv[2]);
-		std::smatch match;
 		
 
 		/*
@@ -167,108 +273,8 @@ int main(int argc, char *argv[])
 				while (std::getline(ifs, line)) {
 					
 					//std::cout << line << std::endl;
-					
-					/*
-					 * handle instant block regexes first
-					 */
-					std::regex invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*");
-					std::regex max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
-					// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
-					std::regex bad_algo("Unable to negotiate with (.*) port");
+					handle_log_line(line);
 
-					//if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
-					if (std::regex_search(line, match, max_exceeded) && match.size() == 2) {
-						
-						std::string ip_addr = match.str(1);
-						
-						// if we are here then do an instant block because sshd already did
-						// the work for us of detecting too many login attempts
-						
-						//std::cout << "TESTING MAX EXCEEDED" << std::endl;
-						//std::cout << "INSTANT BLOCK HERE - " << ip_addr << std::endl;
-
-						if (validate_ip_address(ip_addr)) {
-							
-							do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
-							
-						}
-
-						continue;
-						
-					} else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
-
-						std::string ip_addr = match.str(1);
-						
-						//std::cout << "TESTING INVALID USER" << std::endl;
-
-						if (validate_ip_address(ip_addr)) {
-
-							/*
-							 * even if the SSH port isnt 22 it doesnt matter so
-							 * we will just use it as the default. The goal here
-							 * is to put enough real data in to the hosts_port_hits
-							 * so that if relevant the gargoyle analysis process
-							 * can detecte slow and low attacks that go under this
-							 * radar
-							 */
-							add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
-							
-						}
-						
-						continue;						
-						
-					} else if (std::regex_search(line, match, bad_algo) && match.size() == 2) {
-						
-						std::string ip_addr = match.str(1);
-						
-						//std::cout << "TESTING BAD ALGO" << std::endl;
-
-						if (validate_ip_address(ip_addr)) {
-							
-							add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
-							
-						}
-						
-						continue;	
-
-					} else {
-	
-						for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
-							
-							/* std::cout << *it; ... */
-							std::regex testreg(*it);
-							
-							//std::cout << "SZ: " << match.size() << std::endl;
-							
-							//if (std::regex_search(line, match, testreg) && match.size() > 1) {
-							if (std::regex_search(line, match, testreg) && match.size() == 2) {
-
-								std::string ip_addr = match.str(1);
-								if (validate_ip_address(ip_addr)) {
-
-									std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
-									
-									if(it != IP_HITMAP.end()) {
-																			
-										// element exists
-											
-										IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
-										
-										add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
-	
-									} else {
-											
-										IP_HITMAP[ip_addr][0] = (int) time(NULL);
-										IP_HITMAP[ip_addr][1] = 1;
-										
-										add_to_hosts_port_table(ip_addr, 22, 1, DB_LOCATION);
-
-									}
-								}
-								break;
-							}
-						}
-					}
 				}
 				
 				if (!ifs.eof()) {

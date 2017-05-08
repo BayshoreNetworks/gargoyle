@@ -47,7 +47,7 @@ int add_ip_to_hosts_table(std::string the_ip, std::string db_loc) {
 	int added_host_ix;
 	added_host_ix = 0;
 	
-	std::cout << db_loc << std::endl;
+	//std::cout << db_loc << std::endl;
 
 	if (the_ip.size() > 0) {
 
@@ -84,7 +84,7 @@ int do_block_actions(std::string the_ip,
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip, db_loc);
 	
-	std::cout << "HOST IX: " << host_ix << std::endl;
+	//std::cout << "HOST IX: " << host_ix << std::endl;
 
 	//syslog(LOG_INFO | LOG_LOCAL6, "%d-%s=\"%d\" %s=\"%d\"", ENFORCE, "host_ix", host_ix, "size", the_ip.size());
 
