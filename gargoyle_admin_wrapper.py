@@ -1534,17 +1534,26 @@ def add_to_white_list(ip_addr=''):
     except sqlite3.Error as e:
         print(e)
                 
-    ''' have to get the ip addr ix first '''
+    '''
+    	have to get the ip addr ix first
+    	
+    	if it exists need to update last_seen to 63072000 so that
+    	the clean up process does not delete the ip addr from the
+    	hosts_table
+    	
+    	63072000 = 01/01/1972 @ 12:00am (UTC)
+    '''
     try:
         with table:
             cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
             host_ix = cursor.fetchone()[0]
+            cursor.execute("UPDATE hosts_table SET last_seen = 63072000 WHERE ix = {}".format(host_ix))
 
     except TypeError:
         ''' insert into hosts_table first '''
         tstamp = int(time.mktime(time.localtime()))
         with table:
-            cursor.execute("INSERT INTO hosts_table (host, first_seen, last_seen) VALUES (?,?,?)",(ip_addr, tstamp, tstamp))
+            cursor.execute("INSERT INTO hosts_table (host, first_seen, last_seen) VALUES (?,?,?)",(ip_addr, tstamp, 63072000))
             cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
             host_ix = cursor.fetchone()[0]
             
