@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * helper class to parse key:value pairs from config text files
  *

@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * Config values for use across all gargoyle daemons/progs
  *

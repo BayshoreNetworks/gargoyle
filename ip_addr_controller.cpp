@@ -96,6 +96,16 @@ int do_block_actions(std::string the_ip,
 			size_t ret;
 			int tstamp = (int) time(NULL);
 	
+			/*
+			 * queries DB table 'detected_hosts', a return of 
+			 * 0 (zero) means there is no entry in that DB table,
+			 * anything else means there is an entry in that table.
+			 * the assumption is that 'detected_hosts' is in sync
+			 * with what is live in netfilter (via iptables)
+			 * 
+			 * this check is necessary in order to not have duplicates
+			 * in our iptables chain
+			 */
 			if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0)
 				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 	
@@ -124,6 +134,8 @@ int add_to_hosts_port_table(std::string the_ip, int the_port, int the_cnt, std::
 	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip, db_loc);
+	
+	//std::cout << "HOST IX: " << host_ix << std::endl;
 
 	/*
 	 * call get_host_port_hit to see if the ip addr/port combo

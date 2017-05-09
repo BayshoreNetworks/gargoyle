@@ -85,7 +85,7 @@ std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
 
 size_t IPTABLES_SUPPORTS_XLOCK;
-
+size_t ITER_CNT_MAX = 50;
 
 size_t get_regexes(const char *);
 void signal_handler(int);
@@ -93,6 +93,7 @@ bool validate_ip_address(const std::string &);
 int handle_log_line(const std::string &);
 std::string which_sshd_log();
 void process_iteration(int, int);
+std::string hunt_for_ip_addr(std::string);
 
 size_t get_regexes(const char *fname) {
 	
@@ -134,7 +135,30 @@ std::string which_sshd_log() {
 }
 
 
+std::string hunt_for_ip_addr(const std::string &line, const char& c) {
+	
+	std::string resp = "";
+	std::string buff{""};
+
+	for(auto n:line)
+	{
+		if(n != c) {
+			buff+=n;
+		} else {
+			if(n == c && buff != "") { 
+				if (validate_ip_address(buff))
+					return buff;
+				buff = "";
+			}
+		}
+	}
+	return resp;
+}
+
+
 int handle_log_line(const std::string &line) {
+	
+	//std::cout << "LINE: " << line << std::endl;
 	
 	std::smatch match;
 	/*
@@ -174,6 +198,19 @@ int handle_log_line(const std::string &line) {
 
 			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 			
+		} else {
+			
+			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+			/*
+			 * this is a hackjob because when reading output
+			 * from journalctl the regex doesnt seem to work
+			 * as expected (but when tailing a standard log
+			 * file it does work)
+			 */
+			// the hack found an ip addr
+			if (hip.size()) {
+				add_to_hosts_port_table(hip, FAKE_PORT, 1, DB_LOCATION);
+			}
 		}
 		
 		return 0;						
@@ -372,6 +409,30 @@ int main(int argc, char *argv[])
 					process_iteration(num_seconds, num_hits);
 				}
 			}
+		} else if (use_journalctl) {
+			
+			FILE *p = popen(log_entity.c_str(), "r");
+			
+			char buff[1024];
+			size_t iter_cnt = 0;
+			
+			while(fgets(buff, sizeof(buff), p) != NULL) {
+				
+				//std::cout << buff;
+				if (iter_cnt > ITER_CNT_MAX)
+					iter_cnt = 0;
+				
+				handle_log_line(buff);
+				iter_cnt++;
+				
+				std::cout << iter_cnt << std::endl;
+				
+				if (iter_cnt == ITER_CNT_MAX)
+					process_iteration(num_seconds, num_hits);
+			}
+			
+			pclose(p);
+			
 		}
 		
 		

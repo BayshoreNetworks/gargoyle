@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * Wrapper to sqlite as a shared lib
  *
@@ -775,7 +775,7 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s updating data from function [update_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		//syslog(LOG_INFO | LOG_LOCAL6, "%s updating data from function [update_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 		
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
