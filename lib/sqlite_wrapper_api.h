@@ -80,6 +80,7 @@ int get_host_port_hit(int, int, const char *);
 int add_host_port_hit(int, int, int, const char *);
 int update_host_port_hit(int, int, int, const char *);
 size_t remove_host_ports_all(size_t, const char *);
+size_t get_unique_list_of_hosts_ix(char *, size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // ignore_ip_list table
 size_t add_host_to_ignore(size_t, size_t, const char *);

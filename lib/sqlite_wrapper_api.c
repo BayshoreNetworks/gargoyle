@@ -1314,6 +1314,74 @@ size_t get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc) {
 	return 0;
 }
 
+
+size_t get_unique_list_of_hosts_ix(char *dst, size_t sz_dst, const char *db_loc) {
+	
+	char cwd[SQL_CMD_MAX/2];
+	char DB_LOCATION[SQL_CMD_MAX+1];
+	if (db_loc) {
+		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+	} else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+	}
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+
+	char *final_set;
+	final_set = (char*) malloc (SMALL_DEST_BUF);
+	char *l_buf;
+	l_buf = (char*) malloc (LOCAL_BUF_SZ);
+	char *sql;
+	sql = (char*) malloc (SQL_CMD_MAX);
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_unique_list_of_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
+
+		free(l_buf);
+		free(sql);
+		free(final_set);
+
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "SELECT DISTINCT host_ix FROM  %s", HOSTS_PORTS_HITS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+
+	*final_set = 0;
+	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+		snprintf(l_buf, LOCAL_BUF_SZ, "%d>", sqlite3_column_int(stmt, 0));
+		strncat(final_set, l_buf, SMALL_DEST_BUF-strlen(final_set)-1);
+	}
+	size_t final_set_len = strlen(final_set);
+	final_set[final_set_len] = '\0';
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	if (final_set_len+1 > sz_dst) {
+		
+		free(l_buf);
+		free(sql);
+		free(final_set);
+		
+		return 1;
+	}
+	memcpy (dst, final_set, final_set_len+1);
+
+	free(l_buf);
+	free(sql);
+	free(final_set);
+
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 
 /*
