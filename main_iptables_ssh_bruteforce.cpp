@@ -29,28 +29,26 @@
  *****************************************************************************/
 
 /*
- * g++ -std=c++11 -o gargoyle_lscand_ssh_bruteforce main_iptables_ssh_bruteforce.cpp
+ * to compile manually:
+ * 
+ * g++ -std=c++11 -o gargoyle_lscand_ssh_bruteforce lib/iptables_wrapper_api.o lib/sqlite_wrapper_api.o ip_addr_controller.o main_iptables_ssh_bruteforce.o  -lnetfilter_log -lsqlite3
  * 
  * To run:
  * 
- * ./gargoyle_lscand_ssh_bruteforce log_file regex_file num_hits num_seconds
+ * ./gargoyle_lscand_ssh_bruteforce log_file/statement regex_file num_hits num_seconds
  * 
  * Example:
  * 
  * ./gargoyle_lscand_ssh_bruteforce /var/log/auth.log lib/sshd_regexes 6 120
  * 
- * 
- * gotta figure out how to handle systemd log data, normal tail is
- * something like this:
- * 
- * 		sudo journalctl -f -u sshd
+ * ./gargoyle_lscand_ssh_bruteforce "journalctl -f -u sshd" lib/sshd_regexes 6 120
  * 
  * 
  * Note:
  * 
  * even if the SSH port isnt 22 it doesnt matter so
  * we will just use FAKE_PORT as the default. The goal here
- * is to put enough real data in to the hosts_port_hits
+ * is to put enough real hit data in to the hosts_port_hits
  * table so that if relevant the gargoyle analysis process
  * can detect slow and low attacks that go under this
  * radar
@@ -78,8 +76,10 @@
 #include "system_functions.h"
 
 
+int BASE_TIME;
 char DB_LOCATION[SQL_CMD_MAX+1];
 int FAKE_PORT = 65537;
+int PROCESS_TIME_CHECK = 60;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
@@ -91,9 +91,10 @@ size_t get_regexes(const char *);
 void signal_handler(int);
 bool validate_ip_address(const std::string &);
 int handle_log_line(const std::string &);
-std::string which_sshd_log();
 void process_iteration(int, int);
 std::string hunt_for_ip_addr(std::string);
+
+
 
 size_t get_regexes(const char *fname) {
 	
@@ -112,6 +113,7 @@ size_t get_regexes(const char *fname) {
 }
 
 
+
 void signal_handler(int signum) {
 
    syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
@@ -122,6 +124,7 @@ void signal_handler(int signum) {
 }
 
 
+
 bool validate_ip_address(const std::string &ip_address)
 {
     struct sockaddr_in sa;
@@ -129,10 +132,6 @@ bool validate_ip_address(const std::string &ip_address)
     return result != 0;
 }
 
-
-std::string which_sshd_log() {
-	
-}
 
 
 std::string hunt_for_ip_addr(const std::string &line, const char& c) {
@@ -154,6 +153,7 @@ std::string hunt_for_ip_addr(const std::string &line, const char& c) {
 	}
 	return resp;
 }
+
 
 
 int handle_log_line(const std::string &line) {
@@ -345,6 +345,8 @@ int main(int argc, char *argv[])
      */
 	if (argc == 5) {
 	
+		BASE_TIME = (int) time(NULL);
+		
 		std::string jctl = "journalctl";
 		std::string log_entity = argv[1];
 		bool use_journalctl = false;
@@ -414,28 +416,35 @@ int main(int argc, char *argv[])
 			FILE *p = popen(log_entity.c_str(), "r");
 			
 			char buff[1024];
-			size_t iter_cnt = 0;
 			
 			while(fgets(buff, sizeof(buff), p) != NULL) {
 				
 				//std::cout << buff;
-				if (iter_cnt > ITER_CNT_MAX)
-					iter_cnt = 0;
-				
 				handle_log_line(buff);
-				iter_cnt++;
 				
-				std::cout << iter_cnt << std::endl;
+				/*
+				std::cout << BASE_TIME << std::endl;
+				std::cout << (int)time(NULL) - BASE_TIME << std::endl << std::endl;
+				*/
 				
-				if (iter_cnt == ITER_CNT_MAX)
+				///////////////////////////////////////////////////////////////////////////////
+				/*
+				 * process to run at certain intervals (see PROCESS_TIME_CHECK)
+				 * this is what flushes data from memory and blocks stuff
+				 * if appropriate
+				 */
+				if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
+					
+					// are there any new white list entries in the DB?
+					//_this->process_ignore_ip_list();
+		
 					process_iteration(num_seconds, num_hits);
+					BASE_TIME = (int)time(NULL);
+				}
+				///////////////////////////////////////////////////////////////////////////////
 			}
-			
 			pclose(p);
-			
 		}
-		
-		
 	}
     return 0;
 }
