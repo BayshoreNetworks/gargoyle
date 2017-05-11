@@ -1,0 +1,5 @@
+enforce:1
+log_entity:journalctl -f -u ssh
+regex_file:sshd_regexes
+number_of_hits:6
+time_frame:120
