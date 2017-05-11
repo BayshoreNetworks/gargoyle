@@ -230,6 +230,51 @@ public:
 			return key_vals[hot_ports];
 		}
 	}
+	
+	
+	string get_sshd_log_entity() {
+		
+		string log_entity = "log_entity";
+		if ( key_vals.find(log_entity) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[log_entity];
+		}
+	}
+	
+	
+	string get_sshd_regex_file() {
+		
+		string regex_file = "regex_file";
+		if ( key_vals.find(regex_file) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[regex_file];
+		}
+	}
+
+
+	int get_sshd_number_of_hits() {
+		
+		string number_of_hits = "number_of_hits";
+		if ( key_vals.find(number_of_hits) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[number_of_hits].c_str());
+		}
+	}
+	
+	
+	int get_sshd_time_frame() {
+		
+		string time_frame = "time_frame";
+		if ( key_vals.find(time_frame) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[time_frame].c_str());
+		}
+	}
+
 
 private:
 	
