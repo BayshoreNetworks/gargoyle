@@ -40,6 +40,10 @@ if [ ! -f ${DESTDIR}${DEPLOY_TO}/sshd_regexes ]; then
    cp lib/sshd_regexes ${DESTDIR}${DEPLOY_TO}
 fi
 
+if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
+   cp .gargoyle_ssh_bruteforce_config ${DESTDIR}${DEPLOY_TO}
+fi
+
 sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}/etc/init.d/gargoyle_pscand
 chmod 770 ${DESTDIR}/etc/init.d/gargoyle_pscand
 
