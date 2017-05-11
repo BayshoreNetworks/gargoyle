@@ -29,21 +29,6 @@
  *****************************************************************************/
 
 /*
- * to compile manually:
- * 
- * g++ -std=c++11 -o gargoyle_lscand_ssh_bruteforce lib/iptables_wrapper_api.o lib/sqlite_wrapper_api.o ip_addr_controller.o main_iptables_ssh_bruteforce.o  -lnetfilter_log -lsqlite3
- * 
- * To run:
- * 
- * ./gargoyle_lscand_ssh_bruteforce log_file/statement regex_file num_hits num_seconds
- * 
- * Example:
- * 
- * ./gargoyle_lscand_ssh_bruteforce /var/log/auth.log lib/sshd_regexes 6 120
- * 
- * ./gargoyle_lscand_ssh_bruteforce "journalctl -f -u sshd" lib/sshd_regexes 6 120
- * 
- * 
  * Note:
  * 
  * even if the SSH port isnt 22 it doesnt matter so
@@ -73,6 +58,7 @@
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
+#include "config_variables.h"
 #include "system_functions.h"
 
 
@@ -80,6 +66,7 @@ int BASE_TIME;
 char DB_LOCATION[SQL_CMD_MAX+1];
 int FAKE_PORT = 65537;
 int PROCESS_TIME_CHECK = 60;
+bool ENFORCE = true;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
@@ -318,6 +305,33 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler);
 	signal(SIGKILL, signal_handler);
 	
+	// default = 6
+	size_t num_hits;
+	// default = 120
+	size_t num_seconds;
+	std::string log_entity = "";
+	std::string regex_file = "";
+	std::string jctl = "journalctl";
+	const char *sshbf_config_file;
+	sshbf_config_file = getenv("GARGOYLE_SSHD_BRUTE_FORCE_CONFIG");
+	if (sshbf_config_file == NULL)
+		sshbf_config_file = ".gargoyle_ssh_bruteforce_config";
+	
+	
+		
+	ConfigVariables cv;
+	if (cv.get_vals(sshbf_config_file) == 0) {
+		
+		log_entity = cv.get_sshd_log_entity();
+		regex_file = cv.get_sshd_regex_file();
+		num_hits = cv.get_sshd_number_of_hits();
+		num_seconds = cv.get_sshd_time_frame();
+		ENFORCE = cv.get_enforce_mode();
+	
+	} else {
+		return 1;
+	}
+	
 	/*
 	 * Get location for the DB file
 	 */
@@ -336,115 +350,99 @@ int main(int argc, char *argv[])
 	
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 
-    /*
-     * 0 - prog name
-     * 1 - log file to be scanned
-     * 2 - regex file name
-     * 3 - number of hits
-     * 4 - time frame
-     */
-	if (argc == 5) {
+
+	BASE_TIME = (int) time(NULL);
+	bool use_journalctl = false;
 	
-		BASE_TIME = (int) time(NULL);
-		
-		std::string jctl = "journalctl";
-		std::string log_entity = argv[1];
-		bool use_journalctl = false;
-		
-		if (log_entity.find(jctl) != std::string::npos) {
-			use_journalctl = true;
-		}
+	if (log_entity.find(jctl) != std::string::npos) {
+		use_journalctl = true;
+	}
 
-		if (!use_journalctl) {
-			if (!does_file_exist(log_entity.c_str())) {
-				syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" does not exist, cannot continue", log_entity.c_str());
-				return 1;
-			}
-		}
-		
-		/*
-		 * if the file with a list of regexes (one per
-		 * line) exists then process it
-		 */
-		if (does_file_exist(argv[2])) {
-			// populate vector sshd_regexes with regex strings
-			get_regexes(argv[2]);
-			
-			/*
-			for(std::vector<std::string>::iterator iit = sshd_regexes.begin(); iit != sshd_regexes.end(); ++iit)
-				std::cout << *iit << std::endl;
-			*/
-		}
-
-		// default = 6
-		size_t num_hits = atoi(argv[3]);
-		// default = 120
-		size_t num_seconds = atoi(argv[4]);
-
-		/*
-		 * handle standard type of log file where we
-		 * control the tail style functionality
-		 */
-		if (!use_journalctl) {
-			
-			std::ifstream ifs(log_entity.c_str());
-
-			if (ifs.is_open()) {
-				
-				std::string line;
-				while (true) {
-	
-					while (std::getline(ifs, line)) {
-						
-						//std::cout << line << std::endl;
-						handle_log_line(line);
-	
-					}
-					
-					if (!ifs.eof()) {
-						break;
-					}
-					ifs.clear();
-		
-					// sleep here to avoid being a CPU hog.
-					std::this_thread::sleep_for (std::chrono::seconds(3));
-					process_iteration(num_seconds, num_hits);
-				}
-			}
-		} else if (use_journalctl) {
-			
-			FILE *p = popen(log_entity.c_str(), "r");
-			
-			char buff[1024];
-			
-			while(fgets(buff, sizeof(buff), p) != NULL) {
-				
-				//std::cout << buff;
-				handle_log_line(buff);
-				
-				/*
-				std::cout << BASE_TIME << std::endl;
-				std::cout << (int)time(NULL) - BASE_TIME << std::endl << std::endl;
-				*/
-				
-				///////////////////////////////////////////////////////////////////////////////
-				/*
-				 * process to run at certain intervals (see PROCESS_TIME_CHECK)
-				 * this is what flushes data from memory and blocks stuff
-				 * if appropriate
-				 */
-				if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
-					
-					// are there any new white list entries in the DB?
-					//_this->process_ignore_ip_list();
-		
-					process_iteration(num_seconds, num_hits);
-					BASE_TIME = (int)time(NULL);
-				}
-				///////////////////////////////////////////////////////////////////////////////
-			}
-			pclose(p);
+	if (!use_journalctl) {
+		if (!does_file_exist(log_entity.c_str())) {
+			syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" does not exist, cannot continue", log_entity.c_str());
+			return 1;
 		}
 	}
+	
+	/*
+	 * if the file with a list of regexes (one per
+	 * line) exists then process it
+	 */
+	if (does_file_exist(regex_file.c_str())) {
+		// populate vector sshd_regexes with regex strings
+		get_regexes(regex_file.c_str());
+		
+		/*
+		for(std::vector<std::string>::iterator iit = sshd_regexes.begin(); iit != sshd_regexes.end(); ++iit)
+			std::cout << *iit << std::endl;
+		*/
+	}
+
+	/*
+	 * handle standard type of log file where we
+	 * control the tail style functionality
+	 */
+	if (!use_journalctl) {
+		
+		std::ifstream ifs(log_entity.c_str());
+
+		if (ifs.is_open()) {
+			
+			std::string line;
+			while (true) {
+
+				while (std::getline(ifs, line)) {
+					
+					//std::cout << line << std::endl;
+					handle_log_line(line);
+
+				}
+				
+				if (!ifs.eof()) {
+					break;
+				}
+				ifs.clear();
+	
+				// sleep here to avoid being a CPU hog.
+				std::this_thread::sleep_for (std::chrono::seconds(3));
+				process_iteration(num_seconds, num_hits);
+			}
+		}
+	} else if (use_journalctl) {
+		
+		FILE *p = popen(log_entity.c_str(), "r");
+		
+		char buff[1024];
+		
+		while(fgets(buff, sizeof(buff), p) != NULL) {
+			
+			//std::cout << buff;
+			handle_log_line(buff);
+			
+			/*
+			std::cout << BASE_TIME << std::endl;
+			std::cout << (int)time(NULL) - BASE_TIME << std::endl << std::endl;
+			*/
+			
+			///////////////////////////////////////////////////////////////////////////////
+			/*
+			 * process to run at certain intervals (see PROCESS_TIME_CHECK)
+			 * this is what flushes data from memory and blocks stuff
+			 * if appropriate
+			 */
+			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
+				
+				// are there any new white list entries in the DB?
+				//_this->process_ignore_ip_list();
+	
+				process_iteration(num_seconds, num_hits);
+				BASE_TIME = (int)time(NULL);
+			}
+			///////////////////////////////////////////////////////////////////////////////
+		}
+		pclose(p);
+	}
+
     return 0;
 }
