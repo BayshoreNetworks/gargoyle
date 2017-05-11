@@ -106,7 +106,7 @@ void signal_handler(int signum) {
    syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 
    // terminate program
-   exit(signum);  
+   exit(0);
 
 }
 
