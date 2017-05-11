@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * Wrapper to sqlite as a shared lib
  *
@@ -35,7 +35,8 @@
 #include <stdint.h>
 
 
-#define DB_PATH "/db/port_scan_detect.db"
+//#define DB_PATH "/db/port_scan_detect.db"
+#define DB_PATH "/db/gargoyle_attack_detect.db"
 #define LOCAL_BUF_SZ 60
 #define SMALL_DEST_BUF 2097152
 #define MEDIUM_DEST_BUF 5242880
@@ -58,6 +59,7 @@ size_t get_detected_hosts_all(char *, size_t, const char *);
 size_t get_detected_hosts_row_ix_by_host_ix(size_t, const char *);
 size_t remove_detected_host(size_t, const char *);
 size_t remove_detected_hosts_all(const char *);
+int is_host_detected(int, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_table table
 int get_hosts_all(char *, size_t, const char *);
@@ -78,10 +80,12 @@ int get_host_port_hit(int, int, const char *);
 int add_host_port_hit(int, int, int, const char *);
 int update_host_port_hit(int, int, int, const char *);
 size_t remove_host_ports_all(size_t, const char *);
+size_t get_unique_list_of_hosts_ix(char *, size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // ignore_ip_list table
 size_t add_host_to_ignore(size_t, size_t, const char *);
 size_t get_hosts_to_ignore_all(char *, size_t, const char *);
+int is_host_ignored(int, const char *);
 
 
 #ifdef __cplusplus

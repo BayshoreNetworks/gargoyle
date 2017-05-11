@@ -1,5 +1,10 @@
 # gargoyle
-Gargoyle Port Scan Detector
+Gargoyle Protection for Linux
+
+There are 2 main components to Gargoyle:
+
+	1. Gargoyle_pscand (port scan detection)
+	2. Gargoyle_lscand (log scanner)
 
 This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
@@ -61,9 +66,9 @@ Required libs
 
 Database:
 
-	The database file name is "port_scan_detect.db"
+	The database file name is "gargoyle_attack_detect.db"
 
-	By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/port_scan_detect.db"
+	By default Gargoyle_pscand will look for the path to a database file in ENV variable "GARGOYLE_DB". If that is not present it will default to the root dir for the program plus "/db/gargoyle_attack_detect.db"
 
 
 Config data:
@@ -91,6 +96,25 @@ Config data:
 		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
 
 
+gargoyle_admin_wrapper.py - wrapper to multiple Gargoyle administrative functions.
+
+    Functions included:
+
+        1. get_current_config - Input: None. Output: Current configuration in .gargoyle_config as a json object
+
+        2. set_config - Input: Json object containing new desired configuration of .gargoyle_config. Functionality: Updates .gargoyle_config with the key-value pairs. Output: Integer
+
+        3. unblock_ip - Input: String of an ip address to be unblocked. Functionality: Unblocks the desired ip. Output: Integer
+
+        4. get_current_white_list - Input: None. Output: List of ip addresses currently in the white list(db table 'ignore_ip_list')
+
+        5. add_to_white_list - Input: String of an ip address to add to the white list. Functionality: Adds the desired ip to the white list. Output: Integer
+
+        6. remove_from_white_list - Input: String of an ip address to remove from the white list. Functionality: Removes the desired ip from the white list. Output: Integer
+
+        7. get_current_from_iptables - Input: None. Output: Returns list of ip addresses currently being blocked
+
+    Note: For any admin functions above that return an integer, a return value of 0 indicates success of the functionality while 1 indicates some sort of failure. 
 
 To compile and install:
 
@@ -100,15 +124,15 @@ To compile and install:
 
 Notes:
 
-	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is syncronized with data in the DB and it is important for that synchronization is be respected.
+	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with data in the DB and it is important for that synchronization is be respected.
 
 	- To start/stop the Gargoyle_pscand daemons use the init script.
 
-	- When one stops the dameons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
+	- When one stops the daemons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
 	- Currently addresses TCP ports, UDP support will come soon
 	
-	- This software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
+	- This  port scanning detection software ignores certain elements by default so as to not be too aggressive or disrupt legitimate functionality:
 
 		- any port that the system is aware of (data comes from "/proc/net/tcp")
 		- any port in the ephemeral range for the target system (data comes from "/proc/sys/net/ipv4/ip_local_port_range")
@@ -117,22 +141,25 @@ Notes:
 		- any ip address whitelisted in the DB 
 		- system default gateway (data comes from "/proc/net/route")
 
-	- BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
+	- Port scan detection BLOCK TYPES - 1 - 5 are low hanging fruit, 6 - 8 are more statistical in nature
 
 		1:'NULL Scan' (Stealth technique) - sends packets with no TCP flags set
 		2:'FIN Scan' (Stealth technique) - sends packets with the FIN flag set but without first establishing a legitimate connection to the target
 		3:'XMAS Scan' (Stealth technique) - sends packets with the URG, PUSH, FIN flags set
-		4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response.
-		5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection.
+		4:'HALF Connect Scan' - This technique is based on the attacker not opening a full TCP connection. They send a SYN packet, as if to open a full connection, and wait for a response [deprecated]
+		5:'FULL Connect Scan' - This technique is based on the attacker opening a full TCP connection [deprecated]
 		6:'Single host scanned multiple ports' - example: host A scans 80 ports for openings, 1 hit for each 
 		7:'Single host scanned one port multiple times' - example: host A hits port 23 80 times 
 		8:'Single host generated too much port scanning activity' - this is cumulative and covers combinations of 6 & 7 where either one of those alone would not trigger detection
 		9:'Hot Port' triggered - This means the user wants an immediate block of any entity that touches this port
 
+	- Log scan detection BLOCK TYPES:
+
+		50:'SSH brute force attack detected' - An SSH brute force attack was detected and blocked
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
-	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep analysis performance acceptable.
+	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
 
 
 

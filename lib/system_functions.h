@@ -2,9 +2,9 @@
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
- * Wrapper to iptables as a shared lib
+ * System functions
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017, Bayshore Networks, Inc.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -27,48 +27,18 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef __stringfunctions__H_
-#define __stringfunctions__H_
+#ifndef __systemfunctions__H_
+#define __systemfunctions__H_
 
 
-#include <stdio.h>
-#include <stdint.h>
-
-#define DEST_BUF_SZ 524288
-#define CMD_BUF_SZ 100
+#include <sys/stat.h>
 
 
-
-
-#ifdef __cplusplus
-
-
-bool case_insensitive_char_compare(char a, char b) {
-	return(toupper(a) == toupper(b));
-}
-
-bool case_insensitive_compare(const std::string& s1, const std::string& s2) {
-	return((s1.size() == s2.size()) && equal(s1.begin(), s1.end(), s2.begin(), case_insensitive_char_compare));
-}
-
-
-extern "C" {
-#endif
-
-
-void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
+static inline bool does_file_exist (const char *fn)
 {
-	int count = stop - start;
-	if ( count >= --size ) {
-		count = size;
-	}
-	sprintf(dst, "%.*s", count, src + start);
+	struct stat st;
+	return ( (stat (fn, &st) == 0) && (S_ISREG(st.st_mode)) );
 }
 
 
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif // __stringfunctions__H_
+#endif // __systemfunctions__H_

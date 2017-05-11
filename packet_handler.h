@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * packet handling code
  *
@@ -102,7 +102,6 @@ class GargoylePscandHandler
 	int do_block_actions(std::string, int);
 	
 	bool is_in_waiting(std::string);
-	bool is_in_half_scan_dict(std::string);
 	bool is_in_black_listed_hosts(std::string);
 	bool is_white_listed_ip_addr(std::string);
 	bool is_in_ports_entries(int);
@@ -110,7 +109,6 @@ class GargoylePscandHandler
 	bool is_in_three_way_handshake(std::string);
 	bool is_in_ephemeral_range(int);
 	bool ignore_this_port(int);
-	bool ignore_this_addr(std::string);
 	bool is_in_hot_ports(int);
 	
 	private:
@@ -141,8 +139,6 @@ class GargoylePscandHandler
 	std::set<std::string> WAITING;
 	std::set<std::string> BLACK_LISTED_HOSTS;
 	
-	std::map<std::string, std::string> HALF_SCAN_DICT;
-	//std::map< std::string, std::pair <int, std::string> > SCANNED_PORTS_CNT_DICT;
 	std::map< std::string, std::pair <int, int> > SCANNED_PORTS_CNT_DICT;
 };
 

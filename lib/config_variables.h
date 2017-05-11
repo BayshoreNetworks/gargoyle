@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * helper class to parse key:value pairs from config text files
  *
@@ -32,6 +32,7 @@
 #include <map>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -68,9 +69,11 @@ public:
 		ifstream infile(fname);
 		
 		if(infile) {
-			while(getline(infile,line)) {
-				size_t pos = line.find(":");
-				this->key_vals[line.substr(0,pos)] = line.substr(pos+1).c_str();
+			while(getline(infile, line)) {
+				if (line.size() > 2) {
+					size_t pos = line.find(":");
+					this->key_vals[line.substr(0,pos)] = line.substr(pos+1).c_str();
+				}
 			}
 			return 0;
 		} else {

@@ -2,9 +2,9 @@
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
- * Wrapper to iptables as a shared lib
+ * controller code for handling ip addr actions
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017, Bayshore Networks, Inc.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -27,48 +27,16 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef __stringfunctions__H_
-#define __stringfunctions__H_
+#ifndef _IPADDRCONTROLLER_H__
+#define _IPADDRCONTROLLER_H__
 
 
-#include <stdio.h>
-#include <stdint.h>
-
-#define DEST_BUF_SZ 524288
-#define CMD_BUF_SZ 100
+#include <string>
 
 
+int add_ip_to_hosts_table(std::string, std::string);
+int do_block_actions(std::string, int, std::string, size_t, bool);
+int add_to_hosts_port_table(std::string, int, int, std::string);
 
 
-#ifdef __cplusplus
-
-
-bool case_insensitive_char_compare(char a, char b) {
-	return(toupper(a) == toupper(b));
-}
-
-bool case_insensitive_compare(const std::string& s1, const std::string& s2) {
-	return((s1.size() == s2.size()) && equal(s1.begin(), s1.end(), s2.begin(), case_insensitive_char_compare));
-}
-
-
-extern "C" {
-#endif
-
-
-void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
-{
-	int count = stop - start;
-	if ( count >= --size ) {
-		count = size;
-	}
-	sprintf(dst, "%.*s", count, src + start);
-}
-
-
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif // __stringfunctions__H_
+#endif // _IPADDRCONTROLLER_H__

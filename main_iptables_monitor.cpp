@@ -1,6 +1,6 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
  * main cleanup daemon
  *
@@ -66,9 +66,6 @@ void handle_signal (int signum) {
 
 
 void run_monitor() {
-	
-	int start_time = (int) time(NULL);
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", start_time);
 
 	int iter_cnt;
 	//int resp3;
@@ -184,11 +181,54 @@ void run_monitor() {
 		}
 	}
 	
-	int end_time = (int) time(NULL);
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");
-	
 	free(l_hosts3);
+	free(host_ip);
+}
+
+
+void run_orphan_cleanup() {
+
+	/*
+	 * this function finds orphaned rows in the hosts_ports_hits
+	 * table and removes them. by orphaned we mean that a
+	 * given host_ix existing in table hosts_ports_hits does not
+	 * exist in table hosts_table
+	 */
+	size_t resp;
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	resp = get_unique_list_of_hosts_ix(l_hosts, dst_buf_sz, DB_LOCATION);
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			//std::cout << token1 << std::endl;
+			
+			int rep = get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
+
+			if (rep == 0) {
+				if (strlen(host_ip) == 0) {
+					//std::cout << token1 << std::endl;
+					/*
+					 * orphan rows detected in hosts_ports_hits table
+					 * by host_ix, delete the orphaned rows
+					 */
+					remove_host_ports_all(atoi(token1), DB_LOCATION);
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	free(l_hosts);
 	free(host_ip);
 }
 
@@ -286,7 +326,16 @@ int main(int argc, char *argv[]) {
 	while (!stop) {
 		// every 12 hours by default
 		sleep(43200);
+		
+		int start_time = (int) time(NULL);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", start_time);
+		
 		run_monitor();
+		run_orphan_cleanup();
+		
+		int end_time = (int) time(NULL);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");
 	}
 	return 0;
 }

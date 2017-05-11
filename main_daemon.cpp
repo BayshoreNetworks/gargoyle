@@ -1,8 +1,8 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
- * main daemon
+ * main daemon - port scan detection and protection
  *
  * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
  * All rights reserved.
@@ -767,6 +767,12 @@ int main(int argc, char *argv[])
 	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, 0xffff) < 0) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Error setting packet copy mode");
 		return 1;
+	}
+	
+	// 128 * 1024 - max buffer size
+	if (nflog_set_nlbufsiz(qh, 131072) < 0) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s", "Could not set group buffer size");
+	    return 1;
 	}
 
 	fd = nflog_fd(nfl_handle);

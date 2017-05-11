@@ -1,8 +1,8 @@
 /*****************************************************************************
  *
- * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
+ * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
- * main cleanup daemon
+ * ip addr removal/cleanup prog
  *
  * Copyright (c) 2017, Bayshore Networks, Inc.
  * All rights reserved.
