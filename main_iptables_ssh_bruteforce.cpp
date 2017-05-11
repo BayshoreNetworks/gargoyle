@@ -169,7 +169,7 @@ int handle_log_line(const std::string &line) {
 
 		if (validate_ip_address(ip_addr)) {
 			
-			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
+			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 			
 		}
 
@@ -183,7 +183,8 @@ int handle_log_line(const std::string &line) {
 
 		if (validate_ip_address(ip_addr)) {
 
-			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+			if (ENFORCE)
+				add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 			
 		} else {
 			
@@ -196,7 +197,10 @@ int handle_log_line(const std::string &line) {
 			 */
 			// the hack found an ip addr
 			if (hip.size()) {
-				add_to_hosts_port_table(hip, FAKE_PORT, 1, DB_LOCATION);
+				
+				if (ENFORCE)
+					add_to_hosts_port_table(hip, FAKE_PORT, 1, DB_LOCATION);
+				
 			}
 		}
 		
@@ -210,7 +214,8 @@ int handle_log_line(const std::string &line) {
 
 		if (validate_ip_address(ip_addr)) {
 			
-			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+			if (ENFORCE)
+				add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 			
 		}
 		
@@ -241,14 +246,16 @@ int handle_log_line(const std::string &line) {
 								
 							IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
 							
-							add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+							if (ENFORCE)
+							 add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 	
 						} else {
 								
 							IP_HITMAP[ip_addr][0] = (int) time(NULL);
 							IP_HITMAP[ip_addr][1] = 1;
 							
-							add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+							if (ENFORCE)
+								add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
 	
 						}
 					}
@@ -278,7 +285,7 @@ void process_iteration(int num_seconds, int num_hits) {
 	    	
 	    	if (l_num_hits >= (num_hits * 2)) {
 	    		
-	    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
+	    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 	    	
 	    	}
 	    	
@@ -288,7 +295,7 @@ void process_iteration(int num_seconds, int num_hits) {
 	    
 	    	if (l_num_hits >= num_hits) {
 
-	    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, true);
+	    		do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 	    		IP_HITMAP.erase(ip_addr);
 	    		
 	    	}
@@ -331,6 +338,14 @@ int main(int argc, char *argv[])
 	} else {
 		return 1;
 	}
+	
+	/*
+	std::cout << log_entity << std::endl;
+	std::cout << regex_file << std::endl;
+	std::cout << num_hits << std::endl;
+	std::cout << num_seconds << std::endl;
+	std::cout << ENFORCE << std::endl;
+	*/	
 	
 	/*
 	 * Get location for the DB file
