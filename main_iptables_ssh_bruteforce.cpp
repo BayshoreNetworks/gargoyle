@@ -466,11 +466,9 @@ int main(int argc, char *argv[])
 			 */
 			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
 
-				// are there any new white list entries in the DB?
-				//_this->process_ignore_ip_list();
-
 				process_iteration(num_seconds, num_hits);
 				BASE_TIME = (int)time(NULL);
+				
 			}
 			///////////////////////////////////////////////////////////////////////////////
 		}
