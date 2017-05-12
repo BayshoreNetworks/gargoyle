@@ -63,10 +63,12 @@
 
 
 int BASE_TIME;
+int BASE_TIME2;
 char DB_LOCATION[SQL_CMD_MAX+1];
 int FAKE_PORT = 65537;
 int PROCESS_TIME_CHECK = 60;
 bool ENFORCE = true;
+int BUF_SZ = 1024;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
@@ -254,7 +256,7 @@ void process_iteration(int num_seconds, int num_hits) {
 		//std::cout << "[" << p.first << "] = " << IP_HITMAP[p.first][0] << " - " << IP_HITMAP[p.first][1] << std::endl << std::endl;
 
 		std::string ip_addr = p.first;
-		int now = (int) time(NULL);
+		int now = (int)time(NULL);
 		int now_delta = now - IP_HITMAP[p.first][0];
 		int l_num_hits = IP_HITMAP[p.first][1];
 		
@@ -385,6 +387,7 @@ int main(int argc, char *argv[])
 
 
 	BASE_TIME = (int) time(NULL);
+	BASE_TIME2 = (int) time(NULL);
 	bool use_journalctl = false;
 
 	if (log_entity.find(jctl) != std::string::npos) {
@@ -443,36 +446,39 @@ int main(int argc, char *argv[])
 			}
 		}
 	} else if (use_journalctl) {
+		
+		char buff[BUF_SZ];
+		while(true) {
+			
+			int now = (int)time(NULL);
+			if ((now - BASE_TIME) >= 60) {
+				
+				FILE *fp;
+				fp = popen(log_entity.c_str(), "r");
+				if (fp) {
+					while (fgets(buff, BUF_SZ, fp) != NULL) {
+						
+						//std::cout << "--- " << buff << " --- " << strlen(buff) << std::endl;
+						handle_log_line(buff);
 
-		FILE *p = popen(log_entity.c_str(), "r");
-
-		char buff[1024];
-
-		while(fgets(buff, sizeof(buff), p) != NULL) {
-
-			//std::cout << buff;
-			handle_log_line(buff);
-
-			///////////////////////////////////////////////////////////////////////////////
-			/*
-			 * process to run at certain intervals (see PROCESS_TIME_CHECK)
-			 * this is what flushes data from memory and blocks stuff
-			 * if appropriate
-			 * 
-			 * issue here is that it sits inside the while fgets -
-			 * this means that if no data comes in via fgets this
-			 * just sits here and we ONLY hit the point below when
-			 * something comes thru that fgets call
-			 */
-			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
-
-				process_iteration(num_seconds, num_hits);
-				BASE_TIME = (int)time(NULL);
+					}
+				}
+				pclose(fp);
+				BASE_TIME = now;
 				
 			}
-			///////////////////////////////////////////////////////////////////////////////
+			
+			if ((now - BASE_TIME2) >= 120) {
+				
+				process_iteration(num_seconds, num_hits);
+				BASE_TIME2 = now;
+				
+			}
+			
+			std::this_thread::sleep_for (std::chrono::seconds(30));
+			
 		}
-		pclose(p);
+
 	}
 
 	return 0;
