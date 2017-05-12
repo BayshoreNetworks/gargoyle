@@ -80,7 +80,7 @@ bool validate_ip_address(const std::string &);
 int handle_log_line(const std::string &);
 void process_iteration(int, int);
 std::string hunt_for_ip_addr(std::string);
-
+void handle_ip_addr(const std::string &);
 
 
 size_t get_regexes(const char *fname) {
@@ -182,10 +182,9 @@ int handle_log_line(const std::string &line) {
 		//std::cout << "TESTING INVALID USER" << std::endl;
 
 		if (validate_ip_address(ip_addr)) {
-
-			if (ENFORCE)
-				add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-
+			
+			handle_ip_addr(ip_addr);
+		
 		} else {
 
 			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
@@ -197,10 +196,9 @@ int handle_log_line(const std::string &line) {
 			 */
 			// the hack found an ip addr
 			if (hip.size()) {
-
-				if (ENFORCE)
-					add_to_hosts_port_table(hip, FAKE_PORT, 1, DB_LOCATION);
-
+				
+				handle_ip_addr(hip);
+			
 			}
 		}
 
@@ -213,10 +211,9 @@ int handle_log_line(const std::string &line) {
 		//std::cout << "TESTING BAD ALGO" << std::endl;
 
 		if (validate_ip_address(ip_addr)) {
-
-			if (ENFORCE)
-				add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-
+			
+			handle_ip_addr(ip_addr);
+			
 		}
 
 		return 0;	
@@ -237,27 +234,9 @@ int handle_log_line(const std::string &line) {
 
 					std::string ip_addr = match.str(1);
 					if (validate_ip_address(ip_addr)) {
-
-						std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
-
-						if(it != IP_HITMAP.end()) {
-
-							// element exists
-
-							IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
-
-							if (ENFORCE)
-								add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-
-						} else {
-
-							IP_HITMAP[ip_addr][0] = (int) time(NULL);
-							IP_HITMAP[ip_addr][1] = 1;
-
-							if (ENFORCE)
-								add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-
-						}
+						
+						handle_ip_addr(ip_addr);
+					
 					}
 					break;
 				}
@@ -278,12 +257,20 @@ void process_iteration(int num_seconds, int num_hits) {
 		int now = (int) time(NULL);
 		int now_delta = now - IP_HITMAP[p.first][0];
 		int l_num_hits = IP_HITMAP[p.first][1];
+		
+		/*
+		 * if there are double the hits of the allowed
+		 * threshold you get blocked irrespective of
+		 * time
+		 */
+		if (l_num_hits >= (num_hits * 2)) {
+			
+			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+			IP_HITMAP.erase(ip_addr);
 
-		//std::cout << "PAST THRESH? NOW DELTA: " << now_delta << ", NUM SEC: " << num_seconds << std::endl;
+		} else if (now_delta > (num_seconds * 3)) {
 
-		if (now_delta > (num_seconds * 3)) {
-
-			if (l_num_hits >= (num_hits * 2)) {
+			if (l_num_hits >= (num_hits * 3)) {
 
 				do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 
@@ -300,6 +287,32 @@ void process_iteration(int num_seconds, int num_hits) {
 
 			}
 		}
+	}
+}
+
+
+
+void handle_ip_addr(const std::string &ip_addr) {
+	
+	std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
+
+	if(it != IP_HITMAP.end()) {
+
+		// element exists
+		IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
+
+		if (ENFORCE)
+			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+
+	} else {
+
+		// create element
+		IP_HITMAP[ip_addr][0] = (int) time(NULL);
+		IP_HITMAP[ip_addr][1] = 1;
+
+		if (ENFORCE)
+			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+
 	}
 }
 
@@ -440,16 +453,16 @@ int main(int argc, char *argv[])
 			//std::cout << buff;
 			handle_log_line(buff);
 
-			/*
-			std::cout << BASE_TIME << std::endl;
-			std::cout << (int)time(NULL) - BASE_TIME << std::endl << std::endl;
-			 */
-
 			///////////////////////////////////////////////////////////////////////////////
 			/*
 			 * process to run at certain intervals (see PROCESS_TIME_CHECK)
 			 * this is what flushes data from memory and blocks stuff
 			 * if appropriate
+			 * 
+			 * issue here is that it sits inside the while fgets -
+			 * this means that if no data comes in via fgets this
+			 * just sits here and we ONLY hit the point below when
+			 * something comes thru that fgets call
 			 */
 			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
 
