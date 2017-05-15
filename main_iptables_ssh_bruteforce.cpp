@@ -60,6 +60,8 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "system_functions.h"
+#include "string_functions.h"
+#include "singleton.h"
 
 
 int BASE_TIME;
@@ -326,6 +328,56 @@ int main(int argc, char *argv[])
 	// register signal SIGINT and signal handler  
 	signal(SIGINT, signal_handler);
 	signal(SIGKILL, signal_handler);
+	
+	if (geteuid() != 0) {
+    	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
+    	return 1;
+    }
+	
+	
+    if (argc > 2 || argc < 1) {
+    	
+    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	return 1;
+    	
+    } else if (argc == 2) {
+    	
+    	std::string arg_one = argv[1];
+    	
+    	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
+    		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
+    	else {
+    		return 0;
+    	}
+    }
+    
+    
+	int ssh_bf_port = 0;
+	//const char *port_config_file = ".gargoyle_internal_port_config";
+	const char *port_config_file;
+	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
+	if (port_config_file == NULL)
+		port_config_file = ".gargoyle_internal_port_config";
+	
+	ConfigVariables cv;
+	if (cv.get_vals(port_config_file) == 0) {
+		ssh_bf_port = cv.get_gargoyle_lscand_ssh_bf_port();
+	} else {
+		return 1;
+	}
+	
+	if (ssh_bf_port <= 0)
+		return 1;
+
+		
+	SingletonProcess singleton(ssh_bf_port);
+	if (!singleton()) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_lscand_ssh_bruteforce", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+		return 1;
+	}
+	
+	
 
 	// default = 6
 	size_t num_hits;
@@ -345,15 +397,15 @@ int main(int argc, char *argv[])
 	if (sshbf_regex_file != NULL)
 		regex_file = sshbf_regex_file;
 
-	ConfigVariables cv;
-	if (cv.get_vals(sshbf_config_file) == 0) {
+	ConfigVariables cvv;
+	if (cvv.get_vals(sshbf_config_file) == 0) {
 
-		log_entity = cv.get_bf_log_entity();
+		log_entity = cvv.get_bf_log_entity();
 		if (regex_file.size() == 0)
-			regex_file = cv.get_sshd_regex_file();
-		num_hits = cv.get_bf_number_of_hits();
-		num_seconds = cv.get_bf_time_frame();
-		ENFORCE = cv.get_enforce_mode();
+			regex_file = cvv.get_sshd_regex_file();
+		num_hits = cvv.get_bf_number_of_hits();
+		num_seconds = cvv.get_bf_time_frame();
+		ENFORCE = cvv.get_enforce_mode();
 
 	} else {
 		return 1;

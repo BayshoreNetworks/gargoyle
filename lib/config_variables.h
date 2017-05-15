@@ -285,6 +285,17 @@ public:
 			return key_vals[regex_str];
 		}
 	}
+	
+	
+	int get_gargoyle_lscand_ssh_bf_port() {
+		
+		string g_lscand_ssh_port = "gargoyle_lscand_ssh_bruteforce";
+		if ( key_vals.find(g_lscand_ssh_port) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[g_lscand_ssh_port].c_str());
+		}
+	}
 
 
 private:
