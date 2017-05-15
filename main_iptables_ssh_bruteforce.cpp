@@ -348,11 +348,11 @@ int main(int argc, char *argv[])
 	ConfigVariables cv;
 	if (cv.get_vals(sshbf_config_file) == 0) {
 
-		log_entity = cv.get_sshd_log_entity();
+		log_entity = cv.get_bf_log_entity();
 		if (regex_file.size() == 0)
 			regex_file = cv.get_sshd_regex_file();
-		num_hits = cv.get_sshd_number_of_hits();
-		num_seconds = cv.get_sshd_time_frame();
+		num_hits = cv.get_bf_number_of_hits();
+		num_seconds = cv.get_bf_time_frame();
 		ENFORCE = cv.get_enforce_mode();
 
 	} else {

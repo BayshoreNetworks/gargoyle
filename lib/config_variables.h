@@ -232,7 +232,7 @@ public:
 	}
 	
 	
-	string get_sshd_log_entity() {
+	string get_bf_log_entity() {
 		
 		string log_entity = "log_entity";
 		if ( key_vals.find(log_entity) == key_vals.end() ) {
@@ -254,7 +254,7 @@ public:
 	}
 
 
-	int get_sshd_number_of_hits() {
+	int get_bf_number_of_hits() {
 		
 		string number_of_hits = "number_of_hits";
 		if ( key_vals.find(number_of_hits) == key_vals.end() ) {
@@ -265,13 +265,24 @@ public:
 	}
 	
 	
-	int get_sshd_time_frame() {
+	int get_bf_time_frame() {
 		
 		string time_frame = "time_frame";
 		if ( key_vals.find(time_frame) == key_vals.end() ) {
 			return -1;
 		} else {
 			return atoi(key_vals[time_frame].c_str());
+		}
+	}
+	
+	
+	string get_bf_regex_str() {
+		
+		string regex_str = "regex";
+		if ( key_vals.find(regex_str) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[regex_str];
 		}
 	}
 
