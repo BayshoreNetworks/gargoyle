@@ -70,6 +70,7 @@ char DB_LOCATION[SQL_CMD_MAX+1];
 int FAKE_PORT = 65537;
 int PROCESS_TIME_CHECK = 60;
 bool ENFORCE = true;
+bool ENABLED = true;
 int BUF_SZ = 1024;
 
 std::vector<std::string> sshd_regexes;
@@ -406,10 +407,14 @@ int main(int argc, char *argv[])
 		num_hits = cvv.get_bf_number_of_hits();
 		num_seconds = cvv.get_bf_time_frame();
 		ENFORCE = cvv.get_enforce_mode();
+		ENABLED = cv.get_enabled_mode();
 
 	} else {
 		return 1;
 	}
+	
+	if (!ENABLED)
+		return 1;
 
 	/*
 	std::cout << log_entity << std::endl;
