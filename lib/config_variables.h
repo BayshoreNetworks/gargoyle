@@ -296,6 +296,23 @@ public:
 			return atoi(key_vals[g_lscand_ssh_port].c_str());
 		}
 	}
+	
+	
+	bool get_enabled_mode() {
+		
+		string enabled_mode = "enabled";
+		int the_val;
+		if ( key_vals.find(enabled_mode) == key_vals.end() ) {
+			// enabled by default if nothing is found
+			return true;
+		} else {
+			the_val = atoi(key_vals[enabled_mode].c_str());
+			if (the_val == 1)
+				return true;
+			else
+				return false;
+		}
+	}
 
 
 private:
