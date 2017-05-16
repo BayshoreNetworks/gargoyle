@@ -1,3 +1,4 @@
+enabled:1
 enforce:1
 log_entity:journalctl -u ssh --since "1 minute ago"
 regex_file:sshd_regexes
