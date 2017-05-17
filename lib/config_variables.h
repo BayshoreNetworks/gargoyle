@@ -47,11 +47,18 @@ using namespace std;
  * 	gargoyle_pscand
  * 	gargoyle_pscand_analysis
  * 	gargoyle_pscand_monitor
+ * 	gargoyle_lscand_ssh_bruteforce
  * 	enforce
  * 	ports_to_ignore
  * 	hot_ports
- * 	
+ * 	log_entity
+ * 	regex_file
+ * 	number_of_hits
+ * 	time_frame
+ * 	regex
+ * 	enabled
  */
+
 class ConfigVariables {
 	
 public:
