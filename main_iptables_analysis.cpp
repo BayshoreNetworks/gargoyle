@@ -909,8 +909,8 @@ int main(int argc, char *argv[]) {
 	// processing loop
 	while (!stop) {
 		run_analysis();
-		// every 30 minutes by default
-		sleep(1800);
+		// every 15 minutes by default
+		sleep(900);
 	}
 	return 0;
 }
