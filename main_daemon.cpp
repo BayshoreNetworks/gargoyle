@@ -782,13 +782,15 @@ int main(int argc, char *argv[])
 	//while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {
 	while (TEMP_FAILURE_RETRY((rv = recv(fd, buf, sizeof(buf), 0)))) {
 		// handle message in packet that just arrived
-		nflog_handle_packet(nfl_handle, buf, rv);
+		if (rv > 0)
+			nflog_handle_packet(nfl_handle, buf, rv);
 	}
 
 	if (qh) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s: %d", "Unbinding from group", NFLOG_BIND_GROUP);
 		nflog_unbind_group(qh);
 	}
+	
 	if (nfl_handle) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s", "closing handle to NFLOG");
 		nflog_close(nfl_handle);
