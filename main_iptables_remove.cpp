@@ -48,6 +48,8 @@
 #include "singleton.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
+#include "ip_addr_controller.h"
+
 
 bool DEBUG = false;
 size_t IPTABLES_SUPPORTS_XLOCK;
@@ -139,7 +141,8 @@ int main(int argc, char *argv[])
 						
 						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-						syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "manually unblocked", VIOLATOR_SYSLOG, ip, TIMESTAMP_SYSLOG, tstamp);
+						do_unblock_action_output(ip, tstamp);
+						
 					}
 				}
 			}
