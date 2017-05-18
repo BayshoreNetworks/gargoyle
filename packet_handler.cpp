@@ -50,6 +50,8 @@
 #include "sqlite_wrapper_api.h"
 #include "packet_handler.h"
 #include "gargoyle_config_vals.h"
+#include "ip_addr_controller.h"
+
 
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
@@ -1287,8 +1289,7 @@ void GargoylePscandHandler::add_block_rules() {
 					 * this data is being used for analytics
 					 */
 					if (SYSLOG_ALL_DETECTIONS) {
-						syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
-								VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
+						do_report_action_output(the_ip, the_port, the_cnt, tstamp);
 					}
 				}
 			}
