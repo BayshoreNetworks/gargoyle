@@ -71,9 +71,9 @@ int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc) 
 }
 
 
-int do_block_actions(std::string the_ip,
+int do_block_actions(const std::string &the_ip,
 		int detection_type,
-		std::string db_loc,
+		const std::string &db_loc,
 		size_t iptables_xlock,
 		bool do_enforce) {
 
@@ -132,7 +132,7 @@ int do_block_actions(std::string the_ip,
 }
 
 
-int add_to_hosts_port_table(std::string the_ip, int the_port, int the_cnt, std::string db_loc) {
+int add_to_hosts_port_table(const std::string &the_ip, int the_port, int the_cnt, const std::string &db_loc) {
 	
 	int host_ix;
 	host_ix = 0;
@@ -199,4 +199,48 @@ void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
 			ACTION_SYSLOG, UNBLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
 			TIMESTAMP_SYSLOG, the_timestamp);
 
+}
+
+
+void do_remove_action_output(const std::string &the_ip,
+		int the_timestamp,
+		int first_seen,
+		int last_seen) {
+
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+			ACTION_SYSLOG, REMOVE_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
+			FIRST_SEEN_SYSLOG, first_seen, LAST_SEEN_SYSLOG, last_seen,
+			TIMESTAMP_SYSLOG, the_timestamp);
+
+}
+
+
+
+int do_host_remove_actions(const std::string &the_ip,
+		int host_ix,
+		const std::string &db_loc,
+		int first_seen,
+		int last_seen) {
+	
+	// delete all records for this host_ix from hosts_ports_hits table
+	remove_host_ports_all(host_ix, db_loc.c_str());
+	
+	/*
+	 * is_host_detected = 0 means it is not actively blocked
+	 * 
+	 * is_host_ignored = 0 means it is not white listed
+	 * (not ignored)
+	 * 
+	 * is_host_blacklisted - TODO
+	 */
+	if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
+
+		if (is_host_detected(host_ix, db_loc.c_str()) == 0) {
+
+			// delete the host record
+			remove_host(host_ix, db_loc.c_str());
+			do_remove_action_output(the_ip, (int) time(NULL), first_seen, last_seen);
+
+		}
+	}
 }

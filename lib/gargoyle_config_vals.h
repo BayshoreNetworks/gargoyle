@@ -65,6 +65,9 @@ extern "C" {
 #define PORT_SYSLOG "port"
 #define HITS_SYSLOG "hits"
 #define UNBLOCKED_SYSLOG "unblock"
+#define REMOVE_SYSLOG "remove"
+#define FIRST_SEEN_SYSLOG "first_seen"
+#define LAST_SEEN_SYSLOG "last_seen"
 
 #ifdef __cplusplus
 }
