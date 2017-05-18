@@ -39,6 +39,7 @@ int do_block_actions(std::string, int, std::string, size_t, bool);
 int add_to_hosts_port_table(std::string, int, int, std::string);
 void do_report_action_output(const std::string &, int, int, int);
 void do_block_action_output(const std::string &, int, int);
+void do_unblock_action_output(const std::string &, int);
 
 
 #endif // _IPADDRCONTROLLER_H__

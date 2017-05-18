@@ -192,3 +192,11 @@ void do_block_action_output(const std::string &the_ip,
 
 }
 
+
+void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
+
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
+			ACTION_SYSLOG, UNBLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
+			TIMESTAMP_SYSLOG, the_timestamp);
+
+}

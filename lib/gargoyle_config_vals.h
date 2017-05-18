@@ -64,6 +64,7 @@ extern "C" {
 #define REPORT_SYSLOG "report"
 #define PORT_SYSLOG "port"
 #define HITS_SYSLOG "hits"
+#define UNBLOCKED_SYSLOG "unblock"
 
 #ifdef __cplusplus
 }
