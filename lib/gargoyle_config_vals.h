@@ -52,7 +52,7 @@ extern "C" {
 #define NFLOG_NUM_LINE "--nflog-group 5"
 
 //static const char *VIOLATOR_SYSLOG = "violator";
-#define BLOCKED_SYSLOG "blocked"
+#define BLOCKED_SYSLOG "block"
 #define VIOLATOR_SYSLOG "violator"
 #define DETECTION_TYPE_SYSLOG "detection_type"
 #define TIMESTAMP_SYSLOG "timestamp"
@@ -60,7 +60,10 @@ extern "C" {
 #define PROG_TERM_SYSLOG "program terminating"
 #define ALREADY_RUNNING "process already running. See"
 #define INFO_SYSLOG "INFO:"
-
+#define ACTION_SYSLOG "action"
+#define REPORT_SYSLOG "report"
+#define PORT_SYSLOG "port"
+#define HITS_SYSLOG "hits"
 
 #ifdef __cplusplus
 }
