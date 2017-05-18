@@ -48,6 +48,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "string_functions.h"
+#include "ip_addr_controller.h"
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
@@ -168,9 +169,8 @@ void run_monitor() {
 									// delete rule from chain
 									iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-									tstamp = 0;
-									tstamp = (int) time(NULL);
-									syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
+									do_unblock_action_output(host_ip, (int) time(NULL));
+									
 								}
 							}
 						}
