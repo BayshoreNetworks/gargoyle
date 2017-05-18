@@ -50,6 +50,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "string_functions.h"
+#include "ip_addr_controller.h"
 
 
 struct greater_val
@@ -78,7 +79,6 @@ volatile sig_atomic_t stop;
 void handle_signal (int);
 bool exists_in_iptables_entries(int);
 void add_to_iptables_entries(int);
-void do_block_actions(const char *, int, int);
 void query_for_single_port_hits_last_seen();
 void query_for_multiple_ports_hits_last_seen();
 void run_analysis();
@@ -115,32 +115,6 @@ bool exists_in_iptables_entries(int s) {
 void add_to_iptables_entries(int s) {
 	if (!exists_in_iptables_entries(s))
 		IPTABLES_ENTRIES.push_back(s);
-}
-
-
-void do_block_actions(const char *the_ip, int the_ix, int detection_type = 0) {
-
-	if (the_ip and the_ix) {
-		
-		// we dont ignore this ip
-		if (!is_white_listed_ip_addr(the_ip)) {
-			size_t ret;
-			int tstamp;
-			tstamp = (int) time(NULL);
-	
-			if (ENFORCE == true)
-				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip, IPTABLES_SUPPORTS_XLOCK);
-	
-			syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-					BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip, DETECTION_TYPE_SYSLOG,
-					detection_type, TIMESTAMP_SYSLOG, tstamp);
-	
-			// add to DB
-			add_detected_host(the_ix, tstamp, DB_LOCATION);
-			// so that we dont have to deal with duplicate data
-			add_to_iptables_entries(the_ix);
-		}
-	}
 }
 
 
@@ -258,7 +232,9 @@ void query_for_single_port_hits_last_seen() {
 						 * did we see this host less than LAST_SEEN_DELTA hours ago?
 						 * if so block this bitch
 						 */
-						do_block_actions(host_ip, host_ix, 7);
+						do_block_actions(host_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+						add_to_iptables_entries(host_ix);
+						
 					}
 					free(h_all);
 					free(host_ip);
@@ -343,7 +319,9 @@ void query_for_multiple_ports_hits_last_seen() {
 						 * 
 						 * do this by row count from the DB
 						 */
-						do_block_actions(host_ip, host_ix, 6);
+						do_block_actions(host_ip, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+						add_to_iptables_entries(host_ix);
+						
 					} else {
 						/*
 						 * !! ENFORCE - if the collective activity for
@@ -355,7 +333,10 @@ void query_for_multiple_ports_hits_last_seen() {
 						l_count = 0;
 						l_count = get_one_host_hit_count_all_ports(host_ix, DB_LOCATION);
 						if (l_count >= OVERALL_PORT_SCAN_THRESHOLD) {
-							do_block_actions(host_ip, host_ix, 8);
+
+							do_block_actions(host_ip, 8, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+							add_to_iptables_entries(host_ix);
+							
 						}
 					}
 				}

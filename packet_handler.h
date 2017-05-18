@@ -99,7 +99,6 @@ class GargoylePscandHandler
 	int fin_scan(std::string, int, std::string, int, int, int, std::vector<int>);
 	int null_scan(std::string, int, std::string, int, int, int, std::vector<int>);
 	int add_ip_to_hosts_table(std::string);
-	int do_block_actions(std::string, int);
 	
 	bool is_in_waiting(std::string);
 	bool is_in_black_listed_hosts(std::string);
