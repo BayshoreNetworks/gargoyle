@@ -108,18 +108,11 @@ int do_block_actions(const std::string &the_ip,
 				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 	
 			if (detection_type > 0) {
-				/*
-				syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
-						ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-						DETECTION_TYPE_SYSLOG, detection_type, TIMESTAMP_SYSLOG, tstamp);
-				*/
+
 				do_block_action_output(the_ip, detection_type, tstamp);
 				
 			} else {
-				/*
-				syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
-						ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
-				*/
+
 				do_block_action_output(the_ip, 0, tstamp);
 				
 			}
