@@ -34,9 +34,10 @@
 #include <string>
 
 
-int add_ip_to_hosts_table(std::string, std::string);
+int add_ip_to_hosts_table(const std::string &, const std::string &);
 int do_block_actions(std::string, int, std::string, size_t, bool);
 int add_to_hosts_port_table(std::string, int, int, std::string);
+void do_report_action(const std::string &, int, int, int);
 
 
 #endif // _IPADDRCONTROLLER_H__

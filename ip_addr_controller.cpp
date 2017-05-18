@@ -42,7 +42,7 @@
 
 
 
-int add_ip_to_hosts_table(std::string the_ip, std::string db_loc) {
+int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc) {
 
 	int added_host_ix;
 	added_host_ix = 0;
@@ -86,8 +86,6 @@ int do_block_actions(std::string the_ip,
 	
 	//std::cout << "HOST IX: " << host_ix << std::endl;
 
-	//syslog(LOG_INFO | LOG_LOCAL6, "%d-%s=\"%d\" %s=\"%d\"", ENFORCE, "host_ix", host_ix, "size", the_ip.size());
-
 	if (the_ip.size() > 0 and host_ix > 0) {
 		
 		// we dont ignore this ip if this returns 0
@@ -110,12 +108,12 @@ int do_block_actions(std::string the_ip,
 				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 	
 			if (detection_type > 0) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-						BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE_SYSLOG,
-						detection_type, TIMESTAMP_SYSLOG, tstamp);
+				syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
+						ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
+						DETECTION_TYPE_SYSLOG, detection_type, TIMESTAMP_SYSLOG, tstamp);
 			} else {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"",
-						BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
+				syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
+						ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
 			}
 	
 			// add to DB
@@ -156,5 +154,17 @@ int add_to_hosts_port_table(std::string the_ip, int the_port, int the_cnt, std::
 			update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
 		}
 	}
+}
+
+
+void do_report_action(const std::string &the_ip,
+		int the_port,
+		int the_hits,
+		int the_timestamp) {
+	
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+			ACTION_SYSLOG, REPORT_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
+			PORT_SYSLOG, the_port, HITS_SYSLOG, the_hits, TIMESTAMP_SYSLOG, the_timestamp);
+
 }
 
