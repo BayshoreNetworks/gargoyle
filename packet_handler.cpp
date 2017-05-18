@@ -953,8 +953,9 @@ int GargoylePscandHandler::xmas_scan(
 				add_block_rule(src_ip, 3);
 				
 				int host_ix = add_ip_to_hosts_table(src_ip);
-				if (host_ix > 0)
-					add_to_hosts_port_table(host_ix, dst_port, 1);
+				if (host_ix > 0) {
+					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+				}
 			}
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
@@ -962,7 +963,7 @@ int GargoylePscandHandler::xmas_scan(
 			if (!is_in_black_listed_hosts(src_ip)) {
 				BLACK_LISTED_HOSTS.insert(src_ip);
 			}
-			return 0;	
+			return 0;
 		}
 	}
 	return 1;
@@ -987,8 +988,9 @@ int GargoylePscandHandler::fin_scan(
 					add_block_rule(src_ip, 2);
 					
 					int host_ix = add_ip_to_hosts_table(src_ip);
-					if (host_ix > 0)
-						add_to_hosts_port_table(host_ix, dst_port, 1);
+					if (host_ix > 0) {
+						add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+					}
 				}
 
 				add_to_scanned_ports_dict(dst_ip, src_port);
@@ -1022,7 +1024,7 @@ int GargoylePscandHandler::null_scan(
 				
 				int host_ix = add_ip_to_hosts_table(src_ip);
 				if (host_ix > 0) {
-					add_to_hosts_port_table(host_ix, dst_port, 1);
+					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
 				}
 			}
 
@@ -1285,7 +1287,7 @@ void GargoylePscandHandler::add_block_rules() {
 					//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
 					
 					if (added_host_ix > 0 && !is_white_listed_ip_addr(the_ip)) {
-						add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
+						add_to_hosts_port_table(the_ip, the_port, the_cnt, DB_LOCATION);
 					}
 					
 					/*
@@ -1337,30 +1339,6 @@ void GargoylePscandHandler::add_block_rules() {
 	
 	if (LOCAL_IP_ROW_CNT.size() > 0)
 		LOCAL_IP_ROW_CNT.clear();
-}
-
-
-void GargoylePscandHandler::add_to_hosts_port_table(int added_host_ix, int the_port, int the_cnt) {
-
-	/*
-	 * call get_host_port_hit to see if the ip addr/port combo
-	 * already exists in the DB. if it does then call the update
-	 * function, otherwise add the data into a new record
-	 */
-	if (added_host_ix > 0 && the_port > 0 && the_cnt > 0) {
-
-		int resp;
-		//number of hits registered in the DB
-		resp = get_host_port_hit(added_host_ix, the_port, DB_LOCATION.c_str());
-
-		// new record
-		if (resp == 0) {
-			add_host_port_hit(added_host_ix, the_port, the_cnt, DB_LOCATION.c_str());
-		} else if (resp >= 1) {
-			int u_cnt = resp + the_cnt;
-			update_host_port_hit(added_host_ix, the_port, u_cnt, DB_LOCATION.c_str());
-		}
-	}
 }
 
 

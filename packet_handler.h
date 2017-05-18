@@ -80,7 +80,6 @@ class GargoylePscandHandler
 	void add_to_scanned_ports_dict(std::string, int);
 	void add_block_rule(std::string, int);
 	void add_block_rules();
-	void add_to_hosts_port_table(int, int, int);
 
 	void refresh_white_listed_entries();
 	void process_ignore_ip_list();
@@ -128,7 +127,6 @@ class GargoylePscandHandler
 	std::ostringstream reverse_src_ip_dst_ip_dat;
 	
 	std::vector<std::string> WHITE_LISTED_IP_ADDRS;
-	//std::vector<std::string>::const_iterator local_ip_iter;
 	std::vector<int> IGNORE_PORTS;
 	std::vector<int>::const_iterator ports_iter;
 	std::vector<int> HOT_PORTS;
