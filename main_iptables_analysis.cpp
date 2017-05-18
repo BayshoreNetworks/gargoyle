@@ -635,6 +635,7 @@ void clean_up_stale_data() {
 					 * default)
 					 */
 					
+					/*
 					// delete all records for this host_ix from hosts_ports_hits table
 					remove_host_ports_all(host_ix, DB_LOCATION);
 					// delete the host record
@@ -642,6 +643,8 @@ void clean_up_stale_data() {
 					
 					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", "removing record",
 							VIOLATOR_SYSLOG, host_ip, "first_seen", first_seen, "last_seen", last_seen);
+					*/
+					do_host_remove_actions(host_ip, host_ix, DB_LOCATION, first_seen, last_seen);
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);

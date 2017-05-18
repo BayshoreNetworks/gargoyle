@@ -1569,9 +1569,8 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 							update_host_last_seen(host_ix, DB_LOCATION.c_str());
 							
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-							
-							int tstamp = (int) time(NULL);
-							syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
+
+							do_unblock_action_output(host_ip, (int) time(NULL));
 						}
 					}
 				}
