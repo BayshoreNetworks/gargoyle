@@ -306,8 +306,10 @@ void handle_ip_addr(const std::string &ip_addr) {
 		// element exists
 		IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
 
-		if (ENFORCE)
+		if (ENFORCE) {
 			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
+		}
+		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL));
 
 	} else {
 
@@ -315,9 +317,10 @@ void handle_ip_addr(const std::string &ip_addr) {
 		IP_HITMAP[ip_addr][0] = (int) time(NULL);
 		IP_HITMAP[ip_addr][1] = 1;
 
-		if (ENFORCE)
+		if (ENFORCE) {
 			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-
+		}
+		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL));
 	}
 }
 
