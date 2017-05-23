@@ -39,7 +39,7 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
-#define GARGOYLE_VERSION "1.2.1"
+#define GARGOYLE_VERSION "1.2.4"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
 #define IPTABLES_INPUT_CHAIN "INPUT"
@@ -52,7 +52,7 @@ extern "C" {
 #define NFLOG_NUM_LINE "--nflog-group 5"
 
 //static const char *VIOLATOR_SYSLOG = "violator";
-#define BLOCKED_SYSLOG "blocked"
+#define BLOCKED_SYSLOG "block"
 #define VIOLATOR_SYSLOG "violator"
 #define DETECTION_TYPE_SYSLOG "detection_type"
 #define TIMESTAMP_SYSLOG "timestamp"
@@ -60,7 +60,14 @@ extern "C" {
 #define PROG_TERM_SYSLOG "program terminating"
 #define ALREADY_RUNNING "process already running. See"
 #define INFO_SYSLOG "INFO:"
-
+#define ACTION_SYSLOG "action"
+#define REPORT_SYSLOG "report"
+#define PORT_SYSLOG "port"
+#define HITS_SYSLOG "hits"
+#define UNBLOCKED_SYSLOG "unblock"
+#define REMOVE_SYSLOG "remove"
+#define FIRST_SEEN_SYSLOG "first_seen"
+#define LAST_SEEN_SYSLOG "last_seen"
 
 #ifdef __cplusplus
 }

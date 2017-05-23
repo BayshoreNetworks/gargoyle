@@ -47,11 +47,18 @@ using namespace std;
  * 	gargoyle_pscand
  * 	gargoyle_pscand_analysis
  * 	gargoyle_pscand_monitor
+ * 	gargoyle_lscand_ssh_bruteforce
  * 	enforce
  * 	ports_to_ignore
  * 	hot_ports
- * 	
+ * 	log_entity
+ * 	regex_file
+ * 	number_of_hits
+ * 	time_frame
+ * 	regex
+ * 	enabled
  */
+
 class ConfigVariables {
 	
 public:
@@ -230,6 +237,90 @@ public:
 			return key_vals[hot_ports];
 		}
 	}
+	
+	
+	string get_bf_log_entity() {
+		
+		string log_entity = "log_entity";
+		if ( key_vals.find(log_entity) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[log_entity];
+		}
+	}
+	
+	
+	string get_sshd_regex_file() {
+		
+		string regex_file = "regex_file";
+		if ( key_vals.find(regex_file) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[regex_file];
+		}
+	}
+
+
+	int get_bf_number_of_hits() {
+		
+		string number_of_hits = "number_of_hits";
+		if ( key_vals.find(number_of_hits) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[number_of_hits].c_str());
+		}
+	}
+	
+	
+	int get_bf_time_frame() {
+		
+		string time_frame = "time_frame";
+		if ( key_vals.find(time_frame) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[time_frame].c_str());
+		}
+	}
+	
+	
+	string get_bf_regex_str() {
+		
+		string regex_str = "regex";
+		if ( key_vals.find(regex_str) == key_vals.end() ) {
+			return "";
+		} else {
+			return key_vals[regex_str];
+		}
+	}
+	
+	
+	int get_gargoyle_lscand_ssh_bf_port() {
+		
+		string g_lscand_ssh_port = "gargoyle_lscand_ssh_bruteforce";
+		if ( key_vals.find(g_lscand_ssh_port) == key_vals.end() ) {
+			return -1;
+		} else {
+			return atoi(key_vals[g_lscand_ssh_port].c_str());
+		}
+	}
+	
+	
+	bool get_enabled_mode() {
+		
+		string enabled_mode = "enabled";
+		int the_val;
+		if ( key_vals.find(enabled_mode) == key_vals.end() ) {
+			// enabled by default if nothing is found
+			return true;
+		} else {
+			the_val = atoi(key_vals[enabled_mode].c_str());
+			if (the_val == 1)
+				return true;
+			else
+				return false;
+		}
+	}
+
 
 private:
 	

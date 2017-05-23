@@ -88,26 +88,9 @@ case "$1" in
   stop)
 #	check_for_upstart 0
 	log_daemon_msg "Stopping Gargoyle Portscan detection daemon" || true
-	if /usr/bin/pkill -2 gargoyle_pscand; then
-	    log_end_msg 0 || true
-	else
-	    log_end_msg 1 || true
-	fi
-
-	log_daemon_msg "Stopping Gargoyle Portscan detection monitor" || true
-	if /usr/bin/pkill -2 gargoyle_pscand_monitor; then
-	    log_end_msg 0 || true
-	else
-	    log_end_msg 1 || true
-	fi
-
-	log_daemon_msg "Stopping Gargoyle Portscan detection analysis" || true
-        if /usr/bin/pkill -2 gargoyle_pscand_analysis; then
-	    log_end_msg 0 || true
-	else
-	    log_end_msg 1 || true
-	fi
-
+        for p in $(ps -ef |grep -v grep|grep gargoyle_ |awk {'print $2'})
+            do kill -2 $p
+        done
 
 	;;
 

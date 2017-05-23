@@ -48,6 +48,8 @@ gargoyle_pscand
 gargoyle_pscand_analysis
 gargoyle_pscand_monitor
 gargoyle_pscand_unblockip
+gargoyle_lscand_bruteforce
+gargoyle_lscand_bruteforce_detect
 gargoyle_lscand_ssh_bruteforce
 install-sh
 lib/.deps/

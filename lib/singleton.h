@@ -28,6 +28,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+#include <cstring>
+
 class SingletonProcess {
 public:
 	SingletonProcess(uint16_t port0) :

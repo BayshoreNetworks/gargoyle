@@ -50,6 +50,8 @@
 #include "sqlite_wrapper_api.h"
 #include "packet_handler.h"
 #include "gargoyle_config_vals.h"
+#include "ip_addr_controller.h"
+
 
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
@@ -890,7 +892,8 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 			 * !! ENFORCE - if ip in question has been flagged as doing
 			 * something blatantly stupid then block this bitch
 			 */
-			added_host_ix = do_block_actions(the_ip, detection_type);
+			//added_host_ix = do_block_actions(the_ip, detection_type);
+			added_host_ix = do_block_actions(the_ip, detection_type, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 
 			if (is_in_black_listed_hosts(the_ip) == true) {
 				BLACK_LISTED_HOSTS.erase(the_ip);
@@ -950,8 +953,9 @@ int GargoylePscandHandler::xmas_scan(
 				add_block_rule(src_ip, 3);
 				
 				int host_ix = add_ip_to_hosts_table(src_ip);
-				if (host_ix > 0)
-					add_to_hosts_port_table(host_ix, dst_port, 1);
+				if (host_ix > 0) {
+					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+				}
 			}
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
@@ -959,7 +963,7 @@ int GargoylePscandHandler::xmas_scan(
 			if (!is_in_black_listed_hosts(src_ip)) {
 				BLACK_LISTED_HOSTS.insert(src_ip);
 			}
-			return 0;	
+			return 0;
 		}
 	}
 	return 1;
@@ -984,8 +988,9 @@ int GargoylePscandHandler::fin_scan(
 					add_block_rule(src_ip, 2);
 					
 					int host_ix = add_ip_to_hosts_table(src_ip);
-					if (host_ix > 0)
-						add_to_hosts_port_table(host_ix, dst_port, 1);
+					if (host_ix > 0) {
+						add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+					}
 				}
 
 				add_to_scanned_ports_dict(dst_ip, src_port);
@@ -1019,7 +1024,7 @@ int GargoylePscandHandler::null_scan(
 				
 				int host_ix = add_ip_to_hosts_table(src_ip);
 				if (host_ix > 0) {
-					add_to_hosts_port_table(host_ix, dst_port, 1);
+					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
 				}
 			}
 
@@ -1193,7 +1198,8 @@ void GargoylePscandHandler::add_block_rules() {
 			 * !! ENFORCE - if ip in question is in BLACK_LISTED_HOSTS
 			 * and we have reached this code path then block this bitch
 			 */
-			added_host_ix = do_block_actions(*it, 0);
+			//added_host_ix = do_block_actions(*it, 0);
+			added_host_ix = do_block_actions(*it, 0, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 
 			ip_tables_entries.insert(*it);
 		} else {
@@ -1264,7 +1270,9 @@ void GargoylePscandHandler::add_block_rules() {
 	
 					if (ip_tables_entries.count(the_ip) == 0) {
 	
-						do_block_actions(the_ip, 7);
+						//do_block_actions(the_ip, 7);
+						
+						do_block_actions(the_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 	
 						ip_tables_entries.insert(the_ip);
 					}
@@ -1279,7 +1287,7 @@ void GargoylePscandHandler::add_block_rules() {
 					//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
 					
 					if (added_host_ix > 0 && !is_white_listed_ip_addr(the_ip)) {
-						add_to_hosts_port_table(added_host_ix, the_port, the_cnt);
+						add_to_hosts_port_table(the_ip, the_port, the_cnt, DB_LOCATION);
 					}
 					
 					/*
@@ -1287,8 +1295,7 @@ void GargoylePscandHandler::add_block_rules() {
 					 * this data is being used for analytics
 					 */
 					if (SYSLOG_ALL_DETECTIONS) {
-						syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
-								VIOLATOR_SYSLOG, the_ip.c_str(), "port", the_port, "hits", the_cnt, TIMESTAMP_SYSLOG, tstamp);
+						do_report_action_output(the_ip, the_port, the_cnt, tstamp);
 					}
 				}
 			}
@@ -1316,7 +1323,9 @@ void GargoylePscandHandler::add_block_rules() {
 	
 				if (ip_tables_entries.count(loc_ip_it->first) == 0) {
 	
-					do_block_actions(loc_ip_it->first, 6);
+					//do_block_actions(loc_ip_it->first, 6);
+					
+					do_block_actions(loc_ip_it->first, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 	
 					ip_tables_entries.insert(loc_ip_it->first);	
 				}
@@ -1330,70 +1339,6 @@ void GargoylePscandHandler::add_block_rules() {
 	
 	if (LOCAL_IP_ROW_CNT.size() > 0)
 		LOCAL_IP_ROW_CNT.clear();
-}
-
-
-void GargoylePscandHandler::add_to_hosts_port_table(int added_host_ix, int the_port, int the_cnt) {
-
-	/*
-	 * call get_host_port_hit to see if the ip addr/port combo
-	 * already exists in the DB. if it does then call the update
-	 * function, otherwise add the data into a new record
-	 */
-	if (added_host_ix > 0 && the_port > 0 && the_cnt > 0) {
-
-		int resp;
-		//number of hits registered in the DB
-		resp = get_host_port_hit(added_host_ix, the_port, DB_LOCATION.c_str());
-
-		// new record
-		if (resp == 0) {
-			add_host_port_hit(added_host_ix, the_port, the_cnt, DB_LOCATION.c_str());
-		} else if (resp >= 1) {
-			int u_cnt = resp + the_cnt;
-			update_host_port_hit(added_host_ix, the_port, u_cnt, DB_LOCATION.c_str());
-		}
-	}
-}
-
-
-int GargoylePscandHandler::do_block_actions(std::string the_ip, int detection_type) {
-
-	int host_ix;
-	host_ix = 0;
-
-	host_ix = get_host_ix(the_ip.c_str(), DB_LOCATION.c_str());
-	if (host_ix == 0)
-		host_ix = add_ip_to_hosts_table(the_ip);
-
-	//syslog(LOG_INFO | LOG_LOCAL6, "%d-%s=\"%d\" %s=\"%d\"", ENFORCE, "host_ix", host_ix, "size", the_ip.size());
-	
-	if (the_ip.size() > 0 and host_ix > 0) {
-		
-		// we dont ignore this ip
-		if (!is_white_listed_ip_addr(the_ip)) {
-
-			size_t ret;
-			int tstamp;
-			tstamp = (int) time(NULL);
-	
-			if (ENFORCE == true)
-				ret = iptables_add_drop_rule_to_chain(CHAIN_NAME.c_str(), the_ip.c_str(), IPTABLES_SUPPORTS_XLOCK);
-	
-			if (detection_type > 0) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"",
-						BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), DETECTION_TYPE_SYSLOG,
-						detection_type, TIMESTAMP_SYSLOG, tstamp);
-			} else {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"",
-						BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, tstamp);
-			}
-	
-			// add to DB
-			add_detected_host(host_ix, tstamp, DB_LOCATION.c_str());
-		}
-	}
-	return host_ix;
 }
 
 
@@ -1602,9 +1547,8 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 							update_host_last_seen(host_ix, DB_LOCATION.c_str());
 							
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-							
-							int tstamp = (int) time(NULL);
-							syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\"", "unblocked", VIOLATOR_SYSLOG, host_ip, TIMESTAMP_SYSLOG, tstamp);
+
+							do_unblock_action_output(host_ip, (int) time(NULL));
 						}
 					}
 				}

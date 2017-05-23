@@ -61,8 +61,11 @@ int main () {
 
 	int pscand_monitor_ix = 6667;
 	mymap.insert(std::pair<std::string,int>("gargoyle_pscand_monitor", pscand_monitor_ix));
+	
+	int lscand_sshbf_ix = 6668;
+	mymap.insert(std::pair<std::string,int>("gargoyle_lscand_ssh_bruteforce", lscand_sshbf_ix));
 
-	int mymax = pscand_monitor_ix;
+	int mymax = lscand_sshbf_ix;
 
 	int n;
 	char cmd[100];
