@@ -646,7 +646,7 @@ int main(int argc, char *argv[])
 				ss << *i << ",";
 			l_cnt++;
 		}
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring ports:", (ss.str().c_str()));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARGOYLE_PSCAND, "ignoring ports:", (ss.str().c_str()));
 	}
 	
 	
@@ -712,7 +712,7 @@ int main(int argc, char *argv[])
 				ss << *i << ",";
 			l_cnt++;
 		}
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARGOYLE_PSCAND, "ignoring IP addr's:", (ss.str().c_str()));
 	}
 
 	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
