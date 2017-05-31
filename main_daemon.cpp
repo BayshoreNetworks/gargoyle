@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
      */
     if (argc > 2 || argc < 1) {
     	
-    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	std::cerr << std::endl << GARGOYLE_PSCAND << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
     	
     } else if (argc == 2) {
