@@ -55,6 +55,7 @@ size_t LOCKOUT_TIME = 32400;
 size_t IPTABLES_SUPPORTS_XLOCK;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
+const char *GARG_MONITOR_PROGNAME = "Gargoyle Pscand Monitor";
 
 volatile sig_atomic_t stop;
 
@@ -250,7 +251,7 @@ int main(int argc, char *argv[]) {
      */
     if (argc > 2 || argc < 1) {
     	
-    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	std::cerr << std::endl << GARG_MONITOR_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
     	
     } else if (argc == 2) {
