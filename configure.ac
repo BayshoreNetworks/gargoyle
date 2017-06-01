@@ -16,6 +16,8 @@ AC_PROG_MAKE_SET
 # Checks for libraries
 AC_CHECK_LIB([sqlite3], [main])
 AC_CHECK_LIB([netfilter_log], [main])
+AC_CHECK_LIB([rt], [main])
+AC_CHECK_LIB([pthread], [main])
 
 
 # Checks for header files

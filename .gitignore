@@ -51,6 +51,7 @@ gargoyle_pscand_unblockip
 gargoyle_lscand_bruteforce
 gargoyle_lscand_bruteforce_detect
 gargoyle_lscand_ssh_bruteforce
+gargoyle_shared_config_test
 install-sh
 lib/.deps/
 lib/.dirstamp
@@ -59,3 +60,8 @@ stamp-h1
 
 *.swp
 .Po
+
+lib/libgargoyleiptableswrapper.so.1
+lib/libgargoylesqlitewrapper.so.1
+lib/libsharedconfig.so.1
+
