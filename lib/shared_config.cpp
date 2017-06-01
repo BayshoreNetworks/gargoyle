@@ -53,7 +53,7 @@ string InAddrToString(in_addr_t a) {
 int32_t SharedIpConfig::compareAndExpand() {
     if(local_capacity < hdr->capacity) {
 
-        printf("Resizing: local capacity %ld to %ld\n", local_capacity, hdr->capacity);
+        //printf("Resizing: local capacity %ld to %ld\n", local_capacity, hdr->capacity);
         local_capacity = hdr->capacity;
         if(region->Resize(sizeof(Header) + local_capacity * sizeof(in_addr_t)) < 0) 
             return -1;
@@ -200,8 +200,8 @@ int32_t SharedIpConfig::Add(string ip4_addr) {
      * The entry isn't there, so we need to append it. First, check capacity.
      */
     if(!hasCapacity()) {
-        printf("Capacity not available. Resizing. Old: %ld New: %ld\n",
-               hdr->capacity, hdr->capacity + step);
+        //printf("Capacity not available. Resizing. Old: %ld New: %ld\n",
+        //       hdr->capacity, hdr->capacity + step);
         hdr->capacity += step;
         local_capacity = hdr->capacity;
 
