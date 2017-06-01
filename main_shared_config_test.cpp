@@ -77,6 +77,7 @@ void handleHelp() {
     printf("\n");
     printf("  %s <command>\n", g_prog_name);
     printf("    Commands\n");
+    printf("\n");
     printf("      contains <ip>            - validates that <ip> is in the shared region\n");
     printf("      add <ip>                 - adds <ip> to the shared config\n");
     printf("      remove <ip>              - removes <ip> from the shared config\n");

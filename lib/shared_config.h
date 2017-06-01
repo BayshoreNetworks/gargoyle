@@ -61,7 +61,7 @@ class SharedIpConfig {
     uint32_t step;
     Header *hdr;
     pthread_mutexattr_t attrmutex;
-    sigset_t old_set;
+    sigset_t old_sigs;
 
     SharedIpConfig(string name, size_t starting_num)
         : my_name(name), local_capacity(starting_num), region(NULL), step(0), hdr(NULL) { }

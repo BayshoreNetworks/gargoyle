@@ -67,6 +67,16 @@ int32_t SharedIpConfig::lock() {
     int count = 0;
     int result;
     bool first = true;
+    const sigset_t sigs = {SIGINT};
+
+    /*
+     * Note: we set a signal handler here to defer some signalling events until
+     * after our global lock is released. Any signal, resulting in an exit event,
+     * which occurs while this lock is held, will result in a deadlock for all
+     * other processes until all references to the shared memory region are
+     * released.
+     */
+    sigprocmask(SIG_BLOCK, &sigs, &old_sigs);
 
     /*
      * We may not be the creator, so wait for the mutex lock to be initialized
@@ -74,7 +84,6 @@ int32_t SharedIpConfig::lock() {
      *
      * This loop should run for no more than TIMEOUT_MS * MAX_TRIES milliseconds
      */
-
     do {
         result = pthread_mutex_trylock(&hdr->mutex);
         if(result == 0)
@@ -99,6 +108,7 @@ int32_t SharedIpConfig::lock() {
 
 int32_t SharedIpConfig::unlock() {
     pthread_mutex_unlock(&hdr->mutex);
+    sigprocmask(SIG_SETMASK, &old_sigs, NULL);
     return 0;
 }
 
