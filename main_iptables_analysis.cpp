@@ -73,6 +73,7 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 size_t LAST_SEEN_THRESHOLD = 432000;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
+const char *GARG_ANALYSIS_PROGNAME = "Gargoyle Pscand Analysis";
 
 volatile sig_atomic_t stop;
 
@@ -793,7 +794,7 @@ int main(int argc, char *argv[]) {
      */
     if (argc > 2 || argc < 1) {
     	
-    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
     	
     } else if (argc == 2) {
@@ -885,7 +886,7 @@ int main(int argc, char *argv[]) {
 			ss << *i << ",";
 		l_cnt++;
 	}
-	syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+	syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARG_ANALYSIS_PROGNAME, "ignoring IP addr's:", (ss.str().c_str()));
 	
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 	

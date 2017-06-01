@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
      */
     if (argc > 2 || argc < 1) {
     	
-    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	std::cerr << std::endl << GARGOYLE_PSCAND << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
     	
     } else if (argc == 2) {
@@ -646,7 +646,7 @@ int main(int argc, char *argv[])
 				ss << *i << ",";
 			l_cnt++;
 		}
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring ports:", (ss.str().c_str()));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARGOYLE_PSCAND, "ignoring ports:", (ss.str().c_str()));
 	}
 	
 	
@@ -712,7 +712,7 @@ int main(int argc, char *argv[])
 				ss << *i << ",";
 			l_cnt++;
 		}
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARGOYLE_PSCAND, "ignoring IP addr's:", (ss.str().c_str()));
 	}
 
 	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {
