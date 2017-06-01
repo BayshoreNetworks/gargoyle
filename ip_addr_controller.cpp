@@ -31,14 +31,11 @@
 #include <syslog.h>
 
 #include "ip_addr_controller.h"
-
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "gargoyle_config_vals.h"
-
-
 
 
 
@@ -208,7 +205,6 @@ void do_remove_action_output(const std::string &the_ip,
 }
 
 
-
 int do_host_remove_actions(const std::string &the_ip,
 		int host_ix,
 		const std::string &db_loc,
@@ -226,6 +222,10 @@ int do_host_remove_actions(const std::string &the_ip,
 	 * 
 	 * is_host_blacklisted - TODO
 	 */
+	/*
+	 * 06/01/2017 - disabling the deletion of the
+	 * ip addr row from hosts_table
+	 * 
 	if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
 
 		if (is_host_detected(host_ix, db_loc.c_str()) == 0) {
@@ -236,4 +236,5 @@ int do_host_remove_actions(const std::string &the_ip,
 
 		}
 	}
+	*/
 }
