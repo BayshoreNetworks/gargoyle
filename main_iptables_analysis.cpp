@@ -51,6 +51,7 @@
 #include "config_variables.h"
 #include "string_functions.h"
 #include "ip_addr_controller.h"
+#include "shared_config.h"
 
 
 struct greater_val
@@ -60,7 +61,7 @@ struct greater_val
 };
 
 
-std::vector<std::string> WHITE_LISTED_IP_ADDRS;
+//std::vector<std::string> WHITE_LISTED_IP_ADDRS;
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
 size_t SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -74,6 +75,7 @@ size_t LAST_SEEN_THRESHOLD = 432000;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 const char *GARG_ANALYSIS_PROGNAME = "Gargoyle Pscand Analysis";
+SharedIpConfig *gargoyle_analysis_whitelist_shm = NULL;
 
 volatile sig_atomic_t stop;
 
@@ -83,11 +85,11 @@ void add_to_iptables_entries(int);
 void query_for_single_port_hits_last_seen();
 void query_for_multiple_ports_hits_last_seen();
 void run_analysis();
-bool is_white_listed_ip_addr(std::string);
-void add_to_ip_entries(std::string);
-void get_default_gateway_linux();
-void get_local_ip_addrs();
-void get_white_list_addrs();
+//bool is_white_listed_ip_addr(std::string);
+//void add_to_ip_entries(std::string);
+//void get_default_gateway_linux();
+//void get_local_ip_addrs();
+//void get_white_list_addrs();
 void clean_up_stale_data();
 void clean_up_iptables_dupe_data();
 
@@ -95,6 +97,12 @@ void clean_up_iptables_dupe_data();
 void handle_signal (int signum) {
 	stop = 1;
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
+	
+    if(gargoyle_analysis_whitelist_shm) {
+        delete gargoyle_analysis_whitelist_shm;
+        gargoyle_analysis_whitelist_shm;
+    }
+	
 	exit(0);
 }
 
@@ -233,7 +241,7 @@ void query_for_single_port_hits_last_seen() {
 						 * did we see this host less than LAST_SEEN_DELTA hours ago?
 						 * if so block this bitch
 						 */
-						do_block_actions(host_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+						do_block_actions(host_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_analysis_whitelist_shm);
 						add_to_iptables_entries(host_ix);
 						
 					}
@@ -320,7 +328,7 @@ void query_for_multiple_ports_hits_last_seen() {
 						 * 
 						 * do this by row count from the DB
 						 */
-						do_block_actions(host_ip, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+						do_block_actions(host_ip, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_analysis_whitelist_shm);
 						add_to_iptables_entries(host_ix);
 						
 					} else {
@@ -335,7 +343,7 @@ void query_for_multiple_ports_hits_last_seen() {
 						l_count = get_one_host_hit_count_all_ports(host_ix, DB_LOCATION);
 						if (l_count >= OVERALL_PORT_SCAN_THRESHOLD) {
 
-							do_block_actions(host_ip, 8, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+							do_block_actions(host_ip, 8, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_analysis_whitelist_shm);
 							add_to_iptables_entries(host_ix);
 							
 						}
@@ -356,7 +364,7 @@ void run_analysis() {
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", start_time);
 	
 	IPTABLES_ENTRIES.clear();
-	get_white_list_addrs();
+	//get_white_list_addrs();
 	
 	const char *tok1 = "\n";
 	char *token1;
@@ -429,6 +437,7 @@ void run_analysis() {
 }
 
 
+/*
 bool is_white_listed_ip_addr(std::string s){
 
 	std::vector<std::string>::const_iterator iter;
@@ -440,14 +449,18 @@ bool is_white_listed_ip_addr(std::string s){
 		return false;
 	}
 }
+*/
 
 
+/*
 void add_to_ip_entries(std::string s) {
 	if (!is_white_listed_ip_addr(s))
 		WHITE_LISTED_IP_ADDRS.push_back(s);
 }
+*/
 
 
+/*
 void get_default_gateway_linux() {
 	
 	FILE *fp;
@@ -475,8 +488,10 @@ void get_default_gateway_linux() {
 	free(default_gway);
 	pclose(fp);
 }
+*/
 
 
+/*
 void get_local_ip_addrs() {
 	
 	FILE *fp;
@@ -528,8 +543,10 @@ void get_local_ip_addrs() {
 	free(ip_addrs);
 	pclose(fp);
 }
+*/
 
 
+/*
 void get_white_list_addrs() {
 
 	const char *tok1 = ">";
@@ -564,6 +581,7 @@ void get_white_list_addrs() {
 	free(l_hosts);
 	free(host_ip);
 }
+*/
 
 
 void clean_up_stale_data() {
@@ -619,7 +637,9 @@ void clean_up_stale_data() {
 				token2 = strtok_r(NULL, tok2, &token2_save);
 			}
 
-			if (!exists_in_iptables_entries(host_ix) && !is_white_listed_ip_addr(host_ip)) {
+			//if (!exists_in_iptables_entries(host_ix) && !is_white_listed_ip_addr(host_ip)) {
+			if (!exists_in_iptables_entries(host_ix) &&
+					!is_white_listed(host_ip, (void *) gargoyle_analysis_whitelist_shm)) {
 				
 				now = (int) time(NULL);
 				if ((now - last_seen) >= LAST_SEEN_THRESHOLD) {
@@ -810,7 +830,6 @@ int main(int argc, char *argv[]) {
     }
 	
 	int analysis_port;
-	//const char *port_config_file = ".gargoyle_internal_port_config";
 	const char *port_config_file;
 	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
 	if (port_config_file == NULL)
@@ -851,7 +870,6 @@ int main(int argc, char *argv[]) {
 	}
 	
 	// Get config data
-	//const char *config_file = ".gargoyle_config";
 	const char *config_file;
 	config_file = getenv("GARGOYLE_CONFIG");
 	if (config_file == NULL)
@@ -870,11 +888,14 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
-	get_default_gateway_linux();
-	get_local_ip_addrs();
-	get_white_list_addrs();
+	gargoyle_analysis_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
+	
+	//WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
+	//get_default_gateway_linux();
+	//get_local_ip_addrs();
+	//get_white_list_addrs();
 
+	/*
 	std::stringstream ss;
 	int l_cnt = 1;
 	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
@@ -887,6 +908,7 @@ int main(int argc, char *argv[]) {
 		l_cnt++;
 	}
 	syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARG_ANALYSIS_PROGNAME, "ignoring IP addr's:", (ss.str().c_str()));
+	*/
 	
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 	
@@ -897,5 +919,6 @@ int main(int argc, char *argv[]) {
 		// every 15 minutes by default
 		sleep(900);
 	}
+	
 	return 0;
 }

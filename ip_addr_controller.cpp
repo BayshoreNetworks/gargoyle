@@ -36,7 +36,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "gargoyle_config_vals.h"
-
+#include "shared_config.h"
 
 
 int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc) {
@@ -72,7 +72,8 @@ int do_block_actions(const std::string &the_ip,
 		int detection_type,
 		const std::string &db_loc,
 		size_t iptables_xlock,
-		bool do_enforce) {
+		bool do_enforce,
+		void *g_shared_mem) {
 
 	int host_ix;
 	host_ix = 0;
@@ -86,7 +87,9 @@ int do_block_actions(const std::string &the_ip,
 	if (the_ip.size() > 0 and host_ix > 0) {
 		
 		// we dont ignore this ip if this returns 0
-		if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
+		//if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
+			
+		if (!is_white_listed(the_ip, g_shared_mem)) {
 
 			size_t ret;
 			int tstamp = (int) time(NULL);
@@ -237,4 +240,30 @@ int do_host_remove_actions(const std::string &the_ip,
 		}
 	}
 	*/
+}
+
+
+bool is_white_listed(const std::string &ip_addr, void *g_shared_config) {
+	
+	bool result = false;
+	if (g_shared_config) {
+		
+		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
+		
+		//printf("------- Number of IP entries: %ld\n", g_shared_cfg->Size());
+		
+		bool result;
+	
+		g_shared_cfg->Contains(ip_addr, &result);
+	
+		/*
+		if(result) {
+			printf("Found\n");
+		} else {
+			printf("Not Found\n");
+		}
+		*/
+		
+	}
+	return result;
 }

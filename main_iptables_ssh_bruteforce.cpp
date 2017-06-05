@@ -62,6 +62,7 @@
 #include "system_functions.h"
 #include "string_functions.h"
 #include "singleton.h"
+#include "shared_config.h"
 
 
 int BASE_TIME;
@@ -78,6 +79,7 @@ std::map<std::string, int[2]> IP_HITMAP;
 
 size_t IPTABLES_SUPPORTS_XLOCK;
 size_t ITER_CNT_MAX = 50;
+SharedIpConfig *gargoyle_sshbf_whitelist_shm = NULL;
 
 size_t get_regexes(const char *);
 void signal_handler(int);
@@ -174,7 +176,7 @@ int handle_log_line(const std::string &line) {
 
 		if (validate_ip_address(ip_addr)) {
 
-			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_sshbf_whitelist_shm);
 
 		}
 
@@ -270,14 +272,14 @@ void process_iteration(int num_seconds, int num_hits) {
 		 */
 		if (l_num_hits >= (num_hits * 2)) {
 			
-			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_sshbf_whitelist_shm);
 			IP_HITMAP.erase(ip_addr);
 
 		} else if (now_delta > (num_seconds * 3)) {
 
 			if (l_num_hits >= (num_hits * 3)) {
 
-				do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+				do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_sshbf_whitelist_shm);
 
 			}
 
@@ -287,7 +289,7 @@ void process_iteration(int num_seconds, int num_hits) {
 
 			if (l_num_hits >= num_hits) {
 
-				do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+				do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_sshbf_whitelist_shm);
 				IP_HITMAP.erase(ip_addr);
 
 			}
@@ -442,6 +444,8 @@ int main(int argc, char *argv[])
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
+	
+	gargoyle_sshbf_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 
