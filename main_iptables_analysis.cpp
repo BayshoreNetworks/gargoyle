@@ -61,7 +61,6 @@ struct greater_val
 };
 
 
-//std::vector<std::string> WHITE_LISTED_IP_ADDRS;
 std::vector<int> IPTABLES_ENTRIES;
 size_t PORT_SCAN_THRESHOLD = 15;
 size_t SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -85,11 +84,6 @@ void add_to_iptables_entries(int);
 void query_for_single_port_hits_last_seen();
 void query_for_multiple_ports_hits_last_seen();
 void run_analysis();
-//bool is_white_listed_ip_addr(std::string);
-//void add_to_ip_entries(std::string);
-//void get_default_gateway_linux();
-//void get_local_ip_addrs();
-//void get_white_list_addrs();
 void clean_up_stale_data();
 void clean_up_iptables_dupe_data();
 
@@ -437,153 +431,6 @@ void run_analysis() {
 }
 
 
-/*
-bool is_white_listed_ip_addr(std::string s){
-
-	std::vector<std::string>::const_iterator iter;
-
-	iter = std::find(WHITE_LISTED_IP_ADDRS.begin(), WHITE_LISTED_IP_ADDRS.end(), s);
-	if (iter != WHITE_LISTED_IP_ADDRS.end()) {
-		return true;
-	} else {
-		return false;
-	}
-}
-*/
-
-
-/*
-void add_to_ip_entries(std::string s) {
-	if (!is_white_listed_ip_addr(s))
-		WHITE_LISTED_IP_ADDRS.push_back(s);
-}
-*/
-
-
-/*
-void get_default_gateway_linux() {
-	
-	FILE *fp;
-	char *dot;
-	char *default_gway = (char*) malloc(1024);
-	
-	const char *tok1 = " ";
-	char *token1;
-	char *token1_save;
-	
-	fp = popen("ip route | grep default", "r");
-	if (fp) {
-		while (fgets(default_gway, 1024, fp) != NULL) {
-			//std::cout << "--- " << default_gway << " --- " << strlen(default_gway) << std::endl;
-			token1 = strtok_r(default_gway, tok1, &token1_save);
-			while (token1 != NULL) {
-				dot = strstr (token1, ".");
-				if (dot) {
-					add_to_ip_entries(token1);
-				}
-				token1 = strtok_r(NULL, tok1, &token1_save);
-			}
-		}
-	}
-	free(default_gway);
-	pclose(fp);
-}
-*/
-
-
-/*
-void get_local_ip_addrs() {
-	
-	FILE *fp;
-	
-	char *inet;
-	char *dot;
-	char *f_slash;
-	
-	char *ip_addrs = (char*) malloc(1024);
-	
-	const char *tok1 = " ";
-	char *token1;
-	char *token1_save;
-	
-	const char *tok2 = "/";
-	char *token2;
-	char *token2_save;
-	
-	int iter_cnt;
-
-	fp = popen("ip addr", "r");
-	if (fp) {
-		while (fgets(ip_addrs, 1024, fp) != NULL) {
-			//std::cout << "--- " << ip_addrs << " --- " << strlen(ip_addrs) << std::endl;
-			inet = strstr (ip_addrs, "inet");
-			dot = strstr (ip_addrs, ".");
-			if (inet && dot) {
-				//std::cout << "--- " << ip_addrs << " --- " << strlen(ip_addrs) << std::endl;
-
-				token1 = strtok_r(ip_addrs, tok1, &token1_save);
-				while (token1 != NULL) {
-					//std::cout << token1 << std::endl;
-					f_slash = strstr (token1, "/");
-					if (f_slash) {
-						iter_cnt = 0;
-						token2 = strtok_r(token1, tok2, &token2_save);
-						while (token2 != NULL) {
-							if (iter_cnt == 0)
-								add_to_ip_entries(token2);
-							iter_cnt++;
-							token2 = strtok_r(NULL, tok2, &token2_save);
-						}
-					}
-					token1 = strtok_r(NULL, tok1, &token1_save);
-				}
-			}
-		}
-	}
-	free(ip_addrs);
-	pclose(fp);
-}
-*/
-
-
-/*
-void get_white_list_addrs() {
-
-	const char *tok1 = ">";
-	char *token1;
-	char *token1_save;
-
-
-	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
-	char *l_hosts = (char*) malloc(dst_buf_sz);
-	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
-	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
-
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION);
-	
-	if (resp == 0) {
-
-		token1 = strtok_r(l_hosts, tok1, &token1_save);
-		while (token1 != NULL) {
-			
-			if (atoi(token1) > 0) {
-			
-				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
-				
-				if (strcmp(host_ip, "") != 0) {
-					add_to_ip_entries(host_ip);
-				}
-			}
-			token1 = strtok_r(NULL, tok1, &token1_save);
-		}
-	}
-
-	free(l_hosts);
-	free(host_ip);
-}
-*/
-
-
 void clean_up_stale_data() {
 	
 	int ret;
@@ -890,28 +737,7 @@ int main(int argc, char *argv[]) {
 	
 	gargoyle_analysis_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 	
-	//WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
-	//get_default_gateway_linux();
-	//get_local_ip_addrs();
-	//get_white_list_addrs();
-
-	/*
-	std::stringstream ss;
-	int l_cnt = 1;
-	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
-		//std::cout << *i << std::endl;
-		if (l_cnt == v_cnt)
-			ss << *i;
-		else
-			ss << *i << ",";
-		l_cnt++;
-	}
-	syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARG_ANALYSIS_PROGNAME, "ignoring IP addr's:", (ss.str().c_str()));
-	*/
-	
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
-	
 	
 	// processing loop
 	while (!stop) {
