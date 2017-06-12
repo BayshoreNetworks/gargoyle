@@ -1596,7 +1596,7 @@ def remove_from_white_list(ip_addr=''):
     if ip_address == 1:
         return 1
 
-    
+    """
     host_ix = None
     db_loc = get_db()
 
@@ -1621,6 +1621,11 @@ def remove_from_white_list(ip_addr=''):
                 cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
         except TypeError:
             pass
+    """
+    
+    cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
+	call(cmd)
+    
     return 0
  
 '''
