@@ -52,6 +52,7 @@ gargoyle_lscand_bruteforce
 gargoyle_lscand_bruteforce_detect
 gargoyle_lscand_ssh_bruteforce
 gargoyle_shared_config_test
+gargoyle_pscand_remove_from_whitelist
 install-sh
 lib/.deps/
 lib/.dirstamp
