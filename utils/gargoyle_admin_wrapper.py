@@ -1624,7 +1624,7 @@ def remove_from_white_list(ip_addr=''):
     """
     
     cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
-	call(cmd)
+    call(cmd)
     
     return 0
  
