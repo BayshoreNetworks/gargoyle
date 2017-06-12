@@ -66,3 +66,4 @@ lib/libgargoyleiptableswrapper.so.1
 lib/libgargoylesqlitewrapper.so.1
 lib/libsharedconfig.so.1
 test_*.cpp
+*BKUP
