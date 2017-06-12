@@ -1475,3 +1475,50 @@ int is_host_detected(int ip_addr_ix, const char *db_loc) {
 }
 
 
+int remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
+	
+	char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return -1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLES);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+}
+
+
+
