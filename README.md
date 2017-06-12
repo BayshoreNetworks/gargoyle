@@ -39,7 +39,6 @@ There are numerous run time entities:
 
 	2. gargoyle_pscand_monitor - runs as a daemon with an internal timed cycle. The default cycle is a run every 12 hours based off whenever the daemon was started. This prog will analyze the active rules in our iptables chain and clean out the ones who have been jailed past the point set at variable LOCKOUT_TIME. The clean up process also updates records in the DB.
 
-
 	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
 
 	4. gargoyle_pscand_unblockip - this is a standalone program that accepts one argument (an ip address string) and will cleanup/remove all traces of that ip address except for the fact that we once encountered it. The thought process here is that you deliberately removing an ip address means you are treating this address as a trusted entity and want no future blocks of it.
@@ -47,6 +46,10 @@ There are numerous run time entities:
 		- To run:
 			cd install_path
 			./gargoyle_pscand_unblockip ip_addr
+			
+	5. gargoyle_pscand_remove_from_whitelist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the white list (ignored ip addresses).
+
+	6. gargoyle_lscand_ssh_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns of SSH brute force attacks.
 
 
 
@@ -160,6 +163,8 @@ Notes:
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
 	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
+	
+	- To remove ip addresses from the white (or ignore) list use the standalone program "gargoyle_pscand_remove_from_whitelist", do not manually remove that ip address from the DB table.
 
 
 
