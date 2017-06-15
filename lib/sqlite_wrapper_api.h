@@ -45,7 +45,8 @@
 #define DETECTED_HOSTS_TABLE "detected_hosts"
 #define HOSTS_TABLE "hosts_table"
 #define HOSTS_PORTS_HITS_TABLE "hosts_ports_hits"
-#define IGNORE_IP_LIST_TABLES "ignore_ip_list"
+#define IGNORE_IP_LIST_TABLE "ignore_ip_list"
+#define BLACK_LIST_TABLE "black_ip_list"
 
 
 #ifdef __cplusplus
@@ -87,6 +88,13 @@ size_t add_host_to_ignore(size_t, size_t, const char *);
 size_t get_hosts_to_ignore_all(char *, size_t, const char *);
 int is_host_ignored(int, const char *);
 int remove_host_to_ignore(int, const char *);
+///////////////////////////////////////////////////////////////////////
+// black_ip_list table
+size_t add_host_to_blacklist(size_t, size_t, const char *);
+size_t get_hosts_blacklist_all(char *, size_t, const char *);
+int is_host_blacklisted(int, const char *);
+int remove_host_from_blacklist(int, const char *);
+///////////////////////////////////////////////////////////////////////
 
 
 #ifdef __cplusplus
