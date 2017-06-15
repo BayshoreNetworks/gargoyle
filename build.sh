@@ -30,13 +30,9 @@ int_version()
 # Stop all gargoyle progs before updating
 echo "Stopping running gargoyle processes"
 
-if [ -f /etc/init.d/gargoyle_pscand ]; then
-    /etc/init.d/gargoyle_pscand stop
-else
-    for p in $(ps -ef |grep -v grep|grep gargoyle_ |awk {'print $2'})
-        do kill -2 $p
-    done
-fi
+for p in $(ps -ef |grep -v grep|grep gargoyle_ |awk {'print $2'})
+    do kill -2 $p
+done
 
 mkdir -p ${DESTDIR}${DEPLOY_TO}/db/
 
