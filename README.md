@@ -129,7 +129,8 @@ Notes:
 
 	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with data in the DB and it is important for that synchronization is be respected.
 
-	- To start/stop the Gargoyle_pscand daemons use the init script.
+	- To start/stop the Gargoyle_pscand daemons use the init script. If Gargoyle fails to start, try running:
+          systemctl daemon-reload ; service gargoyle_pscand stop ; service gargoyle_pscand start
 
 	- When one stops the daemons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 

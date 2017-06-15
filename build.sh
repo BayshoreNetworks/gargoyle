@@ -21,11 +21,44 @@ fi
     --build=i686-pc-linux-gnu --host=$CROSS_COMPILE DESTDIR=$DESTDIR \
     LDFLAGS= CXXFLAGS= 
 
+# Converts string to integer
+int_version()
+  {
+    echo "$@" | gawk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }'; 
+  }
+
+# Stop all gargoyle progs before updating
+echo "Stopping running gargoyle processes"
+
+if [ -f /etc/init.d/gargoyle_pscand ]; then
+    /etc/init.d/gargoyle_pscand stop
+else
+    for p in $(ps -ef |grep -v grep|grep gargoyle_ |awk {'print $2'})
+        do kill -2 $p
+    done
+fi
 
 mkdir -p ${DESTDIR}${DEPLOY_TO}/db/
 
 if [ ! -f ${DESTDIR}${DEPLOY_TO}/db/gargoyle_attack_detect.db ]; then
    cp db/gargoyle_attack_detect.db ${DESTDIR}${DEPLOY_TO}/db/
+else
+
+# Schema update required for black_ip_list table
+
+  if [ ! -f ${DESTDIR}${DEPLOY_TO}/gargoyle_pscand ]; then 
+    echo "gargoyle_pscand binary not present, skipping sqlite update"
+  else 
+    current_version=$(${DESTDIR}${DEPLOY_TO}/gargoyle_pscand -v | awk {'print $3'} | tr -d '\n')
+    new_version=1.5
+    if [ "$(int_version "$current_version")" -lt "$(int_version "$new_version")" ]; then
+      echo -e "Installed gargoyle version is $current_version, running sql schema update\n"
+      /usr/bin/sqlite3 ${DESTDIR}${DEPLOY_TO}/db/gargoyle_attack_detect.db < utils/alter_black_list_table.sql 
+    else
+      echo -e "no need to update sqlite table\n"
+
+    fi
+  fi
 fi
 
 if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_config ]; then
