@@ -155,6 +155,8 @@ int add_to_hosts_port_table(const std::string &the_ip, int the_port, int the_cnt
 			update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
 		}
 	}
+	
+	return 0;
 }
 
 
@@ -240,6 +242,8 @@ int do_host_remove_actions(const std::string &the_ip,
 		}
 	}
 	*/
+	
+	return 0;
 }
 
 
@@ -252,7 +256,7 @@ bool is_white_listed(const std::string &ip_addr, void *g_shared_config) {
 		
 		//printf("------- Number of IP entries: %ld\n", g_shared_cfg->Size());
 		
-		bool result;
+		//bool result;
 	
 		g_shared_cfg->Contains(ip_addr, &result);
 	
@@ -266,4 +270,42 @@ bool is_white_listed(const std::string &ip_addr, void *g_shared_config) {
 		
 	}
 	return result;
+}
+
+
+bool is_black_listed(const std::string &ip_addr, void *g_shared_config) {
+	
+	bool result = false;
+	if (g_shared_config) {
+		
+		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
+		
+		//printf("------- Number of IP entries: %ld\n", g_shared_cfg->Size());
+		g_shared_cfg->Contains(ip_addr, &result);
+	}
+	
+	return result;
+}
+
+
+int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, size_t iptables_xlock) {
+	
+	/*
+	 * actions:
+	 * 
+	 * 	add to blacklist shared mem region
+	 * 	add to iptables in GARGOYLE_CHAIN_NAME
+	 */
+	
+	if (g_shared_config && ip_addr.size() && !is_black_listed(ip_addr, g_shared_config)) {
+		
+		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
+		// add to shared mem region
+		g_shared_cfg->Add(ip_addr);
+		
+		// do block action - type 100
+		iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+	}
+	
+	return 0;
 }

@@ -46,6 +46,8 @@ void do_unblock_action_output(const std::string &, int);
 void do_remove_action_output(const std::string &, int, int, int);
 
 bool is_white_listed(const std::string &, void *);
+bool is_black_listed(const std::string &, void *);
+int do_black_list_actions(const std::string &, void *, size_t);
 
 
 #endif // _IPADDRCONTROLLER_H__
