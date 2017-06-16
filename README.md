@@ -160,6 +160,10 @@ Notes:
 	- Log scan detection BLOCK TYPES:
 
 		50:'SSH brute force attack detected' - An SSH brute force attack was detected and blocked. Take note of the fact that for this use case the actual SSH port is not relevant so these actions are identified via a fake port defined in "main_iptables_ssh_bruteforce.cpp", the default being 65537. Relevant slow and low activity is registered in the DB and processed by the analysis daemon.
+		
+	- Blacklist BLOCK TYPE:
+
+		100: The ip addr in question has been blacklisted by the user, this data is stored in the DB table 'black_ip_list'
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
