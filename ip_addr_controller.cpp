@@ -305,6 +305,8 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 		
 		// do block action - type 100
 		iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+		
+		do_block_action_output(ip_addr, 100, (int)time(NULL));
 	}
 	
 	return 0;
