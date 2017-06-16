@@ -72,7 +72,8 @@ extern "C" {
 
 #define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"
 #define GARGOYLE_WHITELIST_SHM_SZ 250
-
+#define GARGOYLE_BLACKLIST_SHM_NAME "/gargoyle_blacklist_shm"
+#define GARGOYLE_BLACKLIST_SHM_SZ 250
 
 #ifdef __cplusplus
 }
