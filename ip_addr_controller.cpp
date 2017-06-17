@@ -279,8 +279,7 @@ bool is_black_listed(const std::string &ip_addr, void *g_shared_config) {
 	if (g_shared_config) {
 		
 		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
-		
-		//printf("------- Number of IP entries: %ld\n", g_shared_cfg->Size());
+
 		g_shared_cfg->Contains(ip_addr, &result);
 	}
 	
