@@ -49,6 +49,7 @@
 #include "config_variables.h"
 #include "string_functions.h"
 #include "ip_addr_controller.h"
+#include "shared_config.h"
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
@@ -56,12 +57,19 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 const char *GARG_MONITOR_PROGNAME = "Gargoyle Pscand Monitor";
+SharedIpConfig *gargoyle_monitor_blacklist_shm = NULL;
 
 volatile sig_atomic_t stop;
 
 
 void handle_signal (int signum) {
 	stop = 1;
+	
+    if(gargoyle_monitor_blacklist_shm) {
+        delete gargoyle_monitor_blacklist_shm;
+        gargoyle_monitor_blacklist_shm;
+    }
+	
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 	exit(0);
 }
@@ -96,8 +104,7 @@ void run_monitor() {
 	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
 	
 	if (resp3 == 0) {
-		
-		
+
 		/*
 		 std::cout << std::endl << resp3 << std::endl;
 		 std::cout << l_hosts3 << std::endl;
@@ -159,19 +166,23 @@ void run_monitor() {
 						//if (rule_ix > 0 && strcmp(host_ip, "") != 0) {
 						if (strcmp(host_ip, "") != 0) {
 							
-							// find the row ix for this host (in detected_hosts table)
-							size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
-							if (row_ix > 0) {
+							// if the ip is blaclisted leave it alone
+							if (!is_black_listed(host_ip, (void *)gargoyle_monitor_blacklist_shm)) {
 							
-								// remove DB row from when we blocked this host
-								if (remove_detected_host(row_ix, DB_LOCATION) == 0) {
-									
-									size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
-									// delete rule from chain
-									iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-
-									do_unblock_action_output(host_ip, (int) time(NULL));
-									
+								// find the row ix for this host (in detected_hosts table)
+								size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
+								if (row_ix > 0) {
+								
+									// remove DB row from when we blocked this host
+									if (remove_detected_host(row_ix, DB_LOCATION) == 0) {
+										
+										size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
+										// delete rule from chain
+										iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
+	
+										do_unblock_action_output(host_ip, (int) time(NULL));
+										
+									}
 								}
 							}
 						}
@@ -323,6 +334,8 @@ int main(int argc, char *argv[]) {
 	}
 	
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
+	
+	gargoyle_monitor_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
 
 	// processing loop
 	while (!stop) {
