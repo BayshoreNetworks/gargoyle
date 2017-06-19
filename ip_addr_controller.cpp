@@ -315,10 +315,17 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 		// add to shared mem region
 		g_shared_cfg->Add(ip_addr);
 		
-		// do block action - type 100
-		iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+		size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+		/*
+		 * if this ip does not exist in iptables
+		 */
+		if(!rule_ix > 0) {
+			
+			// do block action - type 100
+			iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
 		
-		do_block_action_output(ip_addr, 100, (int)time(NULL));
+			do_block_action_output(ip_addr, 100, (int)time(NULL));
+		}
 	}
 	
 	return 0;
