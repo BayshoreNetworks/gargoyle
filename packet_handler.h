@@ -89,6 +89,7 @@ class GargoylePscandHandler
 	void clear_reverse_three_way_check_dat();
 	void clear_src_ip_dst_ip_dat();
 	void clear_reverse_src_ip_dst_ip_dat();
+	void process_blacklist_ip_list();
 	
 	void display_scanned_ports_dict();
 	void display_hot_ports();
@@ -139,6 +140,7 @@ class GargoylePscandHandler
 	std::map< std::string, std::pair <int, int> > SCANNED_PORTS_CNT_DICT;
 	
 	SharedIpConfig *gargoyle_whitelist_shm = NULL;
+	SharedIpConfig *gargoyle_blacklist_shm = NULL;
 
 };
 

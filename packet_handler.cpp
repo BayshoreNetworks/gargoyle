@@ -146,6 +146,7 @@ GargoylePscandHandler::GargoylePscandHandler() {
 	PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
 	
 	gargoyle_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
+	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
 }
 
 
@@ -154,6 +155,11 @@ GargoylePscandHandler::~GargoylePscandHandler() {
     if(gargoyle_whitelist_shm) {
         delete gargoyle_whitelist_shm;
         gargoyle_whitelist_shm;
+    }
+    
+    if(gargoyle_blacklist_shm) {
+        delete gargoyle_blacklist_shm;
+        gargoyle_blacklist_shm;
     }
     
 }
@@ -401,6 +407,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 				
 				// are there any new white list entries in the DB?
 				_this->process_ignore_ip_list();
+				_this->process_blacklist_ip_list();
 	
 				_this->add_block_rules();
 				BASE_TIME = (int)time(NULL);
@@ -1495,5 +1502,49 @@ void GargoylePscandHandler::add_to_hot_ports_list(int the_port) {
 			HOT_PORTS.push_back(the_port);
 		}
 	}
+}
+
+
+void GargoylePscandHandler::process_blacklist_ip_list() {
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	size_t resp = get_hosts_blacklist_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
+	
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			if (atoi(token1) > 0) {
+			
+				int host_ix = atoi(token1);
+				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
+				
+				if (strcmp(host_ip, "") != 0) {
+					
+					if (!is_black_listed(host_ip, (void *)gargoyle_blacklist_shm)) {
+					
+						gargoyle_blacklist_shm->Add(host_ip);
+						
+						do_black_list_actions(host_ip, (void *)gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
+					
+					}
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	
+	free(l_hosts);
+	free(host_ip);
+
 }
 /////////////////////////////////////////////////////////////////////////////////
