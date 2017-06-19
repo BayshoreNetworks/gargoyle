@@ -47,10 +47,11 @@ There are numerous run time entities:
 			cd install_path
 			./gargoyle_pscand_unblockip ip_addr
 			
-	5. gargoyle_pscand_remove_from_whitelist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the white list (ignored ip addresses).
+	5. gargoyle_pscand_remove_from_whitelist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the white list (ignored ip addresses) (DB table & shared mem).
 
 	6. gargoyle_lscand_ssh_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns of SSH brute force attacks.
 
+	7. gargoyle_pscand_remove_from_blacklist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the black list (blocked ip addresses) and all related entities (DB table, shared mem, etc).
 
 
 Default install path: /opt/gargoyle_pscand
