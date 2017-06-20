@@ -1715,4 +1715,43 @@ int remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 }
 
 
+void reset_autoincrement(const char *table_name, const char *db_loc) {
+	
+	char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
 
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [reset_autoincrement]: %s", DB_LOCATION, sqlite3_errmsg(db));
+	}
+
+	// UPDATE SQLITE_SEQUENCE SET SEQ= 'value' WHERE NAME='table_name';
+	snprintf (sql, SQL_CMD_MAX, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?1");
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_text(stmt, 1, table_name, -1, 0);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s reset auto-increment from function [reset_autoincrement] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+}

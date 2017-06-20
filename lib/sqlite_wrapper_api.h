@@ -95,6 +95,7 @@ size_t get_hosts_blacklist_all(char *, size_t, const char *);
 int is_host_blacklisted(int, const char *);
 int remove_host_from_blacklist(int, const char *);
 ///////////////////////////////////////////////////////////////////////
+void reset_autoincrement(const char *, const char *);
 
 
 #ifdef __cplusplus
