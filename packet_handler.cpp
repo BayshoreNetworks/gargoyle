@@ -1532,8 +1532,7 @@ void GargoylePscandHandler::process_blacklist_ip_list() {
 					
 					if (!is_black_listed(host_ip, (void *)gargoyle_blacklist_shm)) {
 					
-						gargoyle_blacklist_shm->Add(host_ip);
-						
+						//gargoyle_blacklist_shm->Add(host_ip);
 						do_black_list_actions(host_ip, (void *)gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
 					
 					}
