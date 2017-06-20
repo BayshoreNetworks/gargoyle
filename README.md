@@ -170,7 +170,7 @@ Notes:
 
 	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
 	
-	- To remove ip addresses from the white (or ignore) list use the standalone program "gargoyle_pscand_remove_from_whitelist", do not manually remove that ip address from the DB table.
+	- To remove ip addresses from the white (or ignore) list, or the blacklist, use the respective standalone programs "gargoyle_pscand_remove_from_whitelist" or "gargoyle_pscand_remove_from_blacklist", do not manually remove that ip address from the DB table.
 
 
 
