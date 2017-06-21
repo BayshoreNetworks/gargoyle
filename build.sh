@@ -24,7 +24,7 @@ fi
 # Converts string to integer
 int_version()
   {
-    echo "$@" | gawk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }'; 
+    echo "$@" | awk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }'; 
   }
 
 # Stop all gargoyle progs before updating
