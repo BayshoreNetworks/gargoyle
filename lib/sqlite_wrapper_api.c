@@ -1723,7 +1723,7 @@ void reset_autoincrement(const char *table_name, const char *db_loc) {
     	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
     } else {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
+			return;
 		} else {
 			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
 		}

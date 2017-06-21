@@ -127,7 +127,8 @@ void graceful_exit(int signum) {
 	 * 2. delete GARGOYLE_CHAIN_NAME rule from the INPUT chain
 	 * 3. flush (delete any rules that exist in) GARGOYLE_CHAIN_NAME
 	 * 4. clear items in DB table detected_hosts
-	 * 5. delete GARGOYLE_CHAIN_NAME
+	 * 5. reset auto-increment counter for table detected_hosts
+	 * 6. delete GARGOYLE_CHAIN_NAME
 	 */
 	///////////////////////////////////////////////////
 	// 1
@@ -149,8 +150,10 @@ void graceful_exit(int signum) {
 	///////////////////////////////////////////////////
 	// 4
 	remove_detected_hosts_all(DB_LOCATION);
-	///////////////////////////////////////////////////
 	// 5
+	reset_autoincrement(DETECTED_HOSTS_TABLE, DB_LOCATION);
+	///////////////////////////////////////////////////
+	// 6
 	iptables_delete_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	///////////////////////////////////////////////////
 	
