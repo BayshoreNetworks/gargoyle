@@ -81,5 +81,14 @@ chmod 770 ${DESTDIR}/etc/init.d/gargoyle_pscand
 #systemctl enable gargoyle_pscand
 #systemctl daemon-reload
 
+# initscript enablement is now conditional
+if [ $(which systemctl) ];then
+   echo "Enabling init daemon via systemctl"
+   systemctl enable gargoyle_pscand
+   systemctl daemon-reload
+else
+   echo "systemctl not present, skipping script enable"
+fi
+
 make clean
 make LDFLAGS="$LDFLAGS" CXXFLAGS="$CXXFLAGS"
