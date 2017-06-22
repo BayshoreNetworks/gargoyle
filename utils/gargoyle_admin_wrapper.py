@@ -1525,6 +1525,7 @@ def add_to_white_list(ip_addr=''):
     
     host_ix = None
     detected_host_ix = None
+    black_list_ix = None
     val = None
     db_loc = get_db()
 
@@ -1568,6 +1569,22 @@ def add_to_white_list(ip_addr=''):
         except TypeError:
             pass
     
+        ''' using the ip addr ix we talk to black_ip_list table '''
+        try:
+            with table:   
+                cursor.execute("SELECT ix FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
+                black_list_ix = cursor.fetchone()[0]
+        except TypeError:
+            pass
+
+        if black_list_ix:
+            ''' exists in black_ip_list so we remove '''
+            try:
+                with table:
+                    cursor.execute("DELETE FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
+            except TypeError:
+                pass
+
         ''' exists actively in iptables '''
         if detected_host_ix:
             '''
@@ -1575,6 +1592,7 @@ def add_to_white_list(ip_addr=''):
                 the insert into ignore_ip_list
             '''
             unblock_ip(ip_addr = ip_addr)
+
         else: 
             with table:
                 cursor.execute("SELECT * FROM ignore_ip_list where host_ix = '{}'".format(host_ix))
@@ -1582,7 +1600,7 @@ def add_to_white_list(ip_addr=''):
                     
             if val == None:   
     
-                ''' not in iptables so insert into white list'''
+                ''' not in white list so insert '''
                 
                 with table:
                     tstamp = int(time.mktime(time.localtime()))
@@ -1623,11 +1641,141 @@ def remove_from_white_list(ip_addr=''):
             pass
     """
     
-    cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
+    cmd = ['sudo', 'su', '-c', './gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
     call(cmd)
     
     return 0
- 
+
+'''query detected_hosts, if it exists, call unblock then add a row to black list table. if not, just add row to black list'''
+def add_to_black_list(ip_addr=''):
+    
+    ip_address = IPAddress(ip_addr)
+    if ip_address == 1:
+        return 1
+    
+    host_ix = None
+    detected_host_ix = None
+    white_list_ix = None
+    val = None
+    db_loc = get_db()
+
+    try:
+        table = sqlite3.connect(db_loc)    
+        cursor = table.cursor()
+    except sqlite3.Error as e:
+        print(e)
+                
+    '''
+    	have to get the ip addr ix first
+    	
+    	if it exists need to update last_seen to 63072000 so that
+    	the clean up process does not delete the ip addr from the
+    	hosts_table
+    	
+    	63072000 = 01/01/1972 @ 12:00am (UTC)
+    '''
+    try:
+        with table:
+            cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
+            host_ix = cursor.fetchone()[0]
+            cursor.execute("UPDATE hosts_table SET last_seen = 63072000 WHERE ix = {}".format(host_ix))
+
+    except TypeError:
+        ''' insert into hosts_table first '''
+        tstamp = int(time.mktime(time.localtime()))
+        with table:
+            cursor.execute("INSERT INTO hosts_table (host, first_seen, last_seen) VALUES (?,?,?)",(ip_addr, tstamp, 63072000))
+            cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
+            host_ix = cursor.fetchone()[0]
+            
+        
+    if host_ix:
+        ''' using the ip addr ix we talk to detected_hosts table '''
+        try:
+            with table:   
+                cursor.execute("SELECT ix FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
+                detected_host_ix = cursor.fetchone()[0]
+
+        except TypeError:
+            pass
+    
+
+        ''' exists actively in detected_hosts '''
+        if detected_host_ix:
+            try:
+                with table:
+                    cursor.execute("DELETE FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
+            except TypeError:
+                pass
+        try:
+            with table:
+                cursor.execute("SELECT ix FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
+                white_list_ix = cursor.fetchone()[0]
+
+        except TypeError:
+            pass
+
+        if white_list_ix:
+            ''' exists in ignore_ip_list so we delete '''
+            try:
+                with table:
+                    cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
+            except TypeError:
+                pass
+
+        else: 
+            with table:
+                cursor.execute("SELECT * FROM black_ip_list where host_ix = '{}'".format(host_ix))
+                val = cursor.fetchone()
+                    
+            if val == None:   
+    
+                ''' not in black list so insert '''
+                
+                with table:
+                    tstamp = int(time.mktime(time.localtime()))
+                    cursor.execute("INSERT INTO black_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
+
+    return 0
+
+def remove_from_black_list(ip_addr=''):
+
+    ip_address = IPAddress(ip_addr)
+    if ip_address == 1:
+        return 1
+
+    """
+    host_ix = None
+    db_loc = get_db()
+
+    try:
+        table = sqlite3.connect(db_loc)           
+        cursor = table.cursor()
+    except sqlite3.Error as e:
+        print(e)
+                
+    ''' have to get host_ix first '''
+    try:
+        with table:
+            cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
+            host_ix = cursor.fetchone()[0]
+
+    except TypeError:
+        pass
+
+    if host_ix:
+        try:
+            with table:
+                cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
+        except TypeError:
+            pass
+    """
+    
+    cmd = ['sudo', 'su', '-c', './gargoyle_pscand_remove_from_blacklist {}'.format(ip_addr)]
+    call(cmd)
+    
+    return 0
+
 '''
 returns list of string of ips in iptables
 '''   
