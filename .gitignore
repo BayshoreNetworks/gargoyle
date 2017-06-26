@@ -62,6 +62,7 @@ stamp-h1
 
 *.swp
 .Po
+*.pyc
 
 lib/libgargoyleiptableswrapper.so.1
 lib/libgargoylesqlitewrapper.so.1
