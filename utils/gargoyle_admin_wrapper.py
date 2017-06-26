@@ -1699,7 +1699,6 @@ def add_to_black_list(ip_addr=''):
         except TypeError:
             pass
     
-
         ''' exists actively in detected_hosts '''
         if detected_host_ix:
             try:
@@ -1707,6 +1706,7 @@ def add_to_black_list(ip_addr=''):
                     cursor.execute("DELETE FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
             except TypeError:
                 pass
+
         try:
             with table:
                 cursor.execute("SELECT ix FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
@@ -1722,19 +1722,18 @@ def add_to_black_list(ip_addr=''):
                     cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
             except TypeError:
                 pass
-
-        else: 
-            with table:
-                cursor.execute("SELECT * FROM black_ip_list where host_ix = '{}'".format(host_ix))
-                val = cursor.fetchone()
+ 
+        with table:
+            cursor.execute("SELECT * FROM black_ip_list where host_ix = '{}'".format(host_ix))
+            val = cursor.fetchone()
                     
-            if val == None:   
+        if val == None:   
     
-                ''' not in black list so insert '''
+            ''' not in black list so insert '''
                 
-                with table:
-                    tstamp = int(time.mktime(time.localtime()))
-                    cursor.execute("INSERT INTO black_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
+            with table:
+                tstamp = int(time.mktime(time.localtime()))
+                cursor.execute("INSERT INTO black_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
 
     return 0
 
@@ -1823,5 +1822,4 @@ def get_current_from_iptables():
         blocked_ips[ip] = [first_seen,last_seen]
         
     return blocked_ips
-
 
