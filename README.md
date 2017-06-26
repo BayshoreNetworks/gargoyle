@@ -128,7 +128,7 @@ To compile and install:
 
 Notes:
 
-	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with data in the DB and it is important for that synchronization is be respected.
+	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with the data in the DB, and it is important that the synchronization is respected.
 
 	- To start/stop the Gargoyle_pscand daemons use the init script. If Gargoyle fails to start, try running:
           systemctl daemon-reload ; service gargoyle_pscand stop ; service gargoyle_pscand start
