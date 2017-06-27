@@ -1613,7 +1613,7 @@ def remove_from_white_list(ip_addr=''):
     if ip_address == 1:
         return 1
 
-    cmd = ['sudo', 'su', '-c', './gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
+    cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
     call(cmd)
     
     return 0
@@ -1667,7 +1667,7 @@ def add_to_black_list(ip_addr=''):
     db_loc = get_db()
 
     try:
-        table = sqlite3.connect(db_loc)    
+        table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
         print(e)
@@ -1750,7 +1750,7 @@ def remove_from_black_list(ip_addr=''):
     if ip_address == 1:
         return 1
    
-    cmd = ['sudo', 'su', '-c', './gargoyle_pscand_remove_from_blacklist {}'.format(ip_addr)]
+    cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_blacklist {}'.format(ip_addr)]
     call(cmd)
     
     return 0
