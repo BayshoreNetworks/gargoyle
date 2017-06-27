@@ -1633,7 +1633,7 @@ def get_current_black_list():
 
     try:
         with table:
-            cursor.execute("SELECT * FROM ignore_ip_list")
+            cursor.execute("SELECT * FROM black_ip_list")
             black_listed_entries = cursor.fetchall()
     except TypeError:
         pass
