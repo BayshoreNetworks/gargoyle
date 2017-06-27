@@ -1478,7 +1478,7 @@ def get_db():
         db_loc = cur_dir + DB_PATH
     else:
         db_loc = db_file
-
+    print db_loc
     return db_loc
 
 def get_current_white_list():
@@ -1614,37 +1614,45 @@ def remove_from_white_list(ip_addr=''):
     if ip_address == 1:
         return 1
 
-    """
-    host_ix = None
-    db_loc = get_db()
-
-    try:
-        table = sqlite3.connect(db_loc)           
-        cursor = table.cursor()
-    except sqlite3.Error as e:
-        print(e)
-                
-    ''' have to get host_ix first '''
-    try:
-        with table:
-            cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
-            host_ix = cursor.fetchone()[0]
-
-    except TypeError:
-        pass
-
-    if host_ix:
-        try:
-            with table:
-                cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
-        except TypeError:
-            pass
-    """
-    
     cmd = ['sudo', 'su', '-c', './gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
     call(cmd)
     
     return 0
+
+def get_current_black_list():
+
+    db_loc = get_db()
+    host_ix_list = []
+    black_listed_ips = []
+
+    try:
+        table = sqlite3.connect(db_loc)
+        cursor = table.cursor()
+    except sqlite3.Error as e:
+        print(e)
+
+    try:
+        with table:
+            cursor.execute("SELECT * FROM ignore_ip_list")
+            black_listed_entries = cursor.fetchall()
+    except TypeError:
+        pass
+
+    for entry in black_listed_entries:
+        host_ix_list.append(entry[1])
+
+    for host_ix in host_ix_list:
+        with table:
+            try:
+                cursor.execute("SELECT * FROM hosts_table where ix={}".format(host_ix))
+                val = cursor.fetchall()
+                if val != []:
+                    host = val[0]
+                    black_listed_ips.append(host[1])
+            except TypeError:
+                pass
+
+    return black_listed_ips
 
 '''query detected_hosts, if it exists, call unblock then add a row to black list table. if not, just add row to black list'''
 def add_to_black_list(ip_addr=''):
@@ -1742,34 +1750,7 @@ def remove_from_black_list(ip_addr=''):
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
-
-    """
-    host_ix = None
-    db_loc = get_db()
-
-    try:
-        table = sqlite3.connect(db_loc)           
-        cursor = table.cursor()
-    except sqlite3.Error as e:
-        print(e)
-                
-    ''' have to get host_ix first '''
-    try:
-        with table:
-            cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
-            host_ix = cursor.fetchone()[0]
-
-    except TypeError:
-        pass
-
-    if host_ix:
-        try:
-            with table:
-                cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
-        except TypeError:
-            pass
-    """
-    
+   
     cmd = ['sudo', 'su', '-c', './gargoyle_pscand_remove_from_blacklist {}'.format(ip_addr)]
     call(cmd)
     
@@ -1822,4 +1803,3 @@ def get_current_from_iptables():
         blocked_ips[ip] = [first_seen,last_seen]
         
     return blocked_ips
-
