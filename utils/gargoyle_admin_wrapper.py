@@ -1478,7 +1478,6 @@ def get_db():
         db_loc = cur_dir + DB_PATH
     else:
         db_loc = db_file
-    print db_loc
     return db_loc
 
 def get_current_white_list():
