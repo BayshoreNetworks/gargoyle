@@ -1507,7 +1507,6 @@ def get_db():
         db_loc = cur_dir + DB_PATH
     else:
         db_loc = db_file
-    print db_loc
     return db_loc
 
 def get_current_white_list():
@@ -1697,7 +1696,7 @@ def add_to_black_list(ip_addr=''):
     db_loc = get_db()
 
     try:
-        table = sqlite3.connect(db_loc)    
+        table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
         print(e)

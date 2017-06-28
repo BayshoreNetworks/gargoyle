@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 		if (validate_ip_addr(argv[1])) {
 			
 			strncpy(ip, argv[1], 15);
-			ip[strlen(ip)] = '\0';
+			ip[strlen(argv[1])] = '\0';
 			
 			/*
 			 * if this ip is blacklisted leave it alone
