@@ -35,13 +35,6 @@ journalctl_exists()
   if [ ! $(which journalctl) ];then
     sed -i '/journal/ d' .gargoyle_ssh_bruteforce_config
     echo "log_entity:/var/log/auth.log">>.gargoyle_ssh_bruteforce_config
-     if [ -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
-       $(grep journal ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config>/dev/null) 
-       if [ $? = 0 ];then
-           sed -i '/journal/ d' ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config
-           echo "log_entity:/var/log/auth.log">>${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config
-       fi
-     fi
   fi
   set -e
   }
@@ -91,8 +84,6 @@ fi
 if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
     journalctl_exists
     cp .gargoyle_ssh_bruteforce_config ${DESTDIR}${DEPLOY_TO}
-else
-    journalctl_exists
 fi
 
 sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}/etc/init.d/gargoyle_pscand
