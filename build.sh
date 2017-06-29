@@ -27,6 +27,25 @@ int_version()
     echo "$@" | awk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }'; 
   }
 
+# Check for journalctl and use it.
+# If we're building on an older distro and it's missing, tell bruteforce to use auth.log
+journalctl_exists()
+  {
+  set +e
+  if [ ! $(which journalctl) ];then
+    sed -i '/journal/ d' .gargoyle_ssh_bruteforce_config
+    echo "log_entity:/var/log/auth.log">>.gargoyle_ssh_bruteforce_config
+     if [ -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
+       $(grep journal ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config>/dev/null) 
+       if [ $? = 0 ];then
+           sed -i '/journal/ d' ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config
+           echo "log_entity:/var/log/auth.log">>${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config
+       fi
+     fi
+  fi
+  set -e
+  }
+
 # Stop all gargoyle progs before updating
 echo "Stopping running gargoyle processes"
 
@@ -70,7 +89,10 @@ if [ ! -f ${DESTDIR}${DEPLOY_TO}/sshd_regexes ]; then
 fi
 
 if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
-   cp .gargoyle_ssh_bruteforce_config ${DESTDIR}${DEPLOY_TO}
+    journalctl_exists
+    cp .gargoyle_ssh_bruteforce_config ${DESTDIR}${DEPLOY_TO}
+else
+    journalctl_exists
 fi
 
 sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}/etc/init.d/gargoyle_pscand
