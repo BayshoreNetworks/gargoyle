@@ -39,6 +39,7 @@
 #include <unistd.h>
 
 #include <stdint.h>
+#include <sstream>
 #include <string>
 using namespace std;
 
@@ -98,7 +99,7 @@ public:
 
     int32_t Add(string ip4_addr);
     int32_t Contains(string ip4_addr, bool *result);
-    //int32_t ElementAt(int64_t ix, string &ip);
     int32_t Remove(string ip4_addr);
     int64_t Size() const { return hdr->next_ix; }
+    int32_t ToString(stringstream &ss);
 };

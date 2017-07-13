@@ -332,3 +332,25 @@ exit:
     return ret;
 }
 
+int32_t SharedIpConfig::ToString(stringstream &ss) {
+    int32_t ret = 0;
+    in_addr_t *vec_ptr = NULL;
+
+    if(lock() < 0)
+        return -1;
+    
+    vec_ptr = ipVectorPtr();
+    const char *commaStr = "";
+    for(int64_t i = 0; i < Size(); i++) {
+        ss << commaStr;
+        ss << InAddrToString(vec_ptr[i]);
+        commaStr = ",";
+    }
+
+    goto exit;
+error_exit:
+    ret = -1;
+exit:
+    unlock();
+    return ret;
+}
