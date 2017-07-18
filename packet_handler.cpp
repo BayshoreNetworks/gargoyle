@@ -1375,25 +1375,9 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 	
-	
-	/*
-	 * this next section needs to get replaced by code
-	 * that gets the current white list of ip addrs from
-	 * shared mem region 
-	 */
-	/*
 	std::stringstream ss_orig;
-	int l_cnt_orig = 1;
-	int v_cnt_orig = WHITE_LISTED_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator ii = WHITE_LISTED_IP_ADDRS.begin(); ii != WHITE_LISTED_IP_ADDRS.end(); ++ii) {
-		if (l_cnt_orig == v_cnt_orig)
-			ss_orig << *ii;
-		else
-			ss_orig << *ii << ",";
-		l_cnt_orig++;
-	}
+	gargoyle_whitelist_shm->ToString(ss_orig);
 	std::string white_list_orig = ss_orig.str();
-	*/
 
 
 	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
@@ -1447,30 +1431,14 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	free(l_hosts);
 	free(host_ip);
 	
-	
-	/*
-	 * this next section needs to get replaced by code
-	 * that gets the current white list of ip addrs from
-	 * shared mem region 
-	 */
-	/*
 	std::stringstream ss;
-	int l_cnt = 1;
-	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
-		//std::cout << *i << std::endl;
-		if (l_cnt == v_cnt)
-			ss << *i;
-		else
-			ss << *i << ",";
-		l_cnt++;
-	}
-
-	std::string white_list_new = ss.str();	
+	gargoyle_whitelist_shm->ToString(ss);
+	std::string white_list_new = ss.str();
+	
 	if (levenshtein(white_list_orig.c_str(), white_list_new.c_str()) > 0) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (white_list_new.c_str()));
 	}
-	*/
+	
 }
 
 

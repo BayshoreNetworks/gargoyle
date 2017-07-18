@@ -41,6 +41,8 @@
 #include <arpa/inet.h>
 
 #include <string>
+#include <sstream>
+
 using namespace std;
 
 #include "shared_config.h"
@@ -85,6 +87,7 @@ void handleHelp() {
     //printf("      print                    - print the entire table of IPs\n");
     printf("      batch <start> <count>    - write <count> ip's starting at <start> word\n");
     printf("      validate <start> <count> - validate that <count> ip's starting at <start> word are in the region\n");
+    printf("      print                    - display a comma separated list of ip addresses\n");
     printf("      daemon                   - accesses the config region. runs in an infinite loop so we can retain state\n");
     printf("\n");
 }
@@ -218,11 +221,20 @@ int32_t handleDaemon(int count, char **arg) {
     return 0;
 }
 
+int32_t handlePrint(int count, char **arg) {
+    stringstream ss;
+    initConfig();
+    assert(!g_shared_config->ToString(ss));
+    printf("IP addresses: %s\n", ss.str().c_str());
+    return 0;
+}
+
 int32_t handleSize(int count, char **arg) {
     initConfig();
     printf("Number of IP entries: %ld\n", g_shared_config->Size());
     return 0;
 }
+
 int main(int argc, char *argv[]) {
     char **arg = NULL;
     int res = 0;
@@ -249,6 +261,8 @@ int main(int argc, char *argv[]) {
         MAIN_CHECK(handleAdd(--argc, ++arg), res);
     } else if(!strcmp(*arg, "daemon")) {
         MAIN_CHECK(handleDaemon(--argc, ++arg), res);
+    } else if(!strcmp(*arg, "print")) {
+        MAIN_CHECK(handlePrint(--argc, ++arg), res);
     } else if(!strcmp(*arg, "size")) {
         MAIN_CHECK(handleSize(--argc, ++arg), res);
     } else if(!strcmp(*arg, "remove")) {

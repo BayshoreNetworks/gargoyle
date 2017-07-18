@@ -1452,6 +1452,35 @@ def unblock_ip(ip_addr='',version=None):
     ip_address = IPAddress(ip_addr)   
     if ip_address == 1:
         return 1
+    black_list_ix = None
+    host_ix = None
+    db_loc = get_db()
+
+    try:
+        table = sqlite3.connect(db_loc)    
+        cursor = table.cursor()
+    except sqlite3.Error as e:
+        print(e)
+                
+    try:
+        with table:
+            cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
+            host_ix = cursor.fetchone()[0]
+
+    except TypeError:
+        pass
+
+    if host_ix:
+        ''' using the ip addr ix we talk to black_ip_list table '''
+        try:
+            with table:   
+                cursor.execute("SELECT ix FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
+                black_list_ix = cursor.fetchone()[0]
+        except TypeError:
+            pass
+
+    if black_list_ix:
+            return 2
 
     ''' 
     This works from any directory that has the 
@@ -1712,6 +1741,7 @@ def add_to_black_list(ip_addr=''):
     
         ''' exists actively in detected_hosts '''
         if detected_host_ix:
+
             unblock_ip(ip_addr = ip_addr)
 
         try:

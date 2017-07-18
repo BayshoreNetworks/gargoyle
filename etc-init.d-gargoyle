@@ -80,9 +80,11 @@ case "$1" in
 	log_daemon_msg "Starting Gargoyle Portscan monitoring daemon" || true
         ./gargoyle_pscand_monitor &
 
-	log_daemon_msg "Starting Gargoyle Logscan SSH bruteforce daemon" || true
-        ./gargoyle_lscand_ssh_bruteforce &
-
+        # Only start SSH bruteforce if ssh is running
+        if [ "$(ps -ef|grep sshd |grep -v grep)" ];then
+	  log_daemon_msg "Starting Gargoyle Logscan SSH bruteforce daemon" || true
+          ./gargoyle_lscand_ssh_bruteforce &
+        fi
         
 	    log_end_msg 0 || true
 	;;

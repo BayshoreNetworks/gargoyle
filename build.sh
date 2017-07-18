@@ -27,6 +27,18 @@ int_version()
     echo "$@" | awk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }'; 
   }
 
+# Check for journalctl and use it.
+# If we're building on an older distro and it's missing, tell bruteforce to use auth.log
+journalctl_exists()
+  {
+  set +e
+  if [ ! $(which journalctl) ];then
+    sed -i '/journal/ d' .gargoyle_ssh_bruteforce_config
+    echo "log_entity:/var/log/auth.log">>.gargoyle_ssh_bruteforce_config
+  fi
+  set -e
+  }
+
 # Stop all gargoyle progs before updating
 echo "Stopping running gargoyle processes"
 
@@ -70,7 +82,8 @@ if [ ! -f ${DESTDIR}${DEPLOY_TO}/sshd_regexes ]; then
 fi
 
 if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
-   cp .gargoyle_ssh_bruteforce_config ${DESTDIR}${DEPLOY_TO}
+    journalctl_exists
+    cp .gargoyle_ssh_bruteforce_config ${DESTDIR}${DEPLOY_TO}
 fi
 
 sed -e "s,APPDIR,$DEPLOY_TO,g" etc-init.d-gargoyle>${DESTDIR}/etc/init.d/gargoyle_pscand
@@ -82,7 +95,7 @@ chmod 770 ${DESTDIR}/etc/init.d/gargoyle_pscand
 #systemctl daemon-reload
 
 # initscript enablement is now conditional
-if [ $(which systemctl) ];then
+if [ $(which systemctl) ] && [ ! -f /.dockerenv ] ;then
    echo "Enabling init daemon via systemctl"
    systemctl enable gargoyle_pscand
    systemctl daemon-reload
