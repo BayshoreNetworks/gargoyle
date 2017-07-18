@@ -39,6 +39,9 @@ import json
 import os
 import time
 import struct
+import re
+from datetime import datetime
+import subprocess
 
 ''' *********************************************************************************************************** '''
 IPV4LENGTH = 32
@@ -1478,13 +1481,14 @@ def get_db():
         db_loc = cur_dir + DB_PATH
     else:
         db_loc = db_file
+
     return db_loc
 
 def get_current_white_list():
 
     db_loc = get_db()
-    host_ix_list = []
-    white_listed_ips = []
+    host_ix_list = {}
+    white_listed_ips = {}
 
     try:
         table = sqlite3.connect(db_loc)
@@ -1500,16 +1504,16 @@ def get_current_white_list():
         pass
 
     for entry in white_listed_entries:
-        host_ix_list.append(entry[1])
+        host_ix_list[entry[1]] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(entry[2])))
 
-    for host_ix in host_ix_list:
+    for host_ix in host_ix_list.keys():
         with table:
             try:
                 cursor.execute("SELECT * FROM hosts_table where ix={}".format(host_ix))
                 val = cursor.fetchall()
                 if val != []:
                     host = val[0]
-                    white_listed_ips.append(host[1])
+                    white_listed_ips[host[1]] = host_ix_list[host_ix]
             except TypeError:
                 pass
 
@@ -1621,8 +1625,8 @@ def remove_from_white_list(ip_addr=''):
 def get_current_black_list():
 
     db_loc = get_db()
-    host_ix_list = []
-    black_listed_ips = []
+    host_ix_list = {}
+    black_listed_ips = {}
 
     try:
         table = sqlite3.connect(db_loc)
@@ -1638,16 +1642,16 @@ def get_current_black_list():
         pass
 
     for entry in black_listed_entries:
-        host_ix_list.append(entry[1])
+        host_ix_list[entry[1]] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(entry[2])))
 
-    for host_ix in host_ix_list:
+    for host_ix in host_ix_list.keys():
         with table:
             try:
                 cursor.execute("SELECT * FROM hosts_table where ix={}".format(host_ix))
                 val = cursor.fetchall()
                 if val != []:
                     host = val[0]
-                    black_listed_ips.append(host[1])
+                    black_listed_ips[host[1]] = host_ix_list[host_ix]
             except TypeError:
                 pass
 
@@ -1664,7 +1668,7 @@ def add_to_black_list(ip_addr=''):
     detected_host_ix = None
     white_list_ix = None
     val = None
-    db_loc = get_db()
+    db_loc = '/opt/gargoyle_pscand_db/gargoyle_attack_detect.db'
 
     try:
         table = sqlite3.connect(db_loc)
@@ -1708,11 +1712,7 @@ def add_to_black_list(ip_addr=''):
     
         ''' exists actively in detected_hosts '''
         if detected_host_ix:
-            try:
-                with table:
-                    cursor.execute("DELETE FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
-            except TypeError:
-                pass
+            unblock_ip(ip_addr = ip_addr)
 
         try:
             with table:
@@ -1762,6 +1762,8 @@ def get_current_from_iptables():
     
     ips_in_iptables = []
     blocked_ips = {}
+    first_seen = 0
+    last_seen = 0
 
     cmd = ['sudo iptables -L GARGOYLE_Input_Chain -n']
     p = Popen(cmd, stdout=PIPE, shell=True)
@@ -1802,3 +1804,98 @@ def get_current_from_iptables():
         blocked_ips[ip] = [first_seen,last_seen]
         
     return blocked_ips
+
+def blocked_time():
+
+    blocked_timestamps = {}
+    blocked_ips = get_current_from_iptables()
+    host_ix = None
+    db_loc = get_db()
+    blocked_time = None
+
+    last_monitor_run = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process finishing at'"], shell=True).split()[-1])
+    next_monitor_run = last_monitor_run + 43200
+    lockout_time = json.loads(get_current_config())['lockout_time']
+
+    try:
+        table = sqlite3.connect(db_loc)
+        cursor = table.cursor()
+    except sqlite3.Error as e:
+        print(e)
+
+    for ip in blocked_ips.keys():
+        host_ix = None
+        try:
+            with table:
+                cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip))
+                host_ix = cursor.fetchone()[0]
+
+        except TypeError:
+            pass
+    
+
+        if host_ix:
+            try:
+                with table:
+                    cursor.execute("SELECT timestamp FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
+                    blocked_time = cursor.fetchone()[0]
+
+            except TypeError:
+                pass
+    
+        if blocked_time:
+            blocked_time = int(blocked_time)
+            started = daemon_stats()['Active']
+            date = re.search('(\d{4}\-(\d{2}(\-|\s)){2})(\d{2}:*){3}',started)
+            if date:
+                strdate = date.group(0)
+                datetm = datetime.strptime(strdate,"%Y-%m-%d %H:%M:%S")
+                startseconds = datetm.strftime("%s")
+            
+            if ip in get_current_black_list().keys():
+                blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , 0]
+            elif blocked_time + lockout_time <= next_monitor_run:
+                blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
+            else:
+                while((blocked_time + lockout_time) > next_monitor_run):
+                    next_monitor_run += 43200
+                blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
+                
+    return blocked_timestamps
+
+def daemon_stats():
+
+    daemon = {}
+    cmd = ['service gargoyle_pscand status']
+    p = Popen (cmd, stdout=PIPE, shell=True)
+    out, err = p.communicate()
+    
+    splitOut = out.split('\n')
+
+    for x in splitOut:
+        if 'Active' in x:
+            daemon['Active'] = x.strip()
+        '''
+        if re.match("[\w]{3}\s([\d]{2}(:|\s)){4}(\w|\W)+gargoyle_pscand_[\w]+", x):
+            if 'Timeline' not in daemon.keys():
+                daemon['Timeline'] = []
+            daemon['Timeline'].append(x.strip())
+            '''
+        if './gargoyle_' in x:
+            if 'runningDaemons' not in daemon.keys():
+                daemon['runningDaemons'] = []
+            daemon['runningDaemons'].append(x.strip().decode("utf-8").encode("ascii","ignore").split()[1])
+
+    if 'running' in daemon['Active']:
+        last_analysis = int(subprocess.check_output(["cat /var/log/syslog | grep  'analysis process commencing at'"], shell=True).split()[-1])
+        next_analysis = last_analysis + 900
+        last_monitor = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process commencing at'"], shell=True).split()[-1])
+        next_monitor = last_monitor + 43200
+        daemon["last_monitor"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_monitor))
+        daemon["last_analysis"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_analysis))
+        daemon["next_monitor"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor))
+        daemon["next_analysis"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_analysis))
+
+    return daemon
+
+
