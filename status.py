@@ -6,6 +6,11 @@ W  = '\033[0m'  # white (normal)
 R  = '\033[31m' # red
 G  = '\033[32m' # green
 P  = '\033[35m' # purple
+HEADER = '\033[95m'
+OKBLUE = '\033[94m'
+OKGREEN = '\033[92m'
+BOLD = '\033[1m'
+UNDERLINE = '\033[4m'
 
 def blocked(blockedIps):
     print(R+"Blocked IPs".ljust(24)+ R+"Time Blocked".ljust(28)+ R+"Time Unblocked"+W)
@@ -60,7 +65,7 @@ def main():
                    help='Activity of daemons(gargoyle_pscand, gargoyle_pscand_monitor, gargoyle_pscand_analysis, gargoyle_lscand_ssh_bruteforce')
     parser.add_argument('--all',  dest='all', action='store_const', const='all',
                    help='Display all statistics listed above')
-
+    
     args = parser.parse_args()
     
     if args.all != None:
@@ -72,10 +77,23 @@ def main():
 
     print (G+"\n******************** Gargoyle Statistics ********************\n"+W)
     print (G+daemonStats["Active"]+W + '\n')
+
     if 'running' in daemonStats['Active']:
-        blockedIps = blocked_time()
-        whiteList = get_current_white_list()
-        blackList = get_current_black_list()
+
+        try:
+            blockedIps = blocked_time()
+            whiteList = get_current_white_list()
+            blackList = get_current_black_list()
+        except sqlite3.Error as er:
+            if os.getuid() != 0:
+                print (R+"Program must be run as root user...exiting\n"+W)
+                exit(1)
+            try:
+                db_loc = os.environ["GARGOYLE_DB"]                  
+                print(R+'Error: ' +W +er.message+ '\nAre you sure your GARGOYLE_DB environment variable is set to the correct path?')
+            except:
+                print(R+'Error: '+W + er.message+ "\nPlease set an environment variable 'GARGOYLE_DB' to the correct database path. Are you sure you're running as root user?")
+            exit(1)
 
         if args.blocked == None and args.whitelist == None and args.blacklist == None and args.daemons == None and args.all == None:
             showAll = True
