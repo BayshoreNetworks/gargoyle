@@ -1842,9 +1842,9 @@ def blocked_time():
     host_ix = None
     db_loc = get_db()
     blocked_time = None
-
-    last_monitor_run = daemon_stats()['last_monitor']
-    next_monitor_run = daemon_stats()['next_monitor']
+    daemons = daemon_stats()
+    last_monitor_run = daemons['last_monitor']
+    next_monitor_run = int(datetime.strptime(daemons['next_monitor'], "%Y-%m-%d %H:%M:%S").strftime("%s"))
     lockout_time = json.loads(get_current_config())['lockout_time']
 
     try:
@@ -1875,7 +1875,7 @@ def blocked_time():
     
         if blocked_time:
             blocked_time = int(blocked_time)
-            started = daemon_stats()['Active']
+            started = daemons['Active']
             date = re.search('(\d{4}\-(\d{2}(\-|\s)){2})(\d{2}:*){3}',started)
             if date:
                 strdate = date.group(0)
