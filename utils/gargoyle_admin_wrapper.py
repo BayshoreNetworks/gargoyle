@@ -1843,8 +1843,8 @@ def blocked_time():
     db_loc = get_db()
     blocked_time = None
 
-    last_monitor_run = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process finishing at'"], shell=True).split()[-1])
-    next_monitor_run = last_monitor_run + 43200
+    last_monitor_run = daemon_stats()['last_monitor']
+    next_monitor_run = daemon_stats()['next_monitor']
     lockout_time = json.loads(get_current_config())['lockout_time']
 
     try:
@@ -1919,8 +1919,16 @@ def daemon_stats():
     if 'running' in daemon['Active']:
         last_analysis = int(subprocess.check_output(["cat /var/log/syslog | grep  'analysis process commencing at'"], shell=True).split()[-1])
         next_analysis = last_analysis + 900
-        last_monitor = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process commencing at'"], shell=True).split()[-1])
-        next_monitor = last_monitor + 43200
+
+        try:
+            last_monitor = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process commencing at'"], shell=True).split()[-1])
+            next_monitor = last_monitor + 43200
+        except:
+            time_str = re.search("((\d{4}\-\d{2}\-)(\d{2}(:|\s)){4})", daemon['Active']).group(1)
+            time_converted = datetime.strptime(time_str.rstrip(),"%Y-%m-%d %H:%M:%S")
+            last_monitor = int(time_converted.strftime("%s"))
+            next_monitor = last_monitor + 43200
+                           
         daemon["last_monitor"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_monitor))
         daemon["last_analysis"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_analysis))
         daemon["next_monitor"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor))
