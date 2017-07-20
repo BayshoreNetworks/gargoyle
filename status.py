@@ -78,23 +78,26 @@ def main():
     print (G+"\n******************** Gargoyle Statistics ********************\n"+W)
     print (G+daemonStats["Active"]+W + '\n')
 
+    if os.getuid() != 0:
+        print (R+"Program must be run as root user...exiting\n"+W)
+        exit(1)
+
     if 'running' in daemonStats['Active']:
+            
+        
+        try:
+            db_loc = os.environ["GARGOYLE_DB"]
+        except:
+            print(R+'Error: '+W + er.message+ "\nPlease set an environment variable 'GARGOYLE_DB' to the correct database path.")
+            exit(1)
 
         try:
             blockedIps = blocked_time()
             whiteList = get_current_white_list()
             blackList = get_current_black_list()
-        except sqlite3.Error as er:
-            if os.getuid() != 0:
-                print (R+"Program must be run as root user...exiting\n"+W)
-                exit(1)
-            try:
-                db_loc = os.environ["GARGOYLE_DB"]                  
-                print(R+'Error: ' +W +er.message+ '\nAre you sure your GARGOYLE_DB environment variable is set to the correct path?')
-            except:
-                print(R+'Error: '+W + er.message+ "\nPlease set an environment variable 'GARGOYLE_DB' to the correct database path. Are you sure you're running as root user?")
-            exit(1)
-
+        except:
+            print(R+"Are you sure you set your envinronment variable, GARGOYLE_DB, to the correct path?"+W)
+   
         if args.blocked == None and args.whitelist == None and args.blacklist == None and args.daemons == None and args.all == None:
             showAll = True
 
