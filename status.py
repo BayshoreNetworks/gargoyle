@@ -87,7 +87,7 @@ def main():
         
         try:
             db_loc = os.environ["GARGOYLE_DB"]
-        except:
+        except Exception as er:
             print(R+'Error: '+W + er.message+ "\nPlease set an environment variable 'GARGOYLE_DB' to the correct database path.")
             exit(1)
 
@@ -95,8 +95,9 @@ def main():
             blockedIps = blocked_time()
             whiteList = get_current_white_list()
             blackList = get_current_black_list()
-        except:
-            print(R+"Are you sure you set your envinronment variable, GARGOYLE_DB, to the correct path?"+W)
+        except Exception as er:
+            print(R+"Error: " + W + er.message + "\nAre you sure you set your envinronment variable GARGOYLE_DB to the correct db path?"+W)
+            exit(1)
    
         if args.blocked == None and args.whitelist == None and args.blacklist == None and args.daemons == None and args.all == None:
             showAll = True
