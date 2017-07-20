@@ -6,9 +6,9 @@ There are 2 main components to Gargoyle:
 	1. Gargoyle_pscand (port scan detection)
 	2. Gargoyle_lscand (log scanner)
 
-This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
+This software (Gargoyle_*) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
+The Gargoyle_* software was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_* worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. Gargoyle_lscand* works off log file data. They have been compiled and tested on Debian, Ubuntu, and Raspbian. If you compile and run successfully on some other platform please let us know the details.
 
 Gargoyle_pscand is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 
@@ -52,6 +52,8 @@ There are numerous run time entities:
 	6. gargoyle_lscand_ssh_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns of SSH brute force attacks.
 
 	7. gargoyle_pscand_remove_from_blacklist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the black list (blocked ip addresses) and all related entities (DB table, shared mem, etc).
+
+	8. gargoyle_lscand_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns based on the user provided data in the .conf files located in directory conf.d
 
 
 Default install path: /opt/gargoyle_pscand
@@ -161,6 +163,7 @@ Notes:
 	- Log scan detection BLOCK TYPES:
 
 		50:'SSH brute force attack detected' - An SSH brute force attack was detected and blocked. Take note of the fact that for this use case the actual SSH port is not relevant so these actions are identified via a fake port defined in "main_iptables_ssh_bruteforce.cpp", the default being 65537. Relevant slow and low activity is registered in the DB and processed by the analysis daemon.
+		51:'brute force attack detected' - A brute force attack was detected and blocked. The definition of brute force attack as it applies here is based on number of regex hits (user provided regex) within time frame (user provided value) in the some log file (user provided log file).
 		
 	- Blacklist BLOCK TYPE:
 
