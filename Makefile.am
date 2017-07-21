@@ -12,7 +12,9 @@ bin_PROGRAMS = gargoyle_pscand \
 				gargoyle_lscand_ssh_bruteforce \
 				gargoyle_shared_config_test \
 				gargoyle_pscand_remove_from_whitelist \
-				gargoyle_pscand_remove_from_blacklist
+				gargoyle_pscand_remove_from_blacklist \
+				gargoyle_lscand_bruteforce \
+				gargoyle_lscand_bruteforce_detect
 				
 gargoyle_pscand_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp packet_handler.cpp lib/shared_config.cpp lib/shared_mem.cpp main_daemon.cpp
 
@@ -31,4 +33,9 @@ gargoyle_shared_config_test_SOURCES = lib/shared_config.cpp lib/shared_mem.cpp m
 gargoyle_pscand_remove_from_whitelist_SOURCES = lib/sqlite_wrapper_api.c lib/shared_config.cpp lib/shared_mem.cpp main_iptables_remove_from_whitelist.cpp
 
 gargoyle_pscand_remove_from_blacklist_SOURCES = lib/iptables_wrapper_api.c ip_addr_controller.cpp lib/sqlite_wrapper_api.c lib/shared_config.cpp lib/shared_mem.cpp main_iptables_remove_from_blacklist.cpp
+
+gargoyle_lscand_bruteforce_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp main_iptables_bruteforce.cpp
+
+gargoyle_lscand_bruteforce_detect_SOURCES = main_iptables_bruteforce_detect.c
+
 
