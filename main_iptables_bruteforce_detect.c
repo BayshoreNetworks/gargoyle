@@ -59,6 +59,12 @@ void signal_handler(int signum) {
 		wait(&child_process_ret_status);
 
 	}
+	
+	if(signum == SIGINT){
+
+		exit(0);
+
+	}
 }
 
 
@@ -67,6 +73,24 @@ int main(void){
 	signal(SIGCHLD, signal_handler);
 
 	const char *target_resource = "conf.d/";
+	
+	size_t file_cnt = 0;
+	DIR *dpdf1;
+	struct dirent *epdf1;
+	
+	dpdf1 = opendir(target_resource);
+	if (dpdf1 != NULL) {
+		// get a count
+		while (epdf1 = readdir(dpdf1)){
+			
+			if (epdf1->d_name[0] != '.') {
+	
+				file_cnt++;
+	
+			}
+		}
+		closedir(dpdf1);
+	}
 
 	DIR *dpdf;
 	struct dirent *epdf;
@@ -75,6 +99,9 @@ int main(void){
 	dpdf = opendir(target_resource);
 	if (dpdf != NULL) {
 
+		size_t files_processed = 0;
+
+		// spawn processes based on detected conf files
 		while (epdf = readdir(dpdf)){
 			
 			FILE *file = NULL;
@@ -89,21 +116,31 @@ int main(void){
 				strncat (fs, epdf->d_name, strlen(epdf->d_name));
 				fs[strlen(fs)] = '\0';
 
-			}
-
-			if (strlen(fs) && strcmp(fs, target_resource) != 0) {
-
-				char *program = "./gargoyle_lscand_bruteforce_detect";
-				char *argv[]={
-						program,
-						fs,
-						NULL
-				};
-
-				spawn(program, argv);
-
+				
+				
+				if(strstr(fs, ".conf") != NULL) {
+	
+					if (strlen(fs) && strcmp(fs, target_resource) != 0) {
+		
+						char *program = "./gargoyle_lscand_bruteforce";
+						char *argv[]={
+								program,
+								fs,
+								NULL
+						};
+		
+						spawn(program, argv);
+						
+						files_processed++;
+						printf("CNT1: %lu\n\n", files_processed);
+						if (files_processed == file_cnt) {
+							break;
+						}
+					}
+				}
 			}
 		}
+		
 		closedir(dpdf);
 	}
 
