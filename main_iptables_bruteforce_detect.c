@@ -132,7 +132,7 @@ int main(void){
 						spawn(program, argv);
 						
 						files_processed++;
-						printf("CNT1: %lu\n\n", files_processed);
+						//printf("CNT1: %lu\n\n", files_processed);
 						if (files_processed == file_cnt) {
 							break;
 						}
