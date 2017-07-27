@@ -1611,11 +1611,7 @@ def add_to_white_list(ip_addr=''):
 
         if black_list_ix:
             ''' exists in black_ip_list so we remove '''
-            try:
-                with table:
-                    cursor.execute("DELETE FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
-            except TypeError:
-                pass
+            remove_from_black_list(ip_addr)
 
         ''' exists actively in iptables '''
         if detected_host_ix:
@@ -1688,7 +1684,7 @@ def get_current_black_list():
 
 '''query detected_hosts, if it exists, call unblock then add a row to black list table. if not, just add row to black list'''
 def add_to_black_list(ip_addr=''):
-    
+
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
@@ -1697,8 +1693,8 @@ def add_to_black_list(ip_addr=''):
     detected_host_ix = None
     white_list_ix = None
     val = None
-    db_loc = '/opt/gargoyle_pscand_db/gargoyle_attack_detect.db'
-
+    db_loc = get_db()
+    
     try:
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
@@ -1754,11 +1750,7 @@ def add_to_black_list(ip_addr=''):
 
         if white_list_ix:
             ''' exists in ignore_ip_list so we delete '''
-            try:
-                with table:
-                    cursor.execute("DELETE FROM ignore_ip_list WHERE host_ix = '{}'".format(host_ix))
-            except TypeError:
-                pass
+            remove_from_white_list(ip_addr)
  
         with table:
             cursor.execute("SELECT * FROM black_ip_list where host_ix = '{}'".format(host_ix))
@@ -1779,7 +1771,7 @@ def remove_from_black_list(ip_addr=''):
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
-   
+    
     cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_blacklist {}'.format(ip_addr)]
     call(cmd)
     

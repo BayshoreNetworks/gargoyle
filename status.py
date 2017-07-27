@@ -13,7 +13,7 @@ BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 
 def blocked(blockedIps):
-    print(R+"Blocked IPs".ljust(24)+ R+"Time Blocked".ljust(28)+ R+"Time Unblocked"+W)
+    print(R+"Blocked IPs".ljust(24)+ R+"Time Blocked".ljust(28)+ R+"Unblock Time Estimation"+W)
     print(P+"\n*Note: this does not take into account manual unblocking or adding to white list\n"+W)
     for ip in blockedIps.keys():
         if blockedIps[ip][1] == 0:
