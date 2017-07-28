@@ -1916,7 +1916,7 @@ def daemon_stats():
             time_str = re.search("((\d{4}\-\d{2}\-)(\d{2}(:|\s)){4})", daemon['Active']).group(1)
             time_converted = datetime.strptime(time_str.rstrip(),"%Y-%m-%d %H:%M:%S")
             last_analysis = int(time_converted.strftime("%s"))
-            next_analysis = last_monitor + 900
+            next_analysis = last_analysis + 900
             
         try:
             last_monitor = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process commencing at'"], shell=True).split()[-1])
