@@ -1550,7 +1550,7 @@ def get_current_white_list():
     
 '''query detected_hosts, if it exists, call unblock then add a row to white list table. if not, just add row to white list'''
 def add_to_white_list(ip_addr=''):
-    
+
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
@@ -1909,9 +1909,15 @@ def daemon_stats():
             daemon['runningDaemons'].append(x.strip().decode("utf-8").encode("ascii","ignore").split()[1])
 
     if 'running' in daemon['Active']:
-        last_analysis = int(subprocess.check_output(["cat /var/log/syslog | grep  'analysis process commencing at'"], shell=True).split()[-1])
-        next_analysis = last_analysis + 900
-
+        try:
+            last_analysis = int(subprocess.check_output(["cat /var/log/syslog | grep  'analysis process commencing at'"], shell=True).split()[-1])
+            next_analysis = last_analysis + 900
+        except:
+            time_str = re.search("((\d{4}\-\d{2}\-)(\d{2}(:|\s)){4})", daemon['Active']).group(1)
+            time_converted = datetime.strptime(time_str.rstrip(),"%Y-%m-%d %H:%M:%S")
+            last_analysis = int(time_converted.strftime("%s"))
+            next_analysis = last_monitor + 900
+            
         try:
             last_monitor = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process commencing at'"], shell=True).split()[-1])
             next_monitor = last_monitor + 43200
