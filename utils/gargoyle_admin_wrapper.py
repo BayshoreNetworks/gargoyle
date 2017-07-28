@@ -1945,6 +1945,12 @@ def daemon_stats():
             last_monitor = int(time_converted.strftime("%s"))
             next_monitor = last_monitor + 43200
                            
+        current_time = int(time.mktime(time.localtime()))
+        while next_monitor < current_time:
+            next_monitor += 43200
+        while next_analysis < current_time:
+            next_analysis += 900
+
         daemon["last_monitor"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_monitor))
         daemon["last_analysis"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_analysis))
         daemon["next_monitor"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor))

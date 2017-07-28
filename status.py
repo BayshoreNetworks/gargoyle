@@ -46,8 +46,8 @@ def daemons(daemonStats):
             print(daemon+R+' - Not Running'+W)
     print '\n'
     print("Last Analysis Process - " + daemonStats["last_analysis"])
-    print("Last Monitor Process - " + daemonStats["last_monitor"])
     print("Next Analysis Process - " + daemonStats["next_analysis"])
+    print("Last Monitor Process - " + daemonStats["last_monitor"])
     print("Next Monitor Process - " + daemonStats["next_monitor"])
     
     print '\n'
