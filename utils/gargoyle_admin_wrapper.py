@@ -1626,8 +1626,6 @@ def add_to_white_list(ip_addr=''):
             with table:
                 cursor.execute("SELECT * FROM ignore_ip_list where host_ix = '{}'".format(host_ix))
                 val = cursor.fetchone()
-                if val:
-                    tstamp = val[2]
 
             if val == None:   
     
@@ -1637,8 +1635,8 @@ def add_to_white_list(ip_addr=''):
                     tstamp = int(time.mktime(time.localtime()))
                     cursor.execute("INSERT INTO ignore_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
 
-    syslog.openlog("gargoyle_pscand")
-    syslog.syslog('action="add to whitelist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
+                syslog.openlog("gargoyle_pscand")
+                syslog.syslog('action="add to whitelist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
 
     return 0
 
@@ -1765,8 +1763,7 @@ def add_to_black_list(ip_addr=''):
         with table:
             cursor.execute("SELECT * FROM black_ip_list where host_ix = '{}'".format(host_ix))
             val = cursor.fetchone()
-            if val:
-                tstamp = val[2]
+
         if val == None:   
     
             ''' not in black list so insert '''
@@ -1775,8 +1772,8 @@ def add_to_black_list(ip_addr=''):
                 tstamp = int(time.mktime(time.localtime()))
                 cursor.execute("INSERT INTO black_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
 
-    syslog.openlog("gargoyle_pscand")
-    syslog.syslog('action="add to blacklist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
+            syslog.openlog("gargoyle_pscand")
+            syslog.syslog('action="add to blacklist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
 
     return 0
 
