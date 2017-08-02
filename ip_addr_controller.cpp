@@ -309,7 +309,7 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 	 * 	add to iptables in GARGOYLE_CHAIN_NAME
 	 */
 	
-	if (g_shared_config && ip_addr.size() && !is_black_listed(ip_addr, g_shared_config)) {
+	if (g_shared_config && ip_addr.size()) {
 		
 		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
 		// add to shared mem region
@@ -319,6 +319,7 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 		/*
 		 * if this ip does not exist in iptables
 		 */
+		
 		if(!rule_ix > 0) {
 			
 			// do block action - type 100

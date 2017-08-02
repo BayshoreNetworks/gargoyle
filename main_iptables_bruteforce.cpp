@@ -189,7 +189,7 @@ int handle_log_line(const std::string &line, const std::string &regex_str) {
 			}
 		}
 
-		return 0;						
+		return 0;
 
 	}
 	*/
@@ -316,13 +316,20 @@ int main(int argc, char *argv[])
 	
 	if (!ENABLED)
 		return 1;
-
+	
+	
+	
 	/*
+	std::cout << config_file << std::endl;
 	std::cout << log_entity << std::endl;
 	std::cout << regex_str << std::endl;
 	std::cout << num_hits << std::endl;
 	std::cout << num_seconds << std::endl;
 	std::cout << ENFORCE << std::endl;
+	std::cout << ENABLED << std::endl;
+	std::cout << std::endl;
+	
+	return 1;
 	*/
 
 	/*
