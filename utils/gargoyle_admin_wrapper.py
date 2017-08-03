@@ -1872,31 +1872,35 @@ def blocked_time():
     
 
         if host_ix:
-            try:
-                with table:
-                    cursor.execute("SELECT timestamp FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
-                    blocked_time = cursor.fetchone()[0]
-
-            except TypeError:
-                pass
-    
-        if blocked_time:
-            blocked_time = int(blocked_time)
-            started = daemons['Active']
-            date = re.search('(\d{4}\-(\d{2}(\-|\s)){2})(\d{2}:*){3}',started)
-            if date:
-                strdate = date.group(0)
-                datetm = datetime.strptime(strdate,"%Y-%m-%d %H:%M:%S")
-                startseconds = datetm.strftime("%s")
-            
             if ip in get_current_black_list().keys():
-                blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , 0]
-            elif blocked_time + lockout_time <= next_monitor_run:
-                blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
+                try:
+                    with table:
+                        cursor.execute("SELECT timestamp FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
+                        blocked_time = cursor.fetchone()[0]
+                except TypeError:
+                    pass
+                if blocked_time:
+                    blocked_time = int(blocked_time)           
+                    blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , 0]
+
+
             else:
-                while((blocked_time + lockout_time) > next_monitor_run):
-                    next_monitor_run += 43200
-                blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
+                try:
+                    with table:
+                        cursor.execute("SELECT timestamp FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
+                        blocked_time = cursor.fetchone()[0]
+                except TypeError:
+                    pass
+    
+        
+                if blocked_time:
+                    blocked_time = int(blocked_time)            
+                    if blocked_time + lockout_time <= next_monitor_run:
+                        blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
+                    else:
+                        while((blocked_time + lockout_time) > next_monitor_run):
+                            next_monitor_run += 43200
+                        blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
                 
     return blocked_timestamps
 
