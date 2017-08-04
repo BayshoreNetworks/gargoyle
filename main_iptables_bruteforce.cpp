@@ -266,7 +266,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 
 /*
  * read file untill new line,
- * ave position
+ * save last position
  * 
  */
 int get_new_line(ifstream &infile, const string &regex_str) {
@@ -282,13 +282,12 @@ int get_new_line(ifstream &infile, const string &regex_str) {
 		last_position=0;
 	}  
 
-
 	// read file from last position until new line is found 
 	for(int n = last_position; n < filesize; n++) {
 
 		infile.seekg( last_position,ios::beg);
-		char tmp[256]; 
-		infile.getline(tmp, 256);
+		char tmp[BUF_SZ]; 
+		infile.getline(tmp, BUF_SZ);
 		last_position = infile.tellg();
 
 		string tmp_str = tmp;

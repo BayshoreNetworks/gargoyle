@@ -53,7 +53,7 @@ There are numerous run time entities:
 
 	7. gargoyle_pscand_remove_from_blacklist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the black list (blocked ip addresses) and all related entities (DB table, shared mem, etc).
 
-	8. gargoyle_lscand_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns based on the user provided data in the .conf files located in directory conf.d
+	8. gargoyle_lscand_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns based on the user provided data in the .conf files located in directory conf.d. 
 
 
 Default install path: /opt/gargoyle_pscand
@@ -100,6 +100,27 @@ Config data:
 		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic. A range of ports is supported if the format is properly used (x-y). Example (note no white spaces when specifying a range): ports_to_ignore:22,443,80-90,8080,8443-8448,502
 
 		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
+		
+	Gargoyle lscand (log file scanner) reads config files inside directory "conf.d". An example is provided, here is the content:
+	
+	enabled:0
+	enforce:1
+	log_entity:/var/log/syslog
+	regex:401 POST *.+ \((.*)\)
+	number_of_hits:6
+	time_frame:120
+	
+	Details:
+	
+		enabled is either 0 or 1, a value of 1 means that config file will be used by a running daemon
+	
+		enforce is either 0 or 1, a value of 1 means that iptables rules will be added upon the regex trigger thresholds being hit
+	
+		log_entity is the full path of the log file the lscand daemon will monitor
+		
+		regex is the regex string that will be used against the data seen in the log file (log_entity). Take note that the match entity (inside the parenthesis) needs to be an ip address so that a block can be created if appropriate.
+		
+		number_of_hits is the number of regex triggers we will look for within the time frame set in key "time_frame" 
 
 
 gargoyle_admin_wrapper.py - wrapper to multiple Gargoyle administrative functions.
