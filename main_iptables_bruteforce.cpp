@@ -72,16 +72,8 @@ int handle_log_line(const std::string &, const std::string &);
 void process_iteration(int, int);
 std::string hunt_for_ip_addr(std::string);
 void handle_ip_addr(const std::string &);
-int process_new_line(ifstream &, const std::string &, int, int);
-
-
 int get_new_line(ifstream &, const string &);
-//int handle_log_line(const std::string &, const std::string &);
-
-//void handle_ip_addr(const std::string &);
 void display_map();
-//void process_iteration(int, int);
-
 
 
 size_t get_regexes(const char *fname) {
@@ -202,52 +194,6 @@ void display_map() {
 
 
 void process_iteration(int num_seconds, int num_hits) {
-
-	/*
-	for (const auto &p : IP_HITMAP) {
-
-		//std::cout << "[" << p.first << "] = " << IP_HITMAP[p.first][0] << " - " << IP_HITMAP[p.first][1] << std::endl << std::endl;
-
-		std::string ip_addr = p.first;
-		int now = (int)time(NULL);
-		int now_delta = now - IP_HITMAP[p.first][0];
-		int l_num_hits = IP_HITMAP[p.first][1];
-		
-		//syslog(LOG_INFO | LOG_LOCAL6, "SHARMISTHA: %s -  %d -- %d", ip_addr.c_str(), IP_HITMAP[p.first][0], IP_HITMAP[p.first][1]);
-		//syslog(LOG_INFO | LOG_LOCAL6, "SHARMISTHA1: %s: %d -- %d", ip_addr.c_str(), now_delta, l_num_hits);
-		
-		std::cout << "IP: " << ip_addr << std::endl;
-		std::cout << "COND1: " << (l_num_hits >= (num_hits * 2)) << std::endl;
-		std::cout << "COND2: " << (now_delta > (num_seconds * 3)) << std::endl;
-		std::cout << "COND3: " << (now_delta <= num_seconds) << std::endl;
-		std::cout << "COND4: " << (l_num_hits >= num_hits) << std::endl;
-		
-		if (l_num_hits >= (num_hits * 2)) {
-			
-			do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
-			IP_HITMAP.erase(ip_addr);
-
-		} else if (now_delta > (num_seconds * 3)) {
-
-			if (l_num_hits >= (num_hits * 3)) {
-
-				do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
-
-			}
-
-			IP_HITMAP.erase(ip_addr);
-
-		} else if (now_delta <= num_seconds) {
-
-			if (l_num_hits >= num_hits) {
-
-				do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
-				IP_HITMAP.erase(ip_addr);
-
-			}
-		}
-	}
-	*/
 	
 	for (const auto &p : IP_HITMAP) {
 		
@@ -285,18 +231,15 @@ void process_iteration(int num_seconds, int num_hits) {
 			
 		}
 		
-		// fuck time if we see this many hits we block
+		// fuck time, if we see this many hits we block
 		if (l_num_hits >= (num_hits * 2)) {
 			
 			do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
 			IP_HITMAP.erase(ip_addr);
 		
 		}
-		
 	}
-	
 }
-
 
 
 void handle_ip_addr(const std::string &ip_addr) {
@@ -319,76 +262,6 @@ void handle_ip_addr(const std::string &ip_addr) {
 
 	//display_map();
 }
-
-
-int process_new_line(ifstream &infile, const std::string &regex_str, int num_seconds, int num_hits) {
-	
-	infile.seekg(0, std::ios::end);
-	int filesize = infile.tellg();
-	
-	std::smatch match;
-	std::regex l_regex(regex_str);
-	
-	// check if the new file started
-	if(filesize < last_position){
-		last_position = 0;
-	}
-	
-	// read file from last position  untill new line is found 
-	for(int n = last_position; n < filesize; n++) {
-	//while (true) {
-		
-		infile.seekg(last_position, std::ios::beg);
-		char the_line[BUF_SZ]; 
-		infile.getline(the_line, BUF_SZ);
-		last_position = infile.tellg();
-		
-		std::string l_the_line = the_line;
-		//handle_log_line(the_line, regex_str);
-		if (std::regex_search(l_the_line, match, l_regex)) {
-
-			/*
-			std::cout << match.size() << std::endl;
-			std::cout << match.str(0) << std::endl;
-			std::cout << match.str(1) << std::endl;
-			*/
-			std::string ip_addr = match.str(1);
-
-			if (validate_ip_address(ip_addr)) {
-				
-				//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
-				//handle_ip_addr(ip_addr);
-				std::map<std::string, int[2]>::iterator it = IP_HITMAP.find(ip_addr);
-
-				if(it != IP_HITMAP.end()) {
-					
-					// element exists
-					IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
-
-				} else {
-					
-					// create element
-					IP_HITMAP[ip_addr][0] = (int) time(NULL);
-					IP_HITMAP[ip_addr][1] = 1;
-
-				}
-			}
-		}
-
-		/*
-		// end of file 
-		if(filesize == last_position) {
-			std::cout << "EOF" << std::endl;
-			return filesize;
-		}
-		*/
-		std::this_thread::sleep_for (std::chrono::seconds(3));
-		process_iteration(num_seconds, num_hits);
-	}
-	
-	return 0;
-}
-
 
 
 /*
@@ -442,7 +315,6 @@ int main(int argc, char *argv[]) {
 	if (argc == 2) {
 		config_file = argv[1];
 	}
-	
 
 	// default = 6
 	size_t num_hits;
@@ -471,13 +343,10 @@ int main(int argc, char *argv[]) {
 		syslog(LOG_INFO | LOG_LOCAL6, "Config entity: \"%s\" does not exist, cannot continue", config_file.c_str());
 		return 1;
 	}
-
 	
 	if (!ENABLED)
 		return 1;
-	
-	
-	
+
 	/*
 	std::cout << config_file << std::endl;
 	std::cout << log_entity << std::endl;
@@ -487,8 +356,6 @@ int main(int argc, char *argv[]) {
 	std::cout << ENFORCE << std::endl;
 	std::cout << ENABLED << std::endl;
 	std::cout << std::endl;
-	
-	return 1;
 	*/
 
 	/*
@@ -521,46 +388,6 @@ int main(int argc, char *argv[]) {
 	 * handle standard type of log file where we
 	 * control the tail style functionality
 	 */
-	/*
-	std::ifstream ifs(log_entity.c_str());
-	
-	ifs.seekg(0, std::ios::end);
-
-	if (ifs.is_open()) {
-
-		std::string line;
-		while (true) {
-
-			while (std::getline(ifs, line)) {
-
-				//std::cout << line << std::endl;
-				syslog(LOG_INFO | LOG_LOCAL6, "BLAH: \"%s\" ", line.c_str());
-				handle_log_line(line, regex_str);
-
-			}
-
-			if (!ifs.eof()) {
-				break;
-			}
-			ifs.clear();
-
-			// sleep here to avoid being a CPU hog.
-			std::this_thread::sleep_for (std::chrono::seconds(3));
-			process_iteration(num_seconds, num_hits);
-
-		}
-	}
-	*/
-	
-	/*
-	for(;;) {
-		
-		std::ifstream ifs(log_entity.c_str());
-	    int current_position = process_new_line(ifs, regex_str, num_seconds, num_hits);
-	    //sleep(3);
-	}
-	*/
-	
 	for(;;) {
 		std::ifstream infile(log_entity.c_str());
 		int current_position = get_new_line(infile, regex_str);
