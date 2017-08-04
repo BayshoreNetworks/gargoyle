@@ -103,24 +103,24 @@ Config data:
 		
 	Gargoyle lscand (log file scanner) reads config files inside directory "conf.d". An example is provided, here is the content:
 	
-	enabled:0
-	enforce:1
-	log_entity:/var/log/syslog
-	regex:401 POST *.+ \((.*)\)
-	number_of_hits:6
-	time_frame:120
+		- enabled:0
+		- enforce:1
+		- log_entity:/var/log/syslog
+		- regex:401 POST *.+ \((.*)\)
+		- number_of_hits:6
+		- time_frame:120
 	
-	Details:
+		Details:
 	
-		enabled is either 0 or 1, a value of 1 means that config file will be used by a running daemon
+			enabled is either 0 or 1, a value of 1 means that config file will be used by a running daemon
 	
-		enforce is either 0 or 1, a value of 1 means that iptables rules will be added upon the regex trigger thresholds being hit
+			enforce is either 0 or 1, a value of 1 means that iptables rules will be added upon the regex trigger thresholds being hit
 	
-		log_entity is the full path of the log file the lscand daemon will monitor
+			log_entity is the full path of the log file the lscand daemon will monitor
 		
-		regex is the regex string that will be used against the data seen in the log file (log_entity). Take note that the match entity (inside the parenthesis) needs to be an ip address so that a block can be created if appropriate.
+			regex is the regex string that will be used against the data seen in the log file (log_entity). Take note that the match entity (inside the parenthesis) needs to be an ip address so that a block can be created if appropriate.
 		
-		number_of_hits is the number of regex triggers we will look for within the time frame set in key "time_frame" 
+			number_of_hits is the number of regex triggers we will look for within the time frame set in key "time_frame" 
 
 
 gargoyle_admin_wrapper.py - wrapper to multiple Gargoyle administrative functions.
