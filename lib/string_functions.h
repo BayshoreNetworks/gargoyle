@@ -30,6 +30,7 @@
 #ifndef __stringfunctions__H_
 #define __stringfunctions__H_
 
+#include <vector>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -63,6 +64,28 @@ void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, s
 		count = size;
 	}
 	sprintf(dst, "%.*s", count, src + start);
+}
+
+
+void tokenize_string (
+		const std::string &str,
+		std::vector<std::string> &tokens,
+		const std::string &delimiters) {
+	
+    // Skip delimiters at beginning.
+    std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+    // Find first "non-delimiter".
+    std::string::size_type pos = str.find_first_of(delimiters, lastPos);
+
+    while (std::string::npos != pos || std::string::npos != lastPos)
+    {
+        // Found a token, add it to the vector.
+        tokens.push_back(str.substr(lastPos, pos - lastPos));
+        // Skip delimiters.  Note the "not_of"
+        lastPos = str.find_first_not_of(delimiters, pos);
+        // Find next "non-delimiter"
+        pos = str.find_first_of(delimiters, lastPos);
+    }
 }
 
 
