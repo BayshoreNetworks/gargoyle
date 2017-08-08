@@ -29,31 +29,16 @@
  *****************************************************************************/
 #include <iostream>
 #include <string>
-#include <fstream>
-#include <thread>
-#include <chrono>
-#include <regex>
 #include <vector>
 #include <csignal>
-#include <map>
 
 #include <syslog.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 
-#include "ip_addr_controller.h"
-#include "sqlite_wrapper_api.h"
-#include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
-#include "config_variables.h"
-#include "system_functions.h"
+#include "string_functions.h"
 #include "shared_config.h"
 
-#define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"
-#define GARGOYLE_WHITELIST_SHM_SZ 250
-#define GARGOYLE_BLACKLIST_SHM_NAME "/gargoyle_blacklist_shm"
-#define GARGOYLE_BLACKLIST_SHM_SZ 250    
 
 SharedIpConfig *gargoyle_view_whitelist_shm = NULL;
 SharedIpConfig *gargoyle_view_blacklist_shm = NULL;
@@ -80,8 +65,7 @@ void signal_handler(int signum) {
 }
 
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	
 	// register signal SIGINT and signal handler  
 	signal(SIGINT, signal_handler);
@@ -100,19 +84,40 @@ int main(int argc, char *argv[])
 	gargoyle_view_blacklist_shm->ToString(ss_black);
 	std::string black_list = ss_black.str();
 	
-	std::cout << "WHITE: " << std::endl << white_list << std::endl << std::endl;
-	std::cout << "BLACK: " << std::endl << black_list << std::endl << std::endl;
+	std::cout << std::endl;
+	
+	std::cout << "WHITE LISTED: " << std::endl << std::endl;
+	std::vector<std::string> white_tokens;
+	tokenize_string(white_list, white_tokens, ",");
+
+	if (white_tokens.size()) {
+
+		std::vector<std::string>::iterator wit;
+		for(wit = white_tokens.begin(); wit < white_tokens.end(); wit++) {
+		    std::cout << *wit << std::endl;
+		}
+	
+	}
+	
+	std::cout << std::endl << std::endl;
+
+	std::cout << "BLACK LISTED: " << std::endl << std::endl;
+	std::vector<std::string> black_tokens;
+	tokenize_string(black_list, black_tokens, ",");
+
+	if (black_tokens.size()) {
+
+		std::vector<std::string>::iterator bit;
+		for(bit = black_tokens.begin(); bit < black_tokens.end(); bit++) {
+		    std::cout << *bit << std::endl;
+		}
+	
+	}
+	
+	std::cout << std::endl << std::endl;
 	
 	return 0;
 	
 }
-
-
-
-
-
-
-
-
 
 
