@@ -265,7 +265,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 
 
 /*
- * read file untill new line,
+ * read file until new line,
  * save last position
  * 
  */
@@ -398,6 +398,13 @@ int main(int argc, char *argv[]) {
 		std::ifstream infile(log_entity.c_str());
 		int current_position = get_new_line(infile, regex_str);
 		
+		/*
+		 * 1 means we hit EOF and so this way
+		 * we catch log file rotations and we
+		 * start at the top of this loop when
+		 * that point gets hit
+		 * 
+		 */
 		if (current_position == 1)
 			continue;
 		
