@@ -2,7 +2,7 @@
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  * 
- * Wrapper to iptables as a shared lib
+ * shared memory object for sharing memory regions between processes
  *
  * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
  * All rights reserved.
@@ -27,71 +27,36 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef __stringfunctions__H_
-#define __stringfunctions__H_
-
-#include <vector>
-
-#include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
 
-#define DEST_BUF_SZ 524288
-#define CMD_BUF_SZ 100
+class SharedMemRegion {
 
+    const char *my_name;
+    size_t my_size;
+    int fd;
+    void *base_addr;
+    bool is_created;
 
-
-
-#ifdef __cplusplus
-
-
-bool case_insensitive_char_compare(char a, char b) {
-	return(toupper(a) == toupper(b));
-}
-
-bool case_insensitive_compare(const std::string& s1, const std::string& s2) {
-	return((s1.size() == s2.size()) && equal(s1.begin(), s1.end(), s2.begin(), case_insensitive_char_compare));
-}
-
-
-extern "C" {
-#endif
+    /*
+     * These are intentionally private. Use Create to get access
+     * to an object instance.
+     */
+    SharedMemRegion(const char *name, size_t initial_size) :
+        my_name(name), my_size(initial_size), base_addr(NULL), is_created(false) {}
+    int32_t Init();
+public:
+    ~SharedMemRegion();
 
 
-void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size)
-{
-	int count = stop - start;
-	if ( count >= --size ) {
-		count = size;
-	}
-	sprintf(dst, "%.*s", count, src + start);
-}
+    bool IsCreator() { return is_created;}
+    /*
+     * Caller is responsible for releasing the SharedMemRegion object
+     */
+    static SharedMemRegion *Create(const char *name, size_t initial_size);
 
+    void *BaseAddr() const { return base_addr; }
 
-void tokenize_string (
-		const std::string &str,
-		std::vector<std::string> &tokens,
-		const std::string &delimiters) {
-	
-    // Skip delimiters at beginning.
-    std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-    // Find first "non-delimiter".
-    std::string::size_type pos = str.find_first_of(delimiters, lastPos);
-
-    while (std::string::npos != pos || std::string::npos != lastPos)
-    {
-        // Found a token, add it to the vector.
-        tokens.push_back(str.substr(lastPos, pos - lastPos));
-        // Skip delimiters.  Note the "not_of"
-        lastPos = str.find_first_not_of(delimiters, pos);
-        // Find next "non-delimiter"
-        pos = str.find_first_of(delimiters, lastPos);
-    }
-}
-
-
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif // __stringfunctions__H_
+    int32_t Resize(size_t size);
+    size_t Size() const { return my_size; }
+};

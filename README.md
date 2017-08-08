@@ -6,9 +6,9 @@ There are 2 main components to Gargoyle:
 	1. Gargoyle_pscand (port scan detection)
 	2. Gargoyle_lscand (log scanner)
 
-This software (Gargoyle_pscand) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
+This software (Gargoyle_*) was written on a Linux platform and is intended to run on Linux and no other platforms. It requires netfilter (kernel level), iptables (user space) and sqlite3.
 
-Gargoyle_pscand was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_pscand worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. It has been compiled and tested on Debian, Ubuntu, and Raspbian. If you compile and run it successfully on some other platform please let us know the details.
+The Gargoyle_* software was written to operate in high speed environments. Most of the stuff we analyzed before deciding to write Gargoyle_* worked off log file data. Gargoyle_pscand is different in that it operates off live network packet data. Gargoyle_lscand* works off log file data. They have been compiled and tested on Debian, Ubuntu, and Raspbian. If you compile and run successfully on some other platform please let us know the details.
 
 Gargoyle_pscand is based on the notion of different severity levels where some blocks are immediate, others are based on a time cycle, and others are based on some analysis process. Then there is also a cleanup process to not leave block rules in forever and ever.
 
@@ -39,15 +39,21 @@ There are numerous run time entities:
 
 	2. gargoyle_pscand_monitor - runs as a daemon with an internal timed cycle. The default cycle is a run every 12 hours based off whenever the daemon was started. This prog will analyze the active rules in our iptables chain and clean out the ones who have been jailed past the point set at variable LOCKOUT_TIME. The clean up process also updates records in the DB.
 
-
-	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 30 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
+	3. gargoyle_pscand_analysis - runs as a daemon with an internal timed cycle. The default cycle is a run every 15 minutes based off whenever the daemon was started. This prog will analyze the data in the DB and the data in our iptables chain and add block rules (and DB entries) for targets who are using straggered techniques (slow and low scans, etc) or somehow got past the main daemon.
 
 	4. gargoyle_pscand_unblockip - this is a standalone program that accepts one argument (an ip address string) and will cleanup/remove all traces of that ip address except for the fact that we once encountered it. The thought process here is that you deliberately removing an ip address means you are treating this address as a trusted entity and want no future blocks of it.
 
 		- To run:
 			cd install_path
 			./gargoyle_pscand_unblockip ip_addr
+			
+	5. gargoyle_pscand_remove_from_whitelist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the white list (ignored ip addresses) (DB table & shared mem).
 
+	6. gargoyle_lscand_ssh_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns of SSH brute force attacks.
+
+	7. gargoyle_pscand_remove_from_blacklist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the black list (blocked ip addresses) and all related entities (DB table, shared mem, etc).
+
+	8. gargoyle_lscand_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns based on the user provided data in the .conf files located in directory conf.d. 
 
 
 Default install path: /opt/gargoyle_pscand
@@ -94,6 +100,27 @@ Config data:
 		- "ports_to_ignore" - comma delimited string of ports for Gargoyle_pscand to ignore while processing live network traffic. A range of ports is supported if the format is properly used (x-y). Example (note no white spaces when specifying a range): ports_to_ignore:22,443,80-90,8080,8443-8448,502
 
 		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
+		
+	Gargoyle lscand (log file scanner) reads config files inside directory "conf.d". An example is provided, here is the content:
+	
+		- enabled:0
+		- enforce:1
+		- log_entity:/var/log/syslog
+		- regex:401 POST *.+ \((.*)\)
+		- number_of_hits:6
+		- time_frame:120
+	
+		Details:
+	
+			"enabled" is either 0 or 1, a value of 1 means that config file will be used by a running daemon
+	
+			"enforce" is either 0 or 1, a value of 1 means that iptables rules will be added upon the regex trigger thresholds being hit
+	
+			"log_entity" is the full path of the log file the lscand daemon will monitor
+		
+			"regex" is the regex string that will be used against the data seen in the log file (log_entity). Take note that the match entity (inside the parenthesis) needs to be an ip address so that a block can be created if appropriate.
+		
+			"number_of_hits" is the number of regex triggers we will look for within the time frame set in key "time_frame" 
 
 
 gargoyle_admin_wrapper.py - wrapper to multiple Gargoyle administrative functions.
@@ -124,9 +151,10 @@ To compile and install:
 
 Notes:
 
-	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with data in the DB and it is important for that synchronization is be respected.
+	- DO NOT manually manipulate any of the data in the iptables chain "GARGOYLE_Input_Chain". This data is synchronized with the data in the DB, and it is important that the synchronization is respected.
 
-	- To start/stop the Gargoyle_pscand daemons use the init script.
+	- To start/stop the Gargoyle_pscand daemons use the init script. If Gargoyle fails to start, try running:
+          systemctl daemon-reload ; service gargoyle_pscand stop ; service gargoyle_pscand start
 
 	- When one stops the daemons properly (init script [under the hood sends SIGINT]) there is a full cleanup process where all relevant iptables/DB data gets cleaned up.
 
@@ -156,10 +184,17 @@ Notes:
 	- Log scan detection BLOCK TYPES:
 
 		50:'SSH brute force attack detected' - An SSH brute force attack was detected and blocked. Take note of the fact that for this use case the actual SSH port is not relevant so these actions are identified via a fake port defined in "main_iptables_ssh_bruteforce.cpp", the default being 65537. Relevant slow and low activity is registered in the DB and processed by the analysis daemon.
+		51:'brute force attack detected' - A brute force attack was detected and blocked. The definition of brute force attack as it applies here is based on number of regex hits (user provided regex) within time frame (user provided value) in the some log file (user provided log file).
+		
+	- Blacklist BLOCK TYPE:
+
+		100: The ip addr in question has been blacklisted by the user, this data is stored in the DB table 'black_ip_list'
 	
 	- Overtly malicious activity will trigger immediate blocks of the source that Gargoyle_pscand sees. This activity does not store enough data in the analysis related DB tables to trigger subsequent blocks in the case of a software restart.
 
 	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
+	
+	- To remove ip addresses from the white (or ignore) list, or the blacklist, use the respective standalone programs "gargoyle_pscand_remove_from_whitelist" or "gargoyle_pscand_remove_from_blacklist", do not manually remove that ip address from the DB table.
 
 
 

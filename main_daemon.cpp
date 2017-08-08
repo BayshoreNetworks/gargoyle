@@ -52,6 +52,8 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "string_functions.h"
+#include "ip_addr_controller.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,6 +82,7 @@ struct nflog_g_handle *qh;
 GargoylePscandHandler gargoyleHandler;
 
 int NFLOG_BIND_GROUP = 5;
+SharedIpConfig *gargoyle_blacklist_shm = NULL;
 ///////////////////////////////////////////////////////////////////////////////////
 
 int hex_to_int(const char *);
@@ -95,6 +98,7 @@ void get_ephemeral_range_to_ignore();
 void get_local_ip_addrs();
 void get_default_gateway_linux();
 void get_white_list_addrs();
+void get_blacklist_ip_addrs();
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -104,6 +108,11 @@ void nfqueue_signal_handler(int signum) {
 
 
 void graceful_exit(int signum) {
+	
+    if(gargoyle_blacklist_shm) {
+        delete gargoyle_blacklist_shm;
+        gargoyle_blacklist_shm;
+    }
 	
 	if (signum == 11) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
@@ -118,7 +127,8 @@ void graceful_exit(int signum) {
 	 * 2. delete GARGOYLE_CHAIN_NAME rule from the INPUT chain
 	 * 3. flush (delete any rules that exist in) GARGOYLE_CHAIN_NAME
 	 * 4. clear items in DB table detected_hosts
-	 * 5. delete GARGOYLE_CHAIN_NAME
+	 * 5. reset auto-increment counter for table detected_hosts
+	 * 6. delete GARGOYLE_CHAIN_NAME
 	 */
 	///////////////////////////////////////////////////
 	// 1
@@ -140,8 +150,10 @@ void graceful_exit(int signum) {
 	///////////////////////////////////////////////////
 	// 4
 	remove_detected_hosts_all(DB_LOCATION);
-	///////////////////////////////////////////////////
 	// 5
+	reset_autoincrement(DETECTED_HOSTS_TABLE, DB_LOCATION);
+	///////////////////////////////////////////////////
+	// 6
 	iptables_delete_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	///////////////////////////////////////////////////
 	
@@ -464,6 +476,46 @@ void get_white_list_addrs() {
 	free(host_ip);
 }
 
+
+void get_blacklist_ip_addrs() {
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	size_t resp = get_hosts_blacklist_all(l_hosts, dst_buf_sz, DB_LOCATION);
+	
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			int host_ix = atoi(token1);
+			if (host_ix > 0) {
+			
+				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION);
+
+				if (strcmp(host_ip, "") != 0) {
+					
+					do_black_list_actions(host_ip, (void *) gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
+
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+
+	free(l_hosts);
+	free(host_ip);
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
@@ -486,7 +538,7 @@ int main(int argc, char *argv[])
      */
     if (argc > 2 || argc < 1) {
     	
-    	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+    	std::cerr << std::endl << GARGOYLE_PSCAND << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
     	
     } else if (argc == 2) {
@@ -495,6 +547,7 @@ int main(int argc, char *argv[])
     	
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
+    		return 0;
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
     	} else {
     		return 0;
@@ -567,6 +620,8 @@ int main(int argc, char *argv[])
 	} else {
 		return 1;
 	}
+	
+	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
 	
 	// does iptables support xlock
 	// 1 = true, 0 = false
@@ -646,7 +701,7 @@ int main(int argc, char *argv[])
 				ss << *i << ",";
 			l_cnt++;
 		}
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring ports:", (ss.str().c_str()));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARGOYLE_PSCAND, "ignoring ports:", (ss.str().c_str()));
 	}
 	
 	
@@ -693,6 +748,8 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+
+	get_blacklist_ip_addrs();
 	
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();
@@ -712,7 +769,7 @@ int main(int argc, char *argv[])
 				ss << *i << ",";
 			l_cnt++;
 		}
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (ss.str().c_str()));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s - %s %s", GARGOYLE_PSCAND, "ignoring IP addr's:", (ss.str().c_str()));
 	}
 
 	for (std::vector<std::string>::const_iterator i = LOCAL_IP_ADDRS.begin(); i != LOCAL_IP_ADDRS.end(); ++i) {

@@ -39,7 +39,7 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
-#define GARGOYLE_VERSION "1.2.4"
+#define GARGOYLE_VERSION "1.6"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
 #define IPTABLES_INPUT_CHAIN "INPUT"
@@ -68,6 +68,12 @@ extern "C" {
 #define REMOVE_SYSLOG "remove"
 #define FIRST_SEEN_SYSLOG "first_seen"
 #define LAST_SEEN_SYSLOG "last_seen"
+
+
+#define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"
+#define GARGOYLE_WHITELIST_SHM_SZ 250
+#define GARGOYLE_BLACKLIST_SHM_NAME "/gargoyle_blacklist_shm"
+#define GARGOYLE_BLACKLIST_SHM_SZ 250
 
 #ifdef __cplusplus
 }

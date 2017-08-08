@@ -74,11 +74,6 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc) {
 		}
     }
 
-	/*
-	char dest[DEST_LEN];
-	char l_buf[DEST_LEN];
-	char sql[SQL_CMD_MAX];
-	*/
     char *dest = (char*) malloc (LOCAL_BUF_SZ);
     char *l_buf = (char*) malloc (LOCAL_BUF_SZ);
     char *sql = (char*) malloc (SQL_CMD_MAX);
@@ -96,7 +91,6 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc) {
 	}
 
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE ix = ?1", HOSTS_TABLE);
-	//sqlite3_prepare_v2(db, "SELECT * FROM hosts_table WHERE ix = ?1;", -1, &stmt, NULL);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, the_ix);
 
@@ -119,7 +113,6 @@ int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc) {
         return 1;
 	}
     memcpy (dst, dest, dest_set_len+1);
-	//strcpy(dst, dest);
     
 	free(l_buf);
 	free(sql);
@@ -170,7 +163,7 @@ int get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc)
 
 	sqlite3_finalize(stmt);
 	sqlite3_close(db);
-	//strcpy(dst, dest);
+
 	if (dest_set_len+1 > sz_dst) {
 	    	
 		return 1;
@@ -671,7 +664,7 @@ size_t add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *db_loc) 
 		return 1;
 	}
 
-	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", IGNORE_IP_LIST_TABLES);
+	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
 	sqlite3_bind_int(stmt, 2, tstamp);
@@ -1283,7 +1276,7 @@ size_t get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc) {
 		return 1;
 	}
 
-	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", IGNORE_IP_LIST_TABLES);
+	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
 	*final_set = 0;
@@ -1417,7 +1410,7 @@ int is_host_ignored(int ip_addr_ix, const char *db_loc) {
 		return -1;
 	}
 
-	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLES);
+	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
 
@@ -1475,3 +1468,290 @@ int is_host_detected(int ip_addr_ix, const char *db_loc) {
 }
 
 
+int remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
+	
+	char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return -1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+}
+
+
+size_t add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host_to_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", BLACK_LIST_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+	sqlite3_bind_int(stmt, 2, tstamp);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_host_to_blacklist] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+}
+
+
+size_t get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_loc) {
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+
+	char *final_set = (char*) malloc (SMALL_DEST_BUF);
+	char *l_buf = (char*) malloc (LOCAL_BUF_SZ);
+	char *sql = (char*) malloc (SQL_CMD_MAX);
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_hosts_blacklist_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+
+		free(l_buf);
+		free(sql);
+		free(final_set);
+
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", BLACK_LIST_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+
+	*final_set = 0;
+	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+		snprintf(l_buf, LOCAL_BUF_SZ, "%d>", sqlite3_column_int(stmt, 0));
+		strncat(final_set, l_buf, SMALL_DEST_BUF-strlen(final_set)-1);       
+	}
+	size_t final_set_len = strlen(final_set);
+	final_set[final_set_len] = '\0';
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	if (final_set_len+1 > sz_dst) {
+
+		free(l_buf);
+		free(sql);
+		free(final_set);
+
+		return 1;
+	}
+	memcpy (dst, final_set, final_set_len+1);
+
+	free(l_buf);
+	free(sql);
+	free(final_set);
+
+	return 0;
+}
+
+
+int is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
+	
+	int ret;
+	ret = 0;
+	
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [is_host_blacklisted]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return -1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", BLACK_LIST_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	while ( (rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+		ret = sqlite3_column_int(stmt, 0);
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return ret;
+}
+
+
+int remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
+	
+	char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_from_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return -1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", BLACK_LIST_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ip_addr_ix);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_from_blacklist] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+}
+
+
+void reset_autoincrement(const char *table_name, const char *db_loc) {
+	
+	char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [reset_autoincrement]: %s", DB_LOCATION, sqlite3_errmsg(db));
+	}
+
+	// UPDATE SQLITE_SEQUENCE SET SEQ= 'value' WHERE NAME='table_name';
+	snprintf (sql, SQL_CMD_MAX, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?1");
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_text(stmt, 1, table_name, -1, 0);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s reset auto-increment from function [reset_autoincrement] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+}

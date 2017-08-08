@@ -46,6 +46,8 @@ extern "C" {
 }
 #endif
 
+#include "shared_config.h"
+
 
 /* 
  * This handler recv's packets from the NetFilter
@@ -55,6 +57,7 @@ class GargoylePscandHandler
 {
 	public:
 	GargoylePscandHandler();
+	virtual ~GargoylePscandHandler();
 	
 	// netfilter callback
 	static int packet_handle(struct nflog_g_handle *, struct nfgenmsg *, struct nflog_data *, void *);
@@ -81,15 +84,14 @@ class GargoylePscandHandler
 	void add_block_rule(std::string, int);
 	void add_block_rules();
 
-	void refresh_white_listed_entries();
 	void process_ignore_ip_list();
 	void clear_three_way_check_dat();
 	void clear_reverse_three_way_check_dat();
 	void clear_src_ip_dst_ip_dat();
 	void clear_reverse_src_ip_dst_ip_dat();
+	void process_blacklist_ip_list();
 	
 	void display_scanned_ports_dict();
-	void display_local_ip_addr();
 	void display_hot_ports();
 	
 	int half_connect_scan(std::string, int, std::string, int, int, int, std::vector<int>);
@@ -125,8 +127,7 @@ class GargoylePscandHandler
 	std::ostringstream reverse_three_way_check_dat;
 	std::ostringstream src_ip_dst_ip_dat;
 	std::ostringstream reverse_src_ip_dst_ip_dat;
-	
-	std::vector<std::string> WHITE_LISTED_IP_ADDRS;
+
 	std::vector<int> IGNORE_PORTS;
 	std::vector<int>::const_iterator ports_iter;
 	std::vector<int> HOT_PORTS;
@@ -137,6 +138,10 @@ class GargoylePscandHandler
 	std::set<std::string> BLACK_LISTED_HOSTS;
 	
 	std::map< std::string, std::pair <int, int> > SCANNED_PORTS_CNT_DICT;
+	
+	SharedIpConfig *gargoyle_whitelist_shm = NULL;
+	SharedIpConfig *gargoyle_blacklist_shm = NULL;
+
 };
 
 

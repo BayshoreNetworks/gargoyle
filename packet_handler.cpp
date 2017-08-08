@@ -144,6 +144,24 @@ GargoylePscandHandler::GargoylePscandHandler() {
 	ENFORCE = true;
 	PH_SINGLE_IP_SCAN_THRESHOLD = 6;
 	PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
+	
+	gargoyle_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
+	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
+}
+
+
+GargoylePscandHandler::~GargoylePscandHandler() {
+	
+    if(gargoyle_whitelist_shm) {
+        delete gargoyle_whitelist_shm;
+        gargoyle_whitelist_shm;
+    }
+    
+    if(gargoyle_blacklist_shm) {
+        delete gargoyle_blacklist_shm;
+        gargoyle_blacklist_shm;
+    }
+    
 }
 
 
@@ -389,6 +407,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 				
 				// are there any new white list entries in the DB?
 				_this->process_ignore_ip_list();
+				_this->process_blacklist_ip_list();
 	
 				_this->add_block_rules();
 				BASE_TIME = (int)time(NULL);
@@ -504,11 +523,13 @@ bool GargoylePscandHandler::is_in_three_way_handshake(std::string s) {
 
 bool GargoylePscandHandler::is_white_listed_ip_addr(std::string s) {
 
-	std::vector<std::string>::const_iterator local_ip_iter;
-	local_ip_iter = std::find(WHITE_LISTED_IP_ADDRS.begin(), WHITE_LISTED_IP_ADDRS.end(), s);
-	if (local_ip_iter != WHITE_LISTED_IP_ADDRS.end())
+	bool result;
+	gargoyle_whitelist_shm->Contains(s, &result);
+	
+	if (result)
 		return true;
 	return false;
+	
 }
 
 
@@ -522,8 +543,7 @@ bool GargoylePscandHandler::is_in_ports_entries(int s) {
 
 
 void GargoylePscandHandler::add_to_white_listed_entries(std::string s) {
-	if (!is_white_listed_ip_addr(s))
-		WHITE_LISTED_IP_ADDRS.push_back(s);
+	gargoyle_whitelist_shm->Add(s);
 }
 
 
@@ -783,18 +803,6 @@ void GargoylePscandHandler::display_scanned_ports_dict() {
 }
 
 
-void GargoylePscandHandler::display_local_ip_addr() {
-
-	//local_ip_iter
-
-	//std::cout << "IP_ADDR: " << LOCAL_IP_ADDRS.size() << std::endl;
-	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
-		std::cout << *i << " ";
-	}
-	std::cout << std::endl << std::endl;
-}
-
-
 void GargoylePscandHandler::display_hot_ports() {
 	
 	for (std::vector<int>::const_iterator i = HOT_PORTS.begin(); i != HOT_PORTS.end(); ++i) {
@@ -892,8 +900,7 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 			 * !! ENFORCE - if ip in question has been flagged as doing
 			 * something blatantly stupid then block this bitch
 			 */
-			//added_host_ix = do_block_actions(the_ip, detection_type);
-			added_host_ix = do_block_actions(the_ip, detection_type, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+			added_host_ix = do_block_actions(the_ip, detection_type, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
 
 			if (is_in_black_listed_hosts(the_ip) == true) {
 				BLACK_LISTED_HOSTS.erase(the_ip);
@@ -1198,8 +1205,7 @@ void GargoylePscandHandler::add_block_rules() {
 			 * !! ENFORCE - if ip in question is in BLACK_LISTED_HOSTS
 			 * and we have reached this code path then block this bitch
 			 */
-			//added_host_ix = do_block_actions(*it, 0);
-			added_host_ix = do_block_actions(*it, 0, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+			added_host_ix = do_block_actions(*it, 0, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
 
 			ip_tables_entries.insert(*it);
 		} else {
@@ -1270,9 +1276,7 @@ void GargoylePscandHandler::add_block_rules() {
 	
 					if (ip_tables_entries.count(the_ip) == 0) {
 	
-						//do_block_actions(the_ip, 7);
-						
-						do_block_actions(the_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+						do_block_actions(the_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
 	
 						ip_tables_entries.insert(the_ip);
 					}
@@ -1323,9 +1327,7 @@ void GargoylePscandHandler::add_block_rules() {
 	
 				if (ip_tables_entries.count(loc_ip_it->first) == 0) {
 	
-					//do_block_actions(loc_ip_it->first, 6);
-					
-					do_block_actions(loc_ip_it->first, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+					do_block_actions(loc_ip_it->first, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
 	
 					ip_tables_entries.insert(loc_ip_it->first);	
 				}
@@ -1361,124 +1363,6 @@ void GargoylePscandHandler::set_single_port_scan_threshold(size_t t_val) {
 	}
 }
 
-void GargoylePscandHandler::refresh_white_listed_entries() {
-
-    WHITE_LISTED_IP_ADDRS.push_back("0.0.0.0");
-    
-    /////////////////////////////////////////////////////
-    // get default gateway
-	FILE *gw_fp;
-	char *gw_dot;
-	char *default_gway = (char*) malloc(1024);
-	
-	const char *gw_tok1 = " ";
-	char *gw_token1;
-	char *gw_token1_save;
-	
-	gw_fp = popen("ip route | grep default", "r");
-	if (gw_fp) {
-		while (fgets(default_gway, 1024, gw_fp) != NULL) {
-			//std::cout << "--- " << default_gway << " --- " << strlen(default_gway) << std::endl;
-			gw_token1 = strtok_r(default_gway, gw_tok1, &gw_token1_save);
-			while (gw_token1 != NULL) {
-				gw_dot = strstr (gw_token1, ".");
-				if (gw_dot) {
-					add_to_white_listed_entries(gw_token1);
-				}
-				gw_token1 = strtok_r(NULL, gw_tok1, &gw_token1_save);
-			}
-		}
-	}
-	free(default_gway);
-	pclose(gw_fp);
-    /////////////////////////////////////////////////////
-    //for get_local_ip_addrs    
-    FILE *fp;
-	
-	char *inet;
-	char *dot;
-	char *f_slash;
-	
-	char *ip_addrs = (char*) malloc(1024);
-	
-	const char *tok1 = " ";
-	char *token1;
-	char *token1_save;
-	
-	const char *tok2 = "/";
-	char *token2;
-	char *token2_save;
-	
-	int iter_cnt;
-
-    //get_local_ip_addrs
-    fp = popen("ip addr", "r");
-	if (fp) {
-		while (fgets(ip_addrs, 1024, fp) != NULL) {
-			//std::cout << "--- " << ip_addrs << " --- " << strlen(ip_addrs) << std::endl;
-			inet = strstr (ip_addrs, "inet");
-			dot = strstr (ip_addrs, ".");
-			if (inet && dot) {
-				//std::cout << "--- " << ip_addrs << " --- " << strlen(ip_addrs) << std::endl;
-
-				token1 = strtok_r(ip_addrs, tok1, &token1_save);
-				while (token1 != NULL) {
-					//std::cout << token1 << std::endl;
-					f_slash = strstr (token1, "/");
-					if (f_slash) {
-						iter_cnt = 0;
-						token2 = strtok_r(token1, tok2, &token2_save);
-						while (token2 != NULL) {
-							if (iter_cnt == 0) {
-								//add_to_ip_entries(token2);
-                                add_to_white_listed_entries(token2);
-							}
-							iter_cnt++;
-							token2 = strtok_r(NULL, tok2, &token2_save);
-						}
-					}
-					token1 = strtok_r(NULL, tok1, &token1_save);
-				}
-			}
-		}
-	}
-	free(ip_addrs);
-	pclose(fp);
-    /////////////////////////////////////////////////////
-    //for get_white_list_addrs
-    const char *tok3 = ">";
-	char *token3;
-	char *token3_save;
-	
-	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
-	char *l_hosts = (char*) malloc(dst_buf_sz);
-	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
-	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
-
-    //get_white_list_addrs
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
-	if (resp == 0) {
-
-		token3 = strtok_r(l_hosts, tok3, &token3_save);
-		while (token3 != NULL) {
-			
-			if (atoi(token3) > 0) {
-
-				get_host_by_ix(atoi(token3), host_ip, dst_buf_sz1, DB_LOCATION.c_str());
-
-				if (strcmp(host_ip, "") != 0) {
-                    //add_to_ip_entries(host_ip);
-                    add_to_white_listed_entries(host_ip);
-				}
-			}
-			token3 = strtok_r(NULL, tok3, &token3_save);
-		}
-	}
-	free(l_hosts);
-	free(host_ip);
-    /////////////////////////////////////////////////////
-}
-
 
 void GargoylePscandHandler::process_ignore_ip_list() {
 
@@ -1491,22 +1375,10 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 	
-	
 	std::stringstream ss_orig;
-	int l_cnt_orig = 1;
-	int v_cnt_orig = WHITE_LISTED_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator ii = WHITE_LISTED_IP_ADDRS.begin(); ii != WHITE_LISTED_IP_ADDRS.end(); ++ii) {
-		if (l_cnt_orig == v_cnt_orig)
-			ss_orig << *ii;
-		else
-			ss_orig << *ii << ",";
-		l_cnt_orig++;
-	}
+	gargoyle_whitelist_shm->ToString(ss_orig);
 	std::string white_list_orig = ss_orig.str();
-	
 
-	WHITE_LISTED_IP_ADDRS.clear();
-    refresh_white_listed_entries();
 
 	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
 	
@@ -1521,14 +1393,14 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
 				
 				if (strcmp(host_ip, "") != 0) {
+					
 					add_to_white_listed_entries(host_ip);
-				
-				
+
 					/*
-					 * this is ugly but ....
-					 * extra cleanup check in case we
-					 * aggressively blocked (race condition)
-					 * an ip addr that has been whitelisted
+					 * the ip addr in question is now being ignored
+					 * so if an entry for it exists in iptables (along
+					 * with the relevant DB data) that needs to get
+					 * cleaned up
 					 */
 					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 					if(rule_ix > 0) {
@@ -1560,21 +1432,13 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	free(host_ip);
 	
 	std::stringstream ss;
-	int l_cnt = 1;
-	int v_cnt = WHITE_LISTED_IP_ADDRS.size();
-	for (std::vector<std::string>::const_iterator i = WHITE_LISTED_IP_ADDRS.begin(); i != WHITE_LISTED_IP_ADDRS.end(); ++i) {
-		//std::cout << *i << std::endl;
-		if (l_cnt == v_cnt)
-			ss << *i;
-		else
-			ss << *i << ",";
-		l_cnt++;
-	}
-
-	std::string white_list_new = ss.str();	
+	gargoyle_whitelist_shm->ToString(ss);
+	std::string white_list_new = ss.str();
+	
 	if (levenshtein(white_list_orig.c_str(), white_list_new.c_str()) > 0) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (white_list_new.c_str()));
 	}
+	
 }
 
 
@@ -1606,5 +1470,48 @@ void GargoylePscandHandler::add_to_hot_ports_list(int the_port) {
 			HOT_PORTS.push_back(the_port);
 		}
 	}
+}
+
+
+void GargoylePscandHandler::process_blacklist_ip_list() {
+
+	const char *tok1 = ">";
+	char *token1;
+	char *token1_save;
+
+	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
+	char *l_hosts = (char*) malloc(dst_buf_sz);
+	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
+	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+
+	size_t resp = get_hosts_blacklist_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
+	
+	if (resp == 0) {
+
+		token1 = strtok_r(l_hosts, tok1, &token1_save);
+		while (token1 != NULL) {
+			
+			if (atoi(token1) > 0) {
+			
+				int host_ix = atoi(token1);
+				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
+				
+				if (strcmp(host_ip, "") != 0) {
+					
+					if (!is_black_listed(host_ip, (void *)gargoyle_blacklist_shm)) {
+					
+						//gargoyle_blacklist_shm->Add(host_ip);
+						do_black_list_actions(host_ip, (void *)gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
+					
+					}
+				}
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+		}
+	}
+	
+	free(l_hosts);
+	free(host_ip);
+
 }
 /////////////////////////////////////////////////////////////////////////////////

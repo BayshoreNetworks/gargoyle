@@ -31,15 +31,12 @@
 #include <syslog.h>
 
 #include "ip_addr_controller.h"
-
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "gargoyle_config_vals.h"
-
-
-
+#include "shared_config.h"
 
 
 int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc) {
@@ -75,7 +72,8 @@ int do_block_actions(const std::string &the_ip,
 		int detection_type,
 		const std::string &db_loc,
 		size_t iptables_xlock,
-		bool do_enforce) {
+		bool do_enforce,
+		void *g_shared_mem) {
 
 	int host_ix;
 	host_ix = 0;
@@ -89,36 +87,51 @@ int do_block_actions(const std::string &the_ip,
 	if (the_ip.size() > 0 and host_ix > 0) {
 		
 		// we dont ignore this ip if this returns 0
-		if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
+		//if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
+		
+		// if this ip is not whitelisted
+		if (!is_white_listed(the_ip, g_shared_mem)) {
 
-			size_t ret;
-			int tstamp = (int) time(NULL);
-	
+			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 			/*
-			 * queries DB table 'detected_hosts', a return of 
-			 * 0 (zero) means there is no entry in that DB table,
-			 * anything else means there is an entry in that table.
-			 * the assumption is that 'detected_hosts' is in sync
-			 * with what is live in netfilter (via iptables)
+			 * if this ip does not exist in iptables ...
 			 * 
-			 * this check is necessary in order to not have duplicates
-			 * in our iptables chain
+			 * this should negate the need to check the blacklist
+			 * shared mem region because those ip's would have
+			 * already been added to the chain in iptables
 			 */
-			if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0)
-				ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+			if(!rule_ix > 0) {
+			
+				size_t ret;
+				int tstamp = (int) time(NULL);
+		
+				/*
+				 * queries DB table 'detected_hosts', a return of 
+				 * 0 (zero) means there is no entry in that DB table,
+				 * anything else means there is an entry in that table.
+				 * the assumption is that 'detected_hosts' is in sync
+				 * with what is live in netfilter (via iptables)
+				 * 
+				 * this check is necessary in order to not have duplicates
+				 * in our iptables chain
+				 */
+				if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0)
+					ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+		
+				if (detection_type > 0) {
 	
-			if (detection_type > 0) {
-
-				do_block_action_output(the_ip, detection_type, tstamp);
-				
-			} else {
-
-				do_block_action_output(the_ip, 0, tstamp);
-				
+					do_block_action_output(the_ip, detection_type, tstamp);
+					
+				} else {
+	
+					do_block_action_output(the_ip, 0, tstamp);
+					
+				}
+		
+				// add to DB
+				add_detected_host(host_ix, tstamp, db_loc.c_str());
+			
 			}
-	
-			// add to DB
-			add_detected_host(host_ix, tstamp, db_loc.c_str());
 		}
 	}
 	return host_ix;
@@ -155,6 +168,8 @@ int add_to_hosts_port_table(const std::string &the_ip, int the_port, int the_cnt
 			update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
 		}
 	}
+	
+	return 0;
 }
 
 
@@ -208,7 +223,6 @@ void do_remove_action_output(const std::string &the_ip,
 }
 
 
-
 int do_host_remove_actions(const std::string &the_ip,
 		int host_ix,
 		const std::string &db_loc,
@@ -226,6 +240,10 @@ int do_host_remove_actions(const std::string &the_ip,
 	 * 
 	 * is_host_blacklisted - TODO
 	 */
+	/*
+	 * 06/01/2017 - disabling the deletion of the
+	 * ip addr row from hosts_table
+	 * 
 	if (is_host_ignored(host_ix, db_loc.c_str()) == 0) {
 
 		if (is_host_detected(host_ix, db_loc.c_str()) == 0) {
@@ -236,4 +254,83 @@ int do_host_remove_actions(const std::string &the_ip,
 
 		}
 	}
+	*/
+	
+	return 0;
+}
+
+
+bool is_white_listed(const std::string &ip_addr, void *g_shared_config) {
+	
+	bool result = false;
+	if (g_shared_config) {
+		
+		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
+		
+		//printf("------- Number of IP entries: %ld\n", g_shared_cfg->Size());
+		
+		//bool result;
+	
+		g_shared_cfg->Contains(ip_addr, &result);
+	
+		/*
+		if(result) {
+			printf("Found\n");
+		} else {
+			printf("Not Found\n");
+		}
+		*/
+		
+	}
+	return result;
+}
+
+
+bool is_black_listed(const std::string &ip_addr, void *g_shared_config) {
+	
+	bool result = false;
+	if (g_shared_config) {
+		
+		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
+
+		g_shared_cfg->Contains(ip_addr, &result);
+	}
+	
+	return result;
+}
+
+
+int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, size_t iptables_xlock) {
+	
+	/*
+	 * actions:
+	 * 
+	 * 	add to blacklist shared mem region
+	 * 	add to iptables in GARGOYLE_CHAIN_NAME
+	 * 	
+	 */
+	
+	if (g_shared_config && ip_addr.size()) {
+		
+		SharedIpConfig *g_shared_cfg = static_cast<SharedIpConfig *> (g_shared_config);
+		// add to shared mem region
+		g_shared_cfg->Add(ip_addr);
+		
+		size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+		
+		/*
+		 * if this ip does not exist in iptables
+		 * 
+		 */
+		if(!rule_ix > 0) {
+			
+			// do block action - type 100
+			iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+		
+			do_block_action_output(ip_addr, 100, (int)time(NULL));
+			
+		}
+	}
+	
+	return 0;
 }

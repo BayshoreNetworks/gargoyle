@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT(gargoyle_pscand, 1.1, support@bayshorenetworks.com)
+AC_INIT(gargoyle_pscand, 1.5, support@bayshorenetworks.com)
 AC_CONFIG_SRCDIR([main_daemon.cpp])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_HEADERS([config.h])
@@ -16,6 +16,8 @@ AC_PROG_MAKE_SET
 # Checks for libraries
 AC_CHECK_LIB([sqlite3], [main])
 AC_CHECK_LIB([netfilter_log], [main])
+AC_CHECK_LIB([rt], [main])
+AC_CHECK_LIB([pthread], [main])
 
 
 # Checks for header files

@@ -37,13 +37,17 @@
 int add_ip_to_hosts_table(const std::string &, const std::string &);
 int add_to_hosts_port_table(const std::string &, int, int, const std::string &);
 
-int do_block_actions(const std::string &, int, const std::string &, size_t, bool);
+int do_block_actions(const std::string &, int, const std::string &, size_t, bool, void *);
 int do_host_remove_actions(const std::string &, int, const std::string &, int, int);
 
 void do_report_action_output(const std::string &, int, int, int);
 void do_block_action_output(const std::string &, int, int);
 void do_unblock_action_output(const std::string &, int);
 void do_remove_action_output(const std::string &, int, int, int);
+
+bool is_white_listed(const std::string &, void *);
+bool is_black_listed(const std::string &, void *);
+int do_black_list_actions(const std::string &, void *, size_t);
 
 
 #endif // _IPADDRCONTROLLER_H__
