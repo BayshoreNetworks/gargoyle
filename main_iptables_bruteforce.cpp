@@ -51,20 +51,17 @@
 #include "shared_config.h"
 
 
-int BASE_TIME;
-int BASE_TIME2;
 char DB_LOCATION[SQL_CMD_MAX+1];
-int FAKE_PORT = 65537;
-int PROCESS_TIME_CHECK = 60;
 bool ENFORCE = true;
 bool ENABLED = false;
-int BUF_SZ = 1024;
+int BUF_SZ = 512;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
 
 size_t IPTABLES_SUPPORTS_XLOCK;
 size_t ITER_CNT_MAX = 50;
+static int last_position = 0;
 
 SharedIpConfig *gargoyle_bf_whitelist_shm = NULL;
 
@@ -75,6 +72,8 @@ int handle_log_line(const std::string &, const std::string &);
 void process_iteration(int, int);
 std::string hunt_for_ip_addr(std::string);
 void handle_ip_addr(const std::string &);
+int get_new_line(ifstream &, const string &);
+void display_map();
 
 
 size_t get_regexes(const char *fname) {
@@ -160,6 +159,8 @@ int handle_log_line(const std::string &line, const std::string &regex_str) {
 
 		if (validate_ip_address(ip_addr)) {
 
+			//std::cout << "MATCH: " << ip_addr << std::endl;
+			
 			//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 			handle_ip_addr(ip_addr);
 
@@ -167,80 +168,78 @@ int handle_log_line(const std::string &line, const std::string &regex_str) {
 		return 0;
 
 	}
-	/*
-	else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
 
-		std::string ip_addr = match.str(1);
-
-		//std::cout << "TESTING INVALID USER" << std::endl;
-
-		if (validate_ip_address(ip_addr)) {
-			
-			handle_ip_addr(ip_addr);
-		
-		} else {
-
-
-			// found an ip addr
-			if (hip.size()) {
-				
-				handle_ip_addr(hip);
-			
-			}
-		}
-
-		return 0;
-
-	}
-	*/
 	return 0;
 }
 
 
-
-void process_iteration(int num_seconds, int num_hits) {
+void display_map() {
 
 	for (const auto &p : IP_HITMAP) {
 
-		//std::cout << "[" << p.first << "] = " << IP_HITMAP[p.first][0] << " - " << IP_HITMAP[p.first][1] << std::endl << std::endl;
+		/*
+		 * [232.234.67.22] = 1501791934 - 3
+		 * 
+		 * ip_addr
+		 * first seen timestamp
+		 * number of hits
+		 * 
+		 */
+		std::cout << "[" << p.first << "] = " << IP_HITMAP[p.first][0] << " - " << IP_HITMAP[p.first][1] << std::endl;
 
+	}
+
+	std::cout << endl;
+}
+
+
+void process_iteration(int num_seconds, int num_hits) {
+	
+	for (const auto &p : IP_HITMAP) {
+		
 		std::string ip_addr = p.first;
 		int now = (int)time(NULL);
-		int now_delta = now - IP_HITMAP[p.first][0];
+		
+		int original_timestamp = IP_HITMAP[p.first][0];
+		int now_delta = now - original_timestamp;
 		int l_num_hits = IP_HITMAP[p.first][1];
 		
 		/*
-		 * if there are double the hits of the allowed
-		 * threshold you get blocked irrespective of
-		 * time
-		 */
-		if (l_num_hits >= (num_hits * 2)) {
+		std::cout << original_timestamp << " -- " << now << std::endl;
+		std::cout << "[" << p.first << "]" << std::endl << "Delta: " << now_delta << std::endl << "Hits: " << IP_HITMAP[p.first][1] << std::endl << std::endl;
+		*/
+		
+		// delta longer than num_seconds - just cleanup
+		if (now_delta > num_seconds) {
+		
+			IP_HITMAP.erase(ip_addr);
+			continue;
 			
-			do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
-			IP_HITMAP.erase(ip_addr);
-
-		} else if (now_delta > (num_seconds * 3)) {
-
-			if (l_num_hits >= (num_hits * 3)) {
-
-				do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
-
-			}
-
-			IP_HITMAP.erase(ip_addr);
-
-		} else if (now_delta <= num_seconds) {
-
+		}
+		
+		// delta is in range
+		if (now_delta <= num_seconds) {
+		
+			// block based purely on number of hits
 			if (l_num_hits >= num_hits) {
 
 				do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
 				IP_HITMAP.erase(ip_addr);
+				continue;
 
 			}
+			
+		}
+		
+		// fuck time, if we see this many hits we block
+		if (l_num_hits >= (num_hits * 2)) {
+			
+			do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
+			IP_HITMAP.erase(ip_addr);
+		
 		}
 	}
 }
-
 
 
 void handle_ip_addr(const std::string &ip_addr) {
@@ -250,11 +249,8 @@ void handle_ip_addr(const std::string &ip_addr) {
 	if(it != IP_HITMAP.end()) {
 
 		// element exists
+		IP_HITMAP[ip_addr][0] = (int) time(NULL);
 		IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
-		/*
-		if (ENFORCE)
-			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-		*/
 
 	} else {
 
@@ -262,18 +258,58 @@ void handle_ip_addr(const std::string &ip_addr) {
 		IP_HITMAP[ip_addr][0] = (int) time(NULL);
 		IP_HITMAP[ip_addr][1] = 1;
 
-		/*
-		if (ENFORCE)
-			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION);
-		*/
-
 	}
+
+	//display_map();
 }
 
 
+/*
+ * read file until new line,
+ * save last position
+ * 
+ */
+int get_new_line(ifstream &infile, const string &regex_str) {
 
-int main(int argc, char *argv[])
-{
+	std::smatch match;
+	std::regex l_regex(regex_str);
+
+	infile.seekg(0,ios::end);
+	int filesize = infile.tellg();
+
+	// check if the new file started
+	if(filesize < last_position){
+		last_position=0;
+	}  
+
+	// read file from last position until new line is found 
+	for(int n = last_position; n < filesize; n++) {
+
+		infile.seekg( last_position,ios::beg);
+		char tmp[BUF_SZ]; 
+		infile.getline(tmp, BUF_SZ);
+		last_position = infile.tellg();
+
+		string tmp_str = tmp;
+		handle_log_line(tmp_str, regex_str);
+
+		// end of active file 
+		if(filesize == last_position) {
+			return filesize;
+		}
+		
+		// EOF
+		if (infile.eof()) {
+			return 1;
+		}
+
+	}
+
+	return 0;
+}
+
+
+int main(int argc, char *argv[]) {
 
 	// register signal SIGINT and signal handler  
 	signal(SIGINT, signal_handler);
@@ -283,7 +319,6 @@ int main(int argc, char *argv[])
 	if (argc == 2) {
 		config_file = argv[1];
 	}
-	
 
 	// default = 6
 	size_t num_hits;
@@ -312,13 +347,10 @@ int main(int argc, char *argv[])
 		syslog(LOG_INFO | LOG_LOCAL6, "Config entity: \"%s\" does not exist, cannot continue", config_file.c_str());
 		return 1;
 	}
-
 	
 	if (!ENABLED)
 		return 1;
-	
-	
-	
+
 	/*
 	std::cout << config_file << std::endl;
 	std::cout << log_entity << std::endl;
@@ -328,8 +360,6 @@ int main(int argc, char *argv[])
 	std::cout << ENFORCE << std::endl;
 	std::cout << ENABLED << std::endl;
 	std::cout << std::endl;
-	
-	return 1;
 	*/
 
 	/*
@@ -361,30 +391,31 @@ int main(int argc, char *argv[])
 	/*
 	 * handle standard type of log file where we
 	 * control the tail style functionality
+	 * 
 	 */
-	std::ifstream ifs(log_entity.c_str());
-
-	if (ifs.is_open()) {
-
-		std::string line;
-		while (true) {
-
-			while (std::getline(ifs, line)) {
-
-				//std::cout << line << std::endl;
-				handle_log_line(line, regex_str);
-
-			}
-
-			if (!ifs.eof()) {
-				break;
-			}
-			ifs.clear();
-
-			// sleep here to avoid being a CPU hog.
-			std::this_thread::sleep_for (std::chrono::seconds(3));
-			process_iteration(num_seconds, num_hits);
+	for(;;) {
+		
+		std::ifstream infile(log_entity.c_str());
+		int current_position = get_new_line(infile, regex_str);
+		
+		/*
+		 * 1 means we hit EOF and so this way
+		 * we catch log file rotations and we
+		 * start at the top of this loop when
+		 * that point gets hit
+		 * 
+		 */
+		if (current_position == 1) {
+			//std::cout << "EOF reached" << std::endl;
+			infile.close();
+			continue;
 		}
+		
+		sleep(5);
+		process_iteration(num_seconds, num_hits);
+		
+		//display_map();
+	
 	}
 
 	return 0;

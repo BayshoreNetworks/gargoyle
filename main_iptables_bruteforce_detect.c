@@ -36,8 +36,10 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
+#define BF_CONF_DIR_MAX 512
 
 sig_atomic_t child_process_ret_status;
+char GARG_BF_CONFIG_DIR[BF_CONF_DIR_MAX + 1];
 
 
 void spawn(char *program,char *argv[]) {
@@ -72,13 +74,26 @@ int main(void){
 
 	signal(SIGCHLD, signal_handler);
 
-	const char *target_resource = "conf.d/";
+	const char *target_resource = "conf.d";
+	const char *gargoyle_bf_config_dir;
+	gargoyle_bf_config_dir = getenv("GARGOYLE_BRUTE_FORCE_CONFIG_DIR");
+	if (gargoyle_bf_config_dir == NULL) {
+		char cwd[BF_CONF_DIR_MAX/2];
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (GARG_BF_CONFIG_DIR, BF_CONF_DIR_MAX, "%s/%s/", cwd, target_resource);
+		}
+	} else {
+		snprintf (GARG_BF_CONFIG_DIR, BF_CONF_DIR_MAX, "%s/", gargoyle_bf_config_dir);
+	}
+
 	
 	size_t file_cnt = 0;
 	DIR *dpdf1;
 	struct dirent *epdf1;
 	
-	dpdf1 = opendir(target_resource);
+	dpdf1 = opendir(GARG_BF_CONFIG_DIR);
 	if (dpdf1 != NULL) {
 		// get a count
 		while (epdf1 = readdir(dpdf1)){
@@ -94,9 +109,9 @@ int main(void){
 
 	DIR *dpdf;
 	struct dirent *epdf;
-	char fs[300];
+	char fs[BF_CONF_DIR_MAX + 64 + 1];
 	
-	dpdf = opendir(target_resource);
+	dpdf = opendir(GARG_BF_CONFIG_DIR);
 	if (dpdf != NULL) {
 
 		size_t files_processed = 0;
@@ -106,8 +121,9 @@ int main(void){
 			
 			FILE *file = NULL;
 
-			strncpy (fs, target_resource, strlen(target_resource));
-			fs[strlen(target_resource)] = '\0';
+			size_t garg_bf_dir_sz = strlen(GARG_BF_CONFIG_DIR);
+			strncpy (fs, GARG_BF_CONFIG_DIR, garg_bf_dir_sz);
+			fs[garg_bf_dir_sz] = '\0';
 
 			//printf("FNAME: %s\n", epdf->d_name);
 			
@@ -116,11 +132,10 @@ int main(void){
 				strncat (fs, epdf->d_name, strlen(epdf->d_name));
 				fs[strlen(fs)] = '\0';
 
-				
-				
+
 				if(strstr(fs, ".conf") != NULL) {
 	
-					if (strlen(fs) && strcmp(fs, target_resource) != 0) {
+					if (strlen(fs) && strcmp(fs, GARG_BF_CONFIG_DIR) != 0) {
 		
 						char *program = "./gargoyle_lscand_bruteforce";
 						char *argv[]={

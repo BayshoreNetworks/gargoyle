@@ -307,6 +307,7 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 	 * 
 	 * 	add to blacklist shared mem region
 	 * 	add to iptables in GARGOYLE_CHAIN_NAME
+	 * 	
 	 */
 	
 	if (g_shared_config && ip_addr.size()) {
@@ -316,10 +317,11 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 		g_shared_cfg->Add(ip_addr);
 		
 		size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
+		
 		/*
 		 * if this ip does not exist in iptables
+		 * 
 		 */
-		
 		if(!rule_ix > 0) {
 			
 			// do block action - type 100
