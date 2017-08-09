@@ -1339,7 +1339,29 @@ def IPAddress(address, version=None):
 ''' *********************************************************************************************************** '''
 
 def list_of_ports(list):
+    """ Converts a list of strings of numbers to a list of integers
 
+        Input can be one of the following:
+        - mixed ints and ranges (i.e. ['1','2','5-7'])
+        - just ints (i.e. ['1','2','3'])
+        - just ranges(i.e. ['2-5','8-10'])
+
+        Args:
+            list: list of strings
+
+        Returns:
+            A list of integers
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> list_of_ports(['1','2','5-7'])
+        [1,2,5,6,7]
+        >>> list_of_ports(['1-5'])
+        [1,2,3,4,5]
+    """
     ports = []
 
     for x in list:
@@ -1362,7 +1384,27 @@ def list_of_ports(list):
     return ports
 
 def is_there_conflict(list1, list2):
+    """ Determine if two lists have overlapping numbers
 
+        Given two lists of ints, returns 1 if there is overlap and 0 if there is not
+
+        Args:
+            list1: list of ints
+            list2: list of ints
+
+        Returns:
+            0 (no conflict) or 1 (conflict)
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> is_there_conflict(['1','2','3-5'],['0','4'])
+        1
+        >>> is_there_conflict(['1-5'],['6','7'])
+        0
+    """
     if len(list1) > 0 and len(list2) > 0:
         ignore = list1.split(',')
         hot = list2.split(',')
@@ -1383,7 +1425,24 @@ def is_there_conflict(list1, list2):
     return 0
 
 def get_current_config():
-    
+    """ Returns the data in the config file .gargoyle_config
+
+        Args:
+            None
+
+        Returns:
+            A json object whose key value pairs are the each line of the .gargoyle_config file
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> get_current_config()
+        {"port_scan_threshold": 15, "overall_port_scan_threshold": 8, "lockout_time": 32400, "single_ip_scan_threshold": 6, "last_seen_delta": 28800, "enforce": 1}
+        >>> type(get_current_config())
+        <type 'str'>
+    """
     try:
         config_file = os.environ["GARGOYLE_CONFIG"]
     except KeyError:
@@ -1405,8 +1464,27 @@ def get_current_config():
     return json.dumps(cur)
     
 def set_config(objct):
+    """ Set new values in configuration file
 
-    ''' dictionary of user specified key-values from gui '''
+        Args:
+            list: json object containing key value pairs you want to write into the config file
+
+        Returns:
+            0 if the config file was succesfully updated and 1 if there was an error. Errors are raised for the following reasons:
+            - there is a conflict between hot_ports and ports_to_ignore
+            - enforce is set to something other than 0 ir 1
+            - one of the values contains a character from the alphabet
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> set_config({"port_scan_threshold": 15, "overall_port_scan_threshold": 8, "lockout_time": 32400, "single_ip_scan_threshold": 6, "last_seen_delta": 28800, "enforce": 1, "hot_ports":['2','3'], "ports_to_ignore":['4']})
+        0
+        >>> set_config({"port_scan_threshold": 15, "overall_port_scan_threshold": 8, "lockout_time": 32400, "single_ip_scan_threshold": 6, "last_seen_delta": 28800, "enforce": 1, "hot_ports":['2','3'], "ports_to_ignore":['2'] })
+        1
+    """
     data = json.loads(objct)
     
     try:
@@ -1449,7 +1527,27 @@ def set_config(objct):
     return 0
 
 def unblock_ip(ip_addr='',version=None):
+    """ Unblocks an ip address
 
+        Given an ip address, it performs the gargoyle_pscand_unblockip program using the address as input
+
+        Args:
+            ip_addr: ip address string
+
+        Returns:
+            0 if the ip address was successfully unblocked, 1 if the input wasn't a valid ip address, and 2 if the ip address is on
+            the black list because it can't be unblocked until removed from there.
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> unblock_ip('192.168.100.1')
+        0
+        >>> unblock_ip('100.100')
+        1
+    """
     ip_address = IPAddress(ip_addr)   
     if ip_address == 1:
         return 1
@@ -1495,7 +1593,7 @@ def unblock_ip(ip_addr='',version=None):
     return 0
 
 def get_db():
-    
+
     #DB_PATH = "/db/port_scan_detect.db"
     DB_PATH = "/db/gargoyle_attack_detect.db"
     db_file = None
@@ -1796,7 +1894,7 @@ def remove_from_black_list(ip_addr=''):
 returns list of string of ips in iptables
 '''   
 def get_current_from_iptables():
-    
+
     ips_in_iptables = []
     blocked_ips = {}
     first_seen = 0
