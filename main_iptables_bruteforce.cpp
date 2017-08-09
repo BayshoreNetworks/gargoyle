@@ -293,12 +293,10 @@ int get_new_line(ifstream &infile, const string &regex_str) {
 		string tmp_str = tmp;
 		handle_log_line(tmp_str, regex_str);
 
-		/*
-		// end of file 
+		// end of active file 
 		if(filesize == last_position) {
 			return filesize;
 		}
-		*/
 		
 		// EOF
 		if (infile.eof()) {
@@ -393,8 +391,10 @@ int main(int argc, char *argv[]) {
 	/*
 	 * handle standard type of log file where we
 	 * control the tail style functionality
+	 * 
 	 */
 	for(;;) {
+		
 		std::ifstream infile(log_entity.c_str());
 		int current_position = get_new_line(infile, regex_str);
 		
@@ -405,12 +405,18 @@ int main(int argc, char *argv[]) {
 		 * that point gets hit
 		 * 
 		 */
-		if (current_position == 1)
+		if (current_position == 1) {
+			//std::cout << "EOF reached" << std::endl;
+			infile.close();
 			continue;
+		}
 		
 		sleep(5);
 		process_iteration(num_seconds, num_hits);
-	} 
+		
+		//display_map();
+	
+	}
 
 	return 0;
 }
