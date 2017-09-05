@@ -164,6 +164,17 @@ int handle_log_line(const std::string &line, const std::string &regex_str) {
 			//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 			handle_ip_addr(ip_addr);
 
+		} else {
+			
+			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+
+			// the hack found an ip addr
+			if (hip.size()) {
+				
+				handle_ip_addr(hip);
+			
+			}
+			
 		}
 		return 0;
 
