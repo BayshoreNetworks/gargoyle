@@ -496,7 +496,8 @@ int main(int argc, char *argv[])
 				while (std::getline(ifs, line)) {
 
 					//std::cout << line << std::endl;
-					handle_log_line(line);
+					if (line.size() > 0)
+						handle_log_line(line);
 
 				}
 

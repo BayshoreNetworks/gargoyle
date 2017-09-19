@@ -302,7 +302,8 @@ int get_new_line(ifstream &infile, const string &regex_str) {
 		last_position = infile.tellg();
 
 		string tmp_str = tmp;
-		handle_log_line(tmp_str, regex_str);
+		if (tmp_str.size() > 0)
+			handle_log_line(tmp_str, regex_str);
 
 		// end of active file 
 		if(filesize == last_position) {
