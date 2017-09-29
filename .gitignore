@@ -71,3 +71,4 @@ lib/libsharedconfig.so.1
 test_*.cpp
 *BKUP
 Makefile_*
+cov-int/*
