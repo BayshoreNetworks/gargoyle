@@ -1,8 +1,10 @@
+# gargoyle
+
 <a href="https://scan.coverity.com/projects/bayshorenetworks-gargoyle">
   <img alt="Coverity Scan Build Status"
        src="https://scan.coverity.com/projects/13905/badge.svg"/>
 </a>
-# gargoyle
+
 Gargoyle Protection for Linux
 
 There are 2 main components to Gargoyle:
