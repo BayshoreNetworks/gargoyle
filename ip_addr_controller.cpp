@@ -129,7 +129,7 @@ int do_block_actions(const std::string &the_ip,
 				}
 		
 				// add to DB
-				add_detected_host(host_ix, tstamp, db_loc.c_str());
+				add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
 			
 			}
 		}

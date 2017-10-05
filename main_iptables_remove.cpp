@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 							int tstamp = (int) time(NULL);
 	
 							// add to ignore ip table
-							add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
+							add_host_to_ignore(host_ix, (size_t)tstamp, DB_LOCATION);
 							
 							// reset last_seen to 1972
 							update_host_last_seen(host_ix, DB_LOCATION);
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
     
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
-        gargoyle_monitor_blacklist_shm;
+        //gargoyle_monitor_blacklist_shm;
     }
     
 	return 0;

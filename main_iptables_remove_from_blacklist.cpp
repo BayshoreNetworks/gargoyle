@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
 			strncpy(ip, argv[1], 15);
 			ip[strlen(argv[1])] = '\0';
 			
-		    if (DEBUG)
-		    	std::cout << "IP addr: " << ip << std::endl;
+			if (DEBUG)
+				std::cout << "IP addr: " << ip << std::endl;
 			
 			if (strcmp(ip, "") != 0) {
 				
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
     
     if(gargoyle_blacklist_removal_shm) {
         delete gargoyle_blacklist_removal_shm;
-        gargoyle_blacklist_removal_shm;
+        //gargoyle_blacklist_removal_shm;
     }
     
 	return 0;

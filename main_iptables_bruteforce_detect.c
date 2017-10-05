@@ -96,7 +96,7 @@ int main(void){
 	dpdf1 = opendir(GARG_BF_CONFIG_DIR);
 	if (dpdf1 != NULL) {
 		// get a count
-		while (epdf1 = readdir(dpdf1)){
+		while (NULL!=(epdf1 = readdir(dpdf1))){
 			
 			if (epdf1->d_name[0] != '.') {
 	
@@ -117,9 +117,9 @@ int main(void){
 		size_t files_processed = 0;
 
 		// spawn processes based on detected conf files
-		while (epdf = readdir(dpdf)){
+		while (NULL!=(epdf = readdir(dpdf))){
 			
-			FILE *file = NULL;
+			//FILE *file = NULL;
 
 			size_t garg_bf_dir_sz = strlen(GARG_BF_CONFIG_DIR);
 			strncpy (fs, GARG_BF_CONFIG_DIR, garg_bf_dir_sz);

@@ -250,6 +250,8 @@ int handle_log_line(const std::string &line) {
 			}
 		}
 	}
+	
+	return 0;
 }
 
 
@@ -528,8 +530,8 @@ int main(int argc, char *argv[])
 						handle_log_line(buff);
 
 					}
+					pclose(fp);
 				}
-				pclose(fp);
 				BASE_TIME = now;
 				
 			}

@@ -67,7 +67,7 @@ void handle_signal (int signum) {
 	
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
-        gargoyle_monitor_blacklist_shm;
+        //gargoyle_monitor_blacklist_shm;
     }
 	
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);

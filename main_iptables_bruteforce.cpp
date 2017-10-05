@@ -100,7 +100,7 @@ void signal_handler(int signum) {
 	
     if(gargoyle_bf_whitelist_shm) {
         delete gargoyle_bf_whitelist_shm;
-        gargoyle_bf_whitelist_shm;
+        //gargoyle_bf_whitelist_shm;
     }
 
 	// terminate program

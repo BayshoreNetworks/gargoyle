@@ -132,18 +132,19 @@ size_t iptables_list_chain_with_line_numbers(const char *chain_name, char *dst, 
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
 	
+	size_t rc = 0;
 	size_t dest_len = strlen(dest);
 	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
 	if (dest_len+1 > sz_dst) {
-		free(dest);
-		return 1;
+		rc = 1;
+	} else {
+		memcpy (dst, dest, dest_len+1);
 	}
-	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
-	return 0;
+	return rc;
 }
 
 
@@ -174,18 +175,19 @@ size_t iptables_list_chain(const char *chain_name, char *dst, size_t sz_dst, siz
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
 	
+	size_t rc = 0;
 	size_t dest_len = strlen(dest);
 	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
 	if (dest_len+1 > sz_dst) {
-		free(dest);
-		return 1;
+		rc = 1;
+	} else {
+		memcpy (dst, dest, dest_len+1);
 	}
-	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
-	return 0;
+	return rc;
 }
 
 
@@ -216,18 +218,19 @@ size_t iptables_list_all_with_line_numbers(char *dst, size_t sz_dst, size_t use_
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
 	
+	size_t rc = 0;
 	size_t dest_len = strlen(dest);
 	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
 	if (dest_len+1 > sz_dst) {
-		free(dest);
-		return 1;
+		rc = 1;
+	} else {
+		memcpy (dst, dest, dest_len+1);
 	}
-	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
-	return 0;
+	return rc;
 }
 
 
@@ -259,18 +262,19 @@ size_t iptables_list_all(char *dst, size_t sz_dst, size_t use_xlock) {
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
 	
+	size_t rc = 0;
 	size_t dest_len = strlen(dest);
 	dest[dest_len] = '\0';
 	//strcpy(dst, dest);
 	if (dest_len+1 > sz_dst) {
-		free(dest);
-		return 1;
+		rc = 1;
+	} else {
+		memcpy (dst, dest, dest_len+1);
 	}
-	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
-	return 0;
+	return rc;
 }
 
 
@@ -554,18 +558,19 @@ size_t iptables_list_chain_table(const char *chain_name, const char *table_name,
 		strncat(dest, buff, DEST_BUF_SZ-strlen(dest)-1);
 	}
 	
+	size_t rc = 0;
 	size_t dest_len = strlen(dest);
 	dest[dest_len] = '\0';
 
 	if (dest_len+1 > sz_dst) {
-		free(dest);
-		return 1;
+		rc = 1;
+	} else {
+		memcpy (dst, dest, dest_len+1);
 	}
-	memcpy (dst, dest, dest_len+1);
 	
 	free(dest);
 	pclose(in);
-	return 0;
+	return rc;
 }
 
 

@@ -67,9 +67,12 @@ SharedMemRegion *SharedMemRegion::Create(const char *name, size_t initial_size) 
 }
 
 SharedMemRegion::~SharedMemRegion() {
-    munmap(BaseAddr(), Size());
+    if (BaseAddr())
+        munmap(BaseAddr(), Size());
     if(IsCreator())
         shm_unlink(my_name);
+    if (-1!=fd)
+        close(fd);
 }
 
 int32_t SharedMemRegion::Init() {

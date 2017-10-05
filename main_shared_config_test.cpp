@@ -64,7 +64,7 @@ SharedIpConfig *g_shared_config = NULL;
 void deleteConfig() {
     if(g_shared_config) {
         delete g_shared_config;
-        g_shared_config;
+        //g_shared_config;
         exit(0);
     }
 }

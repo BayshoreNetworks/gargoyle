@@ -94,7 +94,7 @@ void handle_signal (int signum) {
 	
     if(gargoyle_analysis_whitelist_shm) {
         delete gargoyle_analysis_whitelist_shm;
-        gargoyle_analysis_whitelist_shm;
+        //gargoyle_analysis_whitelist_shm;
     }
 	
 	exit(0);
@@ -156,6 +156,7 @@ void query_for_single_port_hits_last_seen() {
 
 	size_t list_hosts_dst_sz = SMALL_DEST_BUF;
 	char *l_hosts = (char*) malloc(list_hosts_dst_sz+1);
+	last_seen = (int) time(NULL);
 
 	token1 = strtok_r(list_of_ports, tok1, &token1_save);
 	while (token1 != NULL) {
@@ -404,8 +405,7 @@ void run_analysis() {
 				*host_ip = 0;
 				added_host_ix = 0;
 				
-				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
-				if (host_ip) {
+				if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
 					
 					added_host_ix = get_host_ix(host_ip, DB_LOCATION);
 					if (added_host_ix > 0) {
@@ -555,7 +555,7 @@ void clean_up_iptables_dupe_data() {
 	int rule_ix2;
 	
 	std::map<std::string, int> iptables_map;
-	
+
 	iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	if (l_chains) {
 		token1 = strtok_r(l_chains, tok1, &token1_save);
@@ -608,8 +608,7 @@ void clean_up_iptables_dupe_data() {
 					size_t position4 = s_lchains4 - token2;
 
 					*host_ip2 = 0;
-					bayshoresubstring(position3 + dash_dash_len, position4, token2, host_ip2, 16);
-					if (host_ip2) {
+					if (bayshoresubstring(position3 + dash_dash_len, position4, token2, host_ip2, 16)) {
 
 						if ((strcmp((it->first).c_str(), host_ip2) == 0) && (it->second < rule_ix2)) {
 							/*

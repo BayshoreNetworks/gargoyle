@@ -111,7 +111,7 @@ void graceful_exit(int signum) {
 	
     if(gargoyle_blacklist_shm) {
         delete gargoyle_blacklist_shm;
-        gargoyle_blacklist_shm;
+        //gargoyle_blacklist_shm;
     }
 	
 	if (signum == 11) {
@@ -277,10 +277,10 @@ void get_ports_to_ignore() {
 				}
 			}
 		}
+		pclose(fp);
 	}
 	free(net_tcp);
 	free(target);
-	pclose(fp);
 }
 
 
@@ -352,10 +352,10 @@ void get_ephemeral_range_to_ignore() {
 				token1 = strtok_r(NULL, tok1, &token1_save);
 			}
 		}
+		pclose(fp);	
 	}
 	free(ephemeral_tcp);
 	free(target);
-	pclose(fp);	
 }
 
 
@@ -435,9 +435,9 @@ void get_default_gateway_linux() {
 				token1 = strtok_r(NULL, tok1, &token1_save);
 			}
 		}
+		pclose(fp);
 	}
 	free(default_gway);
-	pclose(fp);
 }
 
 
