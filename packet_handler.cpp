@@ -112,11 +112,13 @@ static uint16_t checksum(const uint16_t* buf, unsigned int nbytes) {
 
 
 void *bayshoresubstring(size_t start, size_t stop, const char *src, char *dst, size_t size) {
+	if (!dst) return NULL;
 	int count = stop - start;
 	if ( count >= --size ) {
 		count = size;
 	}
 	sprintf(dst, "%.*s", count, src + start);
+	return dst;
 }
 
 
@@ -144,6 +146,10 @@ GargoylePscandHandler::GargoylePscandHandler() {
 	ENFORCE = true;
 	PH_SINGLE_IP_SCAN_THRESHOLD = 6;
 	PH_SINGLE_PORT_SCAN_THRESHOLD = 5;
+	IGNORE_WHITE_LISTED_IP_ADDRS = false;
+	EPHEMERAL_LOW = 1024;
+	EPHEMERAL_HIGH = 65535;
+	IPTABLES_SUPPORTS_XLOCK = 0;
 	
 	gargoyle_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
@@ -154,12 +160,12 @@ GargoylePscandHandler::~GargoylePscandHandler() {
 	
     if(gargoyle_whitelist_shm) {
         delete gargoyle_whitelist_shm;
-        gargoyle_whitelist_shm;
+        //gargoyle_whitelist_shm;
     }
     
     if(gargoyle_blacklist_shm) {
         delete gargoyle_blacklist_shm;
-        gargoyle_blacklist_shm;
+        //gargoyle_blacklist_shm;
     }
     
 }
@@ -883,8 +889,7 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 					size_t position2 = s_lchains4 - token1;
 
 					*host_ip = 0;
-					bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
-					if (host_ip) {
+					if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
 						
 						ip_tables_entries.insert(host_ip);
 					
@@ -1158,8 +1163,7 @@ void GargoylePscandHandler::add_block_rules() {
 				size_t position2 = s_lchains4 - token1;
 
 				*host_ip = 0;
-				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
-				if (host_ip) {
+				if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
 					
 					ip_tables_entries.insert(host_ip);
 				

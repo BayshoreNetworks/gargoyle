@@ -1,4 +1,4 @@
-CPPFLAGS=-I. -Ilib
+CPPFLAGS=-I. -Ilib -Wreturn-type
 
 include_HEADERS = lib/config_variables.h lib/gargoyle_config_vals.h lib/iptables_wrapper_api.h lib/singleton.h lib/sqlite_wrapper_api.h packet_handler.h ip_addr_controller.h
 

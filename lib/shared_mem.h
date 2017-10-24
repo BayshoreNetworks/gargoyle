@@ -43,7 +43,7 @@ class SharedMemRegion {
      * to an object instance.
      */
     SharedMemRegion(const char *name, size_t initial_size) :
-        my_name(name), my_size(initial_size), base_addr(NULL), is_created(false) {}
+        my_name(name), my_size(initial_size), fd(-1), base_addr(NULL), is_created(false) {}
     int32_t Init();
 public:
     ~SharedMemRegion();

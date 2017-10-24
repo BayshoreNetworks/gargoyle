@@ -50,13 +50,13 @@ void signal_handler(int signum) {
 	
     if(gargoyle_view_whitelist_shm) {
         delete gargoyle_view_whitelist_shm;
-        gargoyle_view_whitelist_shm;
+        //gargoyle_view_whitelist_shm;
     }
     
     
     if(gargoyle_view_blacklist_shm) {
         delete gargoyle_view_blacklist_shm;
-        gargoyle_view_blacklist_shm;
+        //gargoyle_view_blacklist_shm;
     }
 
 	// terminate program

@@ -1339,7 +1339,31 @@ def IPAddress(address, version=None):
 ''' *********************************************************************************************************** '''
 
 def list_of_ports(list):
+    """ List of Ports 
 
+        Converts a list of strings of numbers to a list of integers
+
+        Input can be one of the following:
+        - mixed ints and ranges (i.e. ['1','2','5-7'])
+        - just ints (i.e. ['1','2','3'])
+        - just ranges(i.e. ['2-5','8-10'])
+
+        Args:
+            list: list of strings
+
+        Returns:
+            A list of integers
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> list_of_ports(['1','2','5-7'])
+        [1,2,5,6,7]
+        >>> list_of_ports(['1-5'])
+        [1,2,3,4,5]
+    """
     ports = []
 
     for x in list:
@@ -1362,7 +1386,27 @@ def list_of_ports(list):
     return ports
 
 def is_there_conflict(list1, list2):
+    """ Is There Conflict?
 
+        Given two lists of ints, determines if tthey have any overlapping numbers.
+
+        Args:
+            list1: list of ints
+            list2: list of ints
+
+        Returns:
+            1 if there is overlap(conflict) and 0 if there is not.
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> is_there_conflict(['1','2','3-5'],['0','4'])
+        1
+        >>> is_there_conflict(['1-5'],['6','7'])
+        0
+    """
     if len(list1) > 0 and len(list2) > 0:
         ignore = list1.split(',')
         hot = list2.split(',')
@@ -1383,7 +1427,26 @@ def is_there_conflict(list1, list2):
     return 0
 
 def get_current_config():
-    
+    """ Get Current Configuration
+
+        Returns the data in the config file .gargoyle_config
+
+        Args:
+            None
+
+        Returns:
+            A json object whose key value pairs are the each line of the .gargoyle_config file
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> get_current_config()
+        {"port_scan_threshold": 15, "overall_port_scan_threshold": 8, "lockout_time": 32400, "single_ip_scan_threshold": 6, "last_seen_delta": 28800, "enforce": 1}
+        >>> type(get_current_config())
+        <type 'str'>
+    """
     try:
         config_file = os.environ["GARGOYLE_CONFIG"]
     except KeyError:
@@ -1405,8 +1468,29 @@ def get_current_config():
     return json.dumps(cur)
     
 def set_config(objct):
+    """ Set Configuration
 
-    ''' dictionary of user specified key-values from gui '''
+        Set new values in configuration file
+
+        Args:
+            list: json object containing key value pairs you want to write into the config file
+
+        Returns:
+            0 if the config file was succesfully updated and 1 if there was an error. Errors are raised for the following reasons:
+            - there is a conflict between hot_ports and ports_to_ignore
+            - enforce is set to something other than 0 ir 1
+            - one of the values contains a character from the alphabet
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> set_config({"port_scan_threshold": 15, "overall_port_scan_threshold": 8, "lockout_time": 32400, "single_ip_scan_threshold": 6, "last_seen_delta": 28800, "enforce": 1, "hot_ports":['2','3'], "ports_to_ignore":['4']})
+        0
+        >>> set_config({"port_scan_threshold": 15, "overall_port_scan_threshold": 8, "lockout_time": 32400, "single_ip_scan_threshold": 6, "last_seen_delta": 28800, "enforce": 1, "hot_ports":['2','3'], "ports_to_ignore":['2'] })
+        1
+    """
     data = json.loads(objct)
     
     try:
@@ -1449,7 +1533,27 @@ def set_config(objct):
     return 0
 
 def unblock_ip(ip_addr='',version=None):
+    """ Unblock IP Address
 
+        Given an ip address, it performs the gargoyle_pscand_unblockip program using the address as input
+
+        Args:
+            ip_addr: ip address string. ip_addr: ip address string. You will get a syntax error if you attempt to use a non-string argument.
+
+        Returns:
+            0 if the ip address was successfully unblocked, 1 if the input wasn't a valid ip address, and 2 if the ip address is on
+            the black list because it can't be unblocked until removed from there.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> unblock_ip('192.168.100.1')
+        0
+        >>> unblock_ip('100.100')
+        1
+    """
     ip_address = IPAddress(ip_addr)   
     if ip_address == 1:
         return 1
@@ -1461,7 +1565,7 @@ def unblock_ip(ip_addr='',version=None):
         table = sqlite3.connect(db_loc)    
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
                 
     try:
         with table:
@@ -1495,8 +1599,28 @@ def unblock_ip(ip_addr='',version=None):
     return 0
 
 def get_db():
-    
-    #DB_PATH = "/db/port_scan_detect.db"
+    """ Get Database
+
+        Retrieves location of the gargoyle database used in many of the other functions.
+        The default location is /opt/gargoyle_pscand/db/gargoyle_attack_detect.db
+
+        Args:
+            None
+
+        Returns:
+            String value of the location of the gargoyle_attack_detect.db database.
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> get_db()
+        /opt/gargoyle_pscand/db/gargoyle_attack_detect.db
+        >>> get_db()
+        /home/bayshore/Desktop/gargoyle/db/gargoyle_attack_detect.db
+
+    """
     DB_PATH = "/db/gargoyle_attack_detect.db"
     db_file = None
         
@@ -1515,16 +1639,35 @@ def get_db():
     return db_loc
 
 def get_current_white_list():
+    """ Get Current White List
 
+        Returns the data in the white_ip_list db table
+
+        Args:
+            None
+
+        Returns:
+            A dictionary where the keys are ip addresses in the white list and values are the timestamp of when the ip was white listed.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> get_current_white_list()
+        {'192.168.56.30':1504035667}
+        >>> get_current_white_list()
+        {'192.168.56.10':1504035667,'192.168.100.103':1504035712}
+    """
     db_loc = get_db()
     host_ix_list = {}
     white_listed_ips = {}
-
+    print db_loc
     try:
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
 
     try:
         with table:
@@ -1549,9 +1692,27 @@ def get_current_white_list():
 
     return white_listed_ips
     
-'''query detected_hosts, if it exists, call unblock then add a row to white list table. if not, just add row to white list'''
 def add_to_white_list(ip_addr=''):
+    """ Add to White List
 
+        Given an ip address, it queries the detected_hosts table. If it exists, calls unblock then adds a row to white list table. If not, it just adds a row to white list.
+
+        Args:
+            ip_addr: ip address string. You will get a syntax error if you attempt to use a non-string argument.
+
+        Returns:
+            0 if the ip address was successfully added to the white list and 1 if the input wasn't a valid ip address.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> add_to_white_list('192.168.100.1')
+        0
+        >>> add_to_white_list('100.100')
+        1
+    """
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
@@ -1566,7 +1727,7 @@ def add_to_white_list(ip_addr=''):
         table = sqlite3.connect(db_loc)    
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
                 
     '''
     	have to get the ip addr ix first
@@ -1641,7 +1802,26 @@ def add_to_white_list(ip_addr=''):
     return 0
 
 def remove_from_white_list(ip_addr=''):
+    """ Remove from White List
 
+        Given an ip address, it removes it from the white list if it exists in there.
+
+        Args:
+            ip_addr: ip address string. ip_addr: ip address string. You will get a syntax error if you attempt to use a non-string argument.
+
+        Returns:
+            0 if the ip address was successfully removed or wasn't in the white list and 1 if the input wasn't a valid ip address.
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> remove_from_white_list('192.168.100.1')
+        0
+        >>> remove_from_white_list('100.100')
+        1
+    """
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
@@ -1656,7 +1836,26 @@ def remove_from_white_list(ip_addr=''):
     return 0
 
 def get_current_black_list():
+    """ Get Current Black List
 
+        Returns the data in the black_ip_list db table
+
+        Args:
+            None
+
+        Returns:
+            A dictionary where the keys are ip addresses in the black list and values are the timestamp of when the ip was black listed.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> get_current_black_list()
+        {'192.168.56.30':1504035667}
+        >>> get_current_black_list()
+        {'192.168.56.10':1504035667,'192.168.100.103':1504035712}
+    """
     db_loc = get_db()
     host_ix_list = {}
     black_listed_ips = {}
@@ -1665,7 +1864,7 @@ def get_current_black_list():
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
 
     try:
         with table:
@@ -1690,9 +1889,28 @@ def get_current_black_list():
 
     return black_listed_ips
 
-'''query detected_hosts, if it exists, call unblock then add a row to black list table. if not, just add row to black list'''
 def add_to_black_list(ip_addr=''):
+    """ Add to Black List 
 
+        Given an ip address, it queries the detected_hosts table. If it exists, calls unblock then adds a row to black list table. If not, it just adds a row to black list.
+        A cycled process within gargoyle will create blocking rules for ip addr's that have been flagged as black listed.
+
+        Args:
+            ip_addr: ip address string. You will get a syntax error if you attempt to use a non-string argument.
+
+        Returns:
+            0 if the ip address was successfully added to the black list and 1 if the input wasn't a valid ip address.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> add_to_black_list('192.168.100.1')
+        0
+        >>> add_to_black_list('100.100')
+        1
+    """
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
@@ -1707,7 +1925,7 @@ def add_to_black_list(ip_addr=''):
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
                 
     '''
     	have to get the ip addr ix first
@@ -1778,7 +1996,26 @@ def add_to_black_list(ip_addr=''):
     return 0
 
 def remove_from_black_list(ip_addr=''):
+    """ Remove From Black List
 
+        Given an ipaddress, it removes it unblocks it and removes it from the black list.
+
+        Args:
+            ip_addr: ip address string. ip_addr: ip address string. You will get a syntax error if you attempt to use a non-string argument.
+
+        Returns:
+            0 if the ip address was successfully removed or wasn't in the black list and 1 if the input wasn't a valid ip address.
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> remove_from_black_list('192.168.100.1')
+        0
+        >>> remove_from_black_list('100.100')
+        1
+    """
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
@@ -1791,12 +2028,29 @@ def remove_from_black_list(ip_addr=''):
     syslog.syslog('action="remove from blacklist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
 
     return 0
-
-'''
-returns list of string of ips in iptables
-'''   
+  
 def get_current_from_iptables():
-    
+    """ Get Current Information From Iptables 
+
+        Retrieves ips in iptables
+
+        Args:
+            ip_addr: None
+
+        Returns:
+            A dictionary where the keys are ips in iptables and the values are a list containing the timestamp the ip was first seen by gargoyle
+            and the timestamp the ip was last seen, with the timestamps retrieved from the database.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> get_current_from_iptables()
+        {'192.168.56.101':[1504036871, 1504040871]}
+        >>> get_current_from_iptables()
+        {'192.168.56.101':[1504036871, 1504040871], '192.168.100.23':[1515436871, 1604040871]}
+    """
     ips_in_iptables = []
     blocked_ips = {}
     first_seen = 0
@@ -1821,7 +2075,7 @@ def get_current_from_iptables():
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
 
     for ip in ips_in_iptables:
         try:
@@ -1843,7 +2097,25 @@ def get_current_from_iptables():
     return blocked_ips
 
 def blocked_time():
+    """ Blocked Time 
 
+        Returns information on blocked ips.
+
+        Args:
+            None
+
+        Returns:
+            A dictionary where keys are blocked ips and values are a list containing time the ip was blocked and the time it will be unblocked by a cycled process.
+            If the ip is on the black list, the cycled process won't unblock it so the second value in the list will be a '0'.
+
+        Raises:
+            Database Error if the path returned by db_loc() is not valid or the user doesn't have root priviledges when running the program.
+
+        Examples:
+
+        >>> blocked_time()
+        {'218.2.0.29': ['2017-08-29 07:19:50', '2017-08-30 03:21:37'], '113.107.137.100': ['2017-06-19 20:18:37', 0], '139.162.118.251': ['2017-08-29 09:28:00', '2017-08-30 03:21:37']}
+    """
     blocked_timestamps = {}
     blocked_ips = get_current_from_iptables()
     host_ix = None
@@ -1858,7 +2130,7 @@ def blocked_time():
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
-        print(e)
+        raise e
 
     for ip in blocked_ips.keys():
         host_ix = None
@@ -1905,7 +2177,24 @@ def blocked_time():
     return blocked_timestamps
 
 def daemon_stats():
+    """ Daemon Statistics
+ 
+        Returns information about gargoyle daemon statistics
 
+        Args:
+            None
+
+        Returns:
+            A dictionary containing general gargoyle information.
+
+        Raises:
+            No exceptions raised
+
+        Examples:
+
+        >>> daemon_stats
+        {'last_analysis': '2017-08-29 16:33:43', 'next_analysis': '2017-08-29 16:48:43', 'next_monitor': '2017-08-30 03:21:37', 'runningDaemons': ['./gargoyle_pscand', './gargoyle_pscand_analysis', './gargoyle_pscand_monitor', './gargoyle_lscand_ssh_bruteforce'], 'last_monitor': '2017-08-29 15:21:37', 'Active': 'Active: active (running) since Fri 2017-08-18 15:20:30 EDT; 1 weeks 4 days ago'}
+    """
     daemon = {}
     cmd = ['service gargoyle_pscand status']
     p = Popen (cmd, stdout=PIPE, shell=True)

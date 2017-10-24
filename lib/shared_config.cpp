@@ -104,6 +104,7 @@ int32_t SharedIpConfig::lock() {
     if(count == MAX_TRIES) {
         return -1;
     }
+    return 0;
 }
 
 int32_t SharedIpConfig::unlock() {
@@ -347,10 +348,10 @@ int32_t SharedIpConfig::ToString(stringstream &ss) {
         commaStr = ",";
     }
 
-    goto exit;
-error_exit:
-    ret = -1;
-exit:
+//    goto exit;
+//error_exit:
+//    ret = -1;
+//exit:
     unlock();
     return ret;
 }

@@ -67,7 +67,7 @@ int main () {
 
 	int mymax = lscand_sshbf_ix;
 
-	int n;
+	//int n;
 	char cmd[100];
 
 	std::string data;
@@ -113,7 +113,7 @@ int main () {
 							data.append(dest);
 					pclose(stream);
 				}
-				if (!data.size() > 0) {
+				if ((!data.size()) > 0) {
 					good = true;
 					mymap[mit->first] = mymax;
 				}

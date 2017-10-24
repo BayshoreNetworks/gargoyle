@@ -100,7 +100,7 @@ void signal_handler(int signum) {
 	
     if(gargoyle_bf_whitelist_shm) {
         delete gargoyle_bf_whitelist_shm;
-        gargoyle_bf_whitelist_shm;
+        //gargoyle_bf_whitelist_shm;
     }
 
 	// terminate program
@@ -164,6 +164,17 @@ int handle_log_line(const std::string &line, const std::string &regex_str) {
 			//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
 			handle_ip_addr(ip_addr);
 
+		} else {
+			
+			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+
+			// the hack found an ip addr
+			if (hip.size()) {
+				
+				handle_ip_addr(hip);
+			
+			}
+			
 		}
 		return 0;
 
@@ -265,7 +276,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 
 
 /*
- * read file untill new line,
+ * read file until new line,
  * save last position
  * 
  */
@@ -291,11 +302,17 @@ int get_new_line(ifstream &infile, const string &regex_str) {
 		last_position = infile.tellg();
 
 		string tmp_str = tmp;
-		handle_log_line(tmp_str, regex_str);
+		if (tmp_str.size() > 0)
+			handle_log_line(tmp_str, regex_str);
 
-		// end of file 
+		// end of active file 
 		if(filesize == last_position) {
 			return filesize;
+		}
+		
+		// EOF
+		if (infile.eof()) {
+			return 1;
 		}
 
 	}
@@ -386,14 +403,32 @@ int main(int argc, char *argv[]) {
 	/*
 	 * handle standard type of log file where we
 	 * control the tail style functionality
+	 * 
 	 */
 	for(;;) {
+		
 		std::ifstream infile(log_entity.c_str());
 		int current_position = get_new_line(infile, regex_str);
 		
+		/*
+		 * 1 means we hit EOF and so this way
+		 * we catch log file rotations and we
+		 * start at the top of this loop when
+		 * that point gets hit
+		 * 
+		 */
+		if (current_position == 1) {
+			//std::cout << "EOF reached" << std::endl;
+			infile.close();
+			continue;
+		}
+		
 		sleep(5);
 		process_iteration(num_seconds, num_hits);
-	} 
+		
+		//display_map();
+	
+	}
 
 	return 0;
 }

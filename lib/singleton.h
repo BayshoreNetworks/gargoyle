@@ -54,6 +54,7 @@ public:
 								+ strerror(errno));
 			} else {
 				struct sockaddr_in name;
+				bzero(&name, sizeof(name));
 				name.sin_family = AF_INET;
 				name.sin_port = htons(port);
 				name.sin_addr.s_addr = htonl(INADDR_ANY);
