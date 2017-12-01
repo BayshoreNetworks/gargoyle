@@ -1,9 +1,12 @@
 # gargoyle
 
+<p>
 <a href="https://scan.coverity.com/projects/bayshorenetworks-gargoyle">
   <img alt="Coverity Scan Build Status"
        src="https://scan.coverity.com/projects/13905/badge.svg"/>
 </a>
+<a href="https://www.openhub.net/p/gargoyle-scand?ref=Thin+badge" rel="nofollow"><img alt="OpenHub-Status" src="https://www.openhub.net/p/gargoyle-scand/widgets/project_thin_badge?format=gif" data-canonical-src="https://www.openhub.net/p/gargoyle-scand/widgets/project_thin_badge?format=gif" style="max-width:100%;"></a></p>
+</p>
 
 Gargoyle Protection for Linux
 
