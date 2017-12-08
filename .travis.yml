@@ -1,0 +1,37 @@
+sudo: required
+language: cpp
+compiler:
+- gcc
+notifications:
+  slack:
+    secure: qjUCogalJqhgvzg9hDGlakVanA6DxvwrTFTevL8Rx5/fAf7OKKtyEB6KrNwq3n/rbSfAqno5n6L5qWaQXfK4N0WYev1KnssXZ/jpWOEC1HVUf2Y/4lAhD2PLMXDUlfyhmwjXBVQSdOFiMRRMAI4hMjLnqea1jugQOFh5APPfZ1vLQRmnl2HdtCObzhZBiLuZfcfngshsSpnVjzruC797ciFkeO9EShbinLWBe2VUYc3QgEzItT0/GgNUkjDVOkQHZtKxI+K3DmgH2Igzygr/Kv5yP4fgYT8qL9804d7kWMbhkChHJTOJ4ZrfVJuQ/94xkqTk5E/ujxq3+sQmLOAgqJFUwvkDuzUNSygn8Qw+5ED1MJqX3IpF7ALoUFaizsxrB12MUbXIJQi4ism+iRpgTSGXD3j7hGLU6uT8er6sFYEIZgUdy1/yPhY1INfRkbgrEmRguGn9bAQBixIdzZgliKw1hQKLDm5L8CN7XIZQv25XjX331Lb8ZDoqbYl6dbIB8X+dIdRJldtPxOxhUPVRuBqVuDAc7PvG/y6YBD1CfKyou9Kh3GMicmHERua4oTgquITN88j7asvEk6fBnrhc6z6HkfNrUAGaiWleQBNj2iiuWhF53nDAAxpwbD5QMomPnhuGGbvkEhm/oBr6rErfYSgThglkLLMreWyC67HXRHo=
+matrix:
+  include:
+  - os: linux
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-7
+    env:
+    - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+before_install:
+- eval "${MATRIX_EVAL}"
+- sudo apt-get install sqlite3
+- sudo apt-get install libsqlite3-dev
+- sudo apt-get install autoconf
+- sudo apt-get install lsb-base
+- sudo apt-get install libnetfilter-log-dev
+- echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END
+  CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+addons:
+  coverity_scan:
+    project:
+      name: BayshoreNetworks/gargoyle
+      description: Build submitted via Travis CI
+    notification_email: andres@neurofuzzsecurity.com
+    build_command_prepend: make clean
+    build_command: "./build.sh"
+    branch_pattern: coverity_scan
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./build.sh ; fi
