@@ -32,6 +32,6 @@ addons:
       description: Build submitted via Travis CI
     notification_email: andres@neurofuzzsecurity.com
     build_command_prepend: make clean
-    build_command: "./build.sh"
+    build_command: "sudo ./build.sh"
     branch_pattern: coverity_scan
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./build.sh ; fi
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then sudo ./build.sh ; fi
