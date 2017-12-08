@@ -31,15 +31,31 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 
 #define BF_CONF_DIR_MAX 512
 
 sig_atomic_t child_process_ret_status;
 char GARG_BF_CONFIG_DIR[BF_CONF_DIR_MAX + 1];
+
+
+int is_dir(const char *dpath) {
+	
+    struct stat buf;
+
+    if (stat(dpath, &buf) == 0 && S_ISDIR(buf.st_mode)) {
+        //printf("YES\n");
+        return 0;
+    } else {
+        //printf("NO\n");
+        return 1;
+    }
+}
+
 
 
 void spawn(char *program,char *argv[]) {
@@ -93,18 +109,27 @@ int main(void){
 	DIR *dpdf1;
 	struct dirent *epdf1;
 	
-	dpdf1 = opendir(GARG_BF_CONFIG_DIR);
-	if (dpdf1 != NULL) {
-		// get a count
-		while (NULL!=(epdf1 = readdir(dpdf1))){
-			
-			if (epdf1->d_name[0] != '.') {
+	if (is_dir(GARG_BF_CONFIG_DIR) == 0) {
 	
-				file_cnt++;
-	
+		dpdf1 = opendir(GARG_BF_CONFIG_DIR);
+		if (dpdf1 != NULL) {
+			// get a count
+			while (NULL!=(epdf1 = readdir(dpdf1))){
+				
+				if (epdf1->d_name[0] != '.') {
+		
+					file_cnt++;
+		
+				}
 			}
+			closedir(dpdf1);
 		}
-		closedir(dpdf1);
+	
+	} else {
+		
+		//printf("\nCould not access dir: %s\n\n", GARG_BF_CONFIG_DIR);
+		return 1;
+		
 	}
 
 	DIR *dpdf;
