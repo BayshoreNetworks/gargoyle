@@ -5,6 +5,9 @@ compiler:
 notifications:
   slack:
     secure: qjUCogalJqhgvzg9hDGlakVanA6DxvwrTFTevL8Rx5/fAf7OKKtyEB6KrNwq3n/rbSfAqno5n6L5qWaQXfK4N0WYev1KnssXZ/jpWOEC1HVUf2Y/4lAhD2PLMXDUlfyhmwjXBVQSdOFiMRRMAI4hMjLnqea1jugQOFh5APPfZ1vLQRmnl2HdtCObzhZBiLuZfcfngshsSpnVjzruC797ciFkeO9EShbinLWBe2VUYc3QgEzItT0/GgNUkjDVOkQHZtKxI+K3DmgH2Igzygr/Kv5yP4fgYT8qL9804d7kWMbhkChHJTOJ4ZrfVJuQ/94xkqTk5E/ujxq3+sQmLOAgqJFUwvkDuzUNSygn8Qw+5ED1MJqX3IpF7ALoUFaizsxrB12MUbXIJQi4ism+iRpgTSGXD3j7hGLU6uT8er6sFYEIZgUdy1/yPhY1INfRkbgrEmRguGn9bAQBixIdzZgliKw1hQKLDm5L8CN7XIZQv25XjX331Lb8ZDoqbYl6dbIB8X+dIdRJldtPxOxhUPVRuBqVuDAc7PvG/y6YBD1CfKyou9Kh3GMicmHERua4oTgquITN88j7asvEk6fBnrhc6z6HkfNrUAGaiWleQBNj2iiuWhF53nDAAxpwbD5QMomPnhuGGbvkEhm/oBr6rErfYSgThglkLLMreWyC67HXRHo=
+env:
+  global:
+    secure: P/WEUwT9KuOwK/C1I3X1O5yni/ruihWUjn3hQ8yLqGLALP3anVEk5824iF+smj/chhNsbprULJ1paShLAkTkob46/uitzNfLG9pT7Slu1k3k0qMIecglZrLasjtoK7KWkS/YYMVImHkGEKbWiRn9TgVGGjdQfIujvX3ou4Mne7x7xtSwLNRJSro2UJlLmk1EABtZTqPC/A4pRgt/PTIG8wQVxsp3u4C9xl1mJqk7h8/fxTXkmzpCU6ThSZf4vLevwq3smJZme5jk1UHyWUpo/6OQvafox6FcQMbnqS2/D+6GjW7SPiO1fXKTEsWMqfFUGMSGrQCWdyp+9+bUh5war1iiN+SgwQqnCMw/UBCSaRNSr9f7aj03qSd2VI4HM6LlQnAoBH3AEthhGJIw22wn4lhUK+z9ib6ROjiurO+cYwbpD26r653OozWMiz73ZQ0Gi/ihGMvFFGwasSxz4Tq44Hh344WR8rwh7ecvh0oAiN5HQigoFnL6nEXH/gt2lXqCY2QcKW3oXkuO2hEBjA0nImBVlh45yzZvIkT+4XiWJZtW+1Ftpcd46fTimXcPZvF+nU4vq22xdcI1WAOpLdeirnwG8DU5dIloaYC4q9JXiXeMAwmRz3ZOMfUbHhB5WURZx7n8IbRocGf3Oys7+EPvCUMu7PPQtDkvWPnqanFfVAE=
 matrix:
   include:
   - os: linux
@@ -32,6 +35,7 @@ addons:
       description: Build submitted via Travis CI
     notification_email: andres@neurofuzzsecurity.com
     build_command_prepend: make clean
-    build_command: "sudo ./build.sh"
+    build_command: sudo ./build.sh
     branch_pattern: coverity_scan
 script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then sudo ./build.sh ; fi
+

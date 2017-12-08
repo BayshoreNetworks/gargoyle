@@ -72,3 +72,4 @@ test_*.cpp
 *BKUP
 Makefile_*
 cov-int/*
+run_coverity
