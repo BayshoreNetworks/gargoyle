@@ -312,11 +312,10 @@ int main(int argc, char *argv[]) {
     std::ios::streampos gpos = ifs.tellg();
 
     std::string line;
-    bool done = false;
 	std::smatch match;
 	std::regex l_regex(regex_str);
 
-    while(!done) {
+    while(true) {
     	
         // try to read line
         if(!std::getline(ifs, line) || ifs.eof()) {
