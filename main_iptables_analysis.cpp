@@ -259,8 +259,8 @@ void query_for_multiple_ports_hits_last_seen() {
 	int ret;
 	int row_ix;
 	int host_ix;
-	int first_seen;
-	int last_seen;
+	int first_seen = 0;
+	int last_seen = 0;
 	int iter_cnt;
 	int now;
 	int hit_cnt_resp;
@@ -436,8 +436,8 @@ void clean_up_stale_data() {
 	int ret;
 	int row_ix;
 	int host_ix;
-	int first_seen;
-	int last_seen;
+	int first_seen = 0;
+	int last_seen = 0;
 	int iter_cnt;
 	int now;
 	int hit_cnt_resp;
