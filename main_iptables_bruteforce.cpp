@@ -72,7 +72,6 @@ int handle_log_line(const std::string &, const std::string &);
 void process_iteration(int, int);
 std::string hunt_for_ip_addr(std::string);
 void handle_ip_addr(const std::string &);
-int get_new_line(ifstream &, const string &);
 void display_map();
 
 
@@ -93,7 +92,6 @@ size_t get_regexes(const char *fname) {
 }
 
 
-
 void signal_handler(int signum) {
 
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
@@ -110,13 +108,11 @@ void signal_handler(int signum) {
 
 
 
-bool validate_ip_address(const std::string &ip_address)
-{
+bool validate_ip_address(const std::string &ip_address) {
 	struct sockaddr_in sa;
 	int result = inet_pton(AF_INET, ip_address.c_str(), &(sa.sin_addr));
 	return result != 0;
 }
-
 
 
 std::string hunt_for_ip_addr(const std::string &line, const char& c) {
@@ -137,50 +133,6 @@ std::string hunt_for_ip_addr(const std::string &line, const char& c) {
 		}
 	}
 	return resp;
-}
-
-
-
-int handle_log_line(const std::string &line, const std::string &regex_str) {
-
-	//std::cout << "LINE: " << line << std::endl;
-
-	std::smatch match;
-	std::regex l_regex(regex_str);
-
-	if (std::regex_search(line, match, l_regex)) {
-
-		/*
-		std::cout << match.size() << std::endl;
-		std::cout << match.str(0) << std::endl;
-		std::cout << match.str(1) << std::endl;
-		*/
-		std::string ip_addr = match.str(1);
-
-		if (validate_ip_address(ip_addr)) {
-
-			//std::cout << "MATCH: " << ip_addr << std::endl;
-			
-			//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
-			handle_ip_addr(ip_addr);
-
-		} else {
-			
-			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
-
-			// the hack found an ip addr
-			if (hip.size()) {
-				
-				handle_ip_addr(hip);
-			
-			}
-			
-		}
-		return 0;
-
-	}
-
-	return 0;
 }
 
 
@@ -275,52 +227,6 @@ void handle_ip_addr(const std::string &ip_addr) {
 }
 
 
-/*
- * read file until new line,
- * save last position
- * 
- */
-int get_new_line(ifstream &infile, const string &regex_str) {
-
-	std::smatch match;
-	std::regex l_regex(regex_str);
-
-	infile.seekg(0,ios::end);
-	int filesize = infile.tellg();
-
-	// check if the new file started
-	if(filesize < last_position){
-		last_position=0;
-	}  
-
-	// read file from last position until new line is found 
-	for(int n = last_position; n < filesize; n++) {
-
-		infile.seekg( last_position,ios::beg);
-		char tmp[BUF_SZ]; 
-		infile.getline(tmp, BUF_SZ);
-		last_position = infile.tellg();
-
-		string tmp_str = tmp;
-		if (tmp_str.size() > 0)
-			handle_log_line(tmp_str, regex_str);
-
-		// end of active file 
-		if(filesize == last_position) {
-			return filesize;
-		}
-		
-		// EOF
-		if (infile.eof()) {
-			return 1;
-		}
-
-	}
-
-	return 0;
-}
-
-
 int main(int argc, char *argv[]) {
 
 	// register signal SIGINT and signal handler  
@@ -400,35 +306,79 @@ int main(int argc, char *argv[]) {
 
 	gargoyle_bf_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 
-	/*
-	 * handle standard type of log file where we
-	 * control the tail style functionality
-	 * 
-	 */
-	for(;;) {
-		
-		std::ifstream infile(log_entity.c_str());
-		int current_position = get_new_line(infile, regex_str);
-		
-		/*
-		 * 1 means we hit EOF and so this way
-		 * we catch log file rotations and we
-		 * start at the top of this loop when
-		 * that point gets hit
-		 * 
-		 */
-		if (current_position == 1) {
-			//std::cout << "EOF reached" << std::endl;
-			infile.close();
-			continue;
-		}
-		
-		sleep(5);
-		process_iteration(num_seconds, num_hits);
-		
-		//display_map();
 	
-	}
+	std::ifstream ifs(log_entity.c_str(), std::ios::ate);
+    // remember file position
+    std::ios::streampos gpos = ifs.tellg();
+
+    std::string line;
+    bool done = false;
+	std::smatch match;
+	std::regex l_regex(regex_str);
+
+    while(!done) {
+    	
+        // try to read line
+        if(!std::getline(ifs, line) || ifs.eof()) {
+        	
+            // if we fail, clear stream, return to beginning of line
+            ifs.clear();
+            ifs.seekg(gpos);
+
+            // and wait to try again
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
+
+        
+        // remember the position of the next line in case
+        // the next read fails
+        gpos = ifs.tellg();
+
+        // process line here
+        std::cout << "line: " << line << std::endl;
+        
+    	if (std::regex_search(line, match, l_regex)) {
+
+    		/*
+    		std::cout << "MATCH SZ: " << match.size() << std::endl;
+    		std::cout << "MATCH 0: " << match.str(0) << std::endl;
+    		std::cout << "MATCH 1: " << match.str(1) << std::endl;
+    		*/
+    		std::string ip_addr = match.str(1);
+    		//std::cout << "IP: " << ip_addr << std::endl;
+    		
+    		if (validate_ip_address(ip_addr)) {
+
+    			//std::cout << "MATCH: " << ip_addr << std::endl;
+    			
+    			//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+    			handle_ip_addr(ip_addr);
+
+    		} else {
+    			
+    			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+
+    			// the hack found an ip addr
+    			if (hip.size()) {
+    				
+    				handle_ip_addr(hip);
+    			
+    			}
+    			
+    		}
+
+    	}
+    	
+    	process_iteration(num_seconds, num_hits);
+        
+    }
 
 	return 0;
 }
+
+
+
+
+
+
