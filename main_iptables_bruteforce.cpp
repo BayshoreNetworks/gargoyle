@@ -313,65 +313,76 @@ int main(int argc, char *argv[]) {
 
     std::string line;
 	std::smatch match;
-	std::regex l_regex(regex_str);
 
-    while(true) {
-    	
-        // try to read line
-        if(!std::getline(ifs, line) || ifs.eof()) {
-        	
-            // if we fail, clear stream, return to beginning of line
-            ifs.clear();
-            ifs.seekg(gpos);
-
-            // and wait to try again
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            continue;
-        }
-
-        
-        // remember the position of the next line in case
-        // the next read fails
-        gpos = ifs.tellg();
-
-        // process line here
-        std::cout << "line: " << line << std::endl;
-        
-    	if (std::regex_search(line, match, l_regex)) {
-
-    		/*
-    		std::cout << "MATCH SZ: " << match.size() << std::endl;
-    		std::cout << "MATCH 0: " << match.str(0) << std::endl;
-    		std::cout << "MATCH 1: " << match.str(1) << std::endl;
-    		*/
-    		std::string ip_addr = match.str(1);
-    		//std::cout << "IP: " << ip_addr << std::endl;
-    		
-    		if (validate_ip_address(ip_addr)) {
-
-    			//std::cout << "MATCH: " << ip_addr << std::endl;
-    			
-    			//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
-    			handle_ip_addr(ip_addr);
-
-    		} else {
-    			
-    			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
-
-    			// the hack found an ip addr
-    			if (hip.size()) {
-    				
-    				handle_ip_addr(hip);
-    			
-    			}
-    			
-    		}
-
-    	}
-    	
-    	process_iteration(num_seconds, num_hits);
-        
-    }
+	try {
+		
+		std::regex l_regex(regex_str);	
+		while(true) {
+			
+			// try to read line
+			if(!std::getline(ifs, line) || ifs.eof()) {
+				
+				// if we fail, clear stream, return to beginning of line
+				ifs.clear();
+				ifs.seekg(gpos);
+	
+				// and wait to try again
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				continue;
+			}
+	
+			
+			// remember the position of the next line in case
+			// the next read fails
+			gpos = ifs.tellg();
+	
+			// process line here
+			std::cout << "line: " << line << std::endl;
+			
+			if (std::regex_search(line, match, l_regex)) {
+	
+				/*
+				std::cout << "MATCH SZ: " << match.size() << std::endl;
+				std::cout << "MATCH 0: " << match.str(0) << std::endl;
+				std::cout << "MATCH 1: " << match.str(1) << std::endl;
+				*/
+				std::string ip_addr = match.str(1);
+				//std::cout << "IP: " << ip_addr << std::endl;
+				
+				if (validate_ip_address(ip_addr)) {
+	
+					//std::cout << "MATCH: " << ip_addr << std::endl;
+					
+					//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
+					handle_ip_addr(ip_addr);
+	
+				} else {
+					
+					std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+	
+					// the hack found an ip addr
+					if (hip.size()) {
+						
+						handle_ip_addr(hip);
+					
+					}
+					
+				}
+	
+			}
+			
+			process_iteration(num_seconds, num_hits);
+			
+		}
+	
+	} catch (std::regex_error& e) {
+		
+		std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
+		std::cout << "Regex exception code is: " << e.code() << std::endl;
+		std::cout << "Cannot continue ..." << std::endl << std::endl;
+		return 1;
+		
+	}
 
 	return 0;
 }
