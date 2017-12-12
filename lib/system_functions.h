@@ -41,4 +41,18 @@ static inline bool does_file_exist (const char *fn)
 }
 
 
+size_t get_file_size(const std::string &full_file_path) {
+
+	size_t total = 0;
+
+	if (does_file_exist(full_file_path.c_str())) {
+		ifstream file_sz(full_file_path.c_str(), ios::binary | ios::ate);
+		total = file_sz.tellg();
+		file_sz.close();
+	}
+
+	return total;
+}
+
+
 #endif // __systemfunctions__H_
