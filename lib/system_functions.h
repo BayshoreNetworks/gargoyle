@@ -30,6 +30,7 @@
 #ifndef __systemfunctions__H_
 #define __systemfunctions__H_
 
+#include <fstream>
 
 #include <sys/stat.h>
 
@@ -46,7 +47,7 @@ size_t get_file_size(const std::string &full_file_path) {
 	size_t total = 0;
 
 	if (does_file_exist(full_file_path.c_str())) {
-		ifstream file_sz(full_file_path.c_str(), ios::binary | ios::ate);
+		std::ifstream file_sz(full_file_path.c_str(), std::ios::binary | std::ios::ate);
 		total = file_sz.tellg();
 		file_sz.close();
 	}
