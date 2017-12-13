@@ -105,32 +105,36 @@ int do_block_actions(const std::string &the_ip,
 				size_t ret;
 				int tstamp = (int) time(NULL);
 		
-				/*
-				 * queries DB table 'detected_hosts', a return of 
-				 * 0 (zero) means there is no entry in that DB table,
-				 * anything else means there is an entry in that table.
-				 * the assumption is that 'detected_hosts' is in sync
-				 * with what is live in netfilter (via iptables)
-				 * 
-				 * this check is necessary in order to not have duplicates
-				 * in our iptables chain
-				 */
-				if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0)
-					ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
-		
-				if (detection_type > 0) {
-	
-					do_block_action_output(the_ip, detection_type, tstamp);
+				if (tstamp > 0) {
 					
-				} else {
-	
-					do_block_action_output(the_ip, 0, tstamp);
-					
-				}
-		
-				// add to DB
-				add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
+					/*
+					 * queries DB table 'detected_hosts', a return of 
+					 * 0 (zero) means there is no entry in that DB table,
+					 * anything else means there is an entry in that table.
+					 * the assumption is that 'detected_hosts' is in sync
+					 * with what is live in netfilter (via iptables)
+					 * 
+					 * this check is necessary in order to not have duplicates
+					 * in our iptables chain
+					 */
+					if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0) {
+						ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+					}
 			
+					if (detection_type > 0) {
+		
+						do_block_action_output(the_ip, detection_type, tstamp);
+						
+					} else {
+		
+						do_block_action_output(the_ip, 0, tstamp);
+						
+					}
+			
+					// add to DB
+					add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
+			
+				}
 			}
 		}
 	}
