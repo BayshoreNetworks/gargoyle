@@ -863,11 +863,9 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 		
 		size_t d_buf_sz = DEST_BUF_SZ * 2;
 		char *l_hosts = (char*) malloc(d_buf_sz);
-		*l_hosts = 0;
 		
 		size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 		char *host_ip = (char*) malloc(dst_buf_sz1+1);
-		*host_ip = 0;
 		
 		const char *dash_dash = "--  ";
 		size_t dash_dash_len = 4;
@@ -1132,11 +1130,9 @@ void GargoylePscandHandler::add_block_rules() {
 	
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_hosts = (char*) malloc(d_buf_sz);
-	*l_hosts = 0;
 	
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
-	*host_ip = 0;
 	
 	const char *dash_dash = "--  ";
 	size_t dash_dash_len = 4;
