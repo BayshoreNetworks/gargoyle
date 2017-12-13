@@ -527,9 +527,9 @@ void clean_up_iptables_dupe_data() {
 	
 	size_t dst_buf_sz = DEST_BUF_SZ;
 	char *l_chains = (char*) malloc(dst_buf_sz + 1);
-	*l_chains = 0;
+	//*l_chains = 0;
 	char *l_chains2 = (char*) malloc(dst_buf_sz + 1);
-	*l_chains2 = 0;
+	//*l_chains2 = 0;
 	
 	const char *tok1 = "\n";
 	
@@ -570,7 +570,7 @@ void clean_up_iptables_dupe_data() {
 				s_lchains2 = strstr (token1 + position1 + dash_dash_len, w_space);
 				size_t position2 = s_lchains2 - token1;
 
-				*host_ip = 0;
+				//*host_ip = 0;
 				
 				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
 				if (host_ip) {
