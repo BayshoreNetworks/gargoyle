@@ -573,7 +573,12 @@ int main(int argc, char *argv[])
 		return 1;
 
 	SingletonProcess singleton(daemon_port);
-	if (!singleton()) {
+	try {
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	} catch (std::runtime_error& e) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
