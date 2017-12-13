@@ -179,7 +179,6 @@ void handle_chain() {
 	
 	size_t dst_buf_sz = DEST_BUF_SZ;
 	char *l_chains = (char*) malloc(dst_buf_sz+1);
-	*l_chains = 0;
 	iptables_list_all(l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	
 	if (l_chains) {
@@ -406,9 +405,9 @@ void get_local_ip_addrs() {
 				}
 			}
 		}
+		pclose(fp);
 	}
 	free(ip_addrs);
-	pclose(fp);
 }
 
 
@@ -573,7 +572,12 @@ int main(int argc, char *argv[])
 		return 1;
 
 	SingletonProcess singleton(daemon_port);
-	if (!singleton()) {
+	try {
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	} catch (std::runtime_error& e) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
