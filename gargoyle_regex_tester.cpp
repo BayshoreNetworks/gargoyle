@@ -49,12 +49,11 @@ std::vector<std::string> valid_ip_addr;
 
 bool validate_ip_address(const std::string &);
 bool valid_ip_addr_exists(const std::string &);
-int handle_log_line(const std::string &, const std::string &);
 std::string hunt_for_ip_addr(std::string);
-
 void do_regex_check(const std::string &, const std::regex &);
 void add_valid_ip_addr(const std::string &);
 void display_valid_ip_addr();
+
 
 
 bool validate_ip_address(const std::string &ip_address) {
