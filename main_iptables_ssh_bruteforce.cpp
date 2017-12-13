@@ -155,102 +155,114 @@ int handle_log_line(const std::string &line) {
 	//std::cout << "LINE: " << line << std::endl;
 
 	std::smatch match;
-	/*
-	 * handle instant block regexes first
-	 */
-	std::regex invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*");
-	std::regex max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
-	// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
-	std::regex bad_algo("Unable to negotiate with (.*) port");
-
-	//if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
-	if (std::regex_search(line, match, max_exceeded) && match.size() == 2) {
-
-		std::string ip_addr = match.str(1);
-
-		// if we are here then do an instant block because sshd already did
-		// the work for us of detecting too many login attempts
-
-		//std::cout << "TESTING MAX EXCEEDED" << std::endl;
-		//std::cout << "INSTANT BLOCK HERE - " << ip_addr << std::endl;
-
-		if (validate_ip_address(ip_addr)) {
-
-			do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_sshbf_whitelist_shm);
-
-		}
-
-		return 0;
-
-	} else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
-
-		std::string ip_addr = match.str(1);
-
-		//std::cout << "TESTING INVALID USER" << std::endl;
-
-		if (validate_ip_address(ip_addr)) {
-			
-			handle_ip_addr(ip_addr);
-		
-		} else {
-
-			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
-			/*
-			 * this is a hackjob because when reading output
-			 * from journalctl the regex doesnt seem to work
-			 * as expected (but when tailing a standard log
-			 * file it does work)
-			 */
-			// the hack found an ip addr
-			if (hip.size()) {
-				
-				handle_ip_addr(hip);
-			
+	
+	try {
+	
+		/*
+		 * handle instant block regexes first
+		 */
+		std::regex invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*");
+		std::regex max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
+		// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
+		std::regex bad_algo("Unable to negotiate with (.*) port");
+	
+		//if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
+		if (std::regex_search(line, match, max_exceeded) && match.size() == 2) {
+	
+			std::string ip_addr = match.str(1);
+	
+			// if we are here then do an instant block because sshd already did
+			// the work for us of detecting too many login attempts
+	
+			//std::cout << "TESTING MAX EXCEEDED" << std::endl;
+			//std::cout << "INSTANT BLOCK HERE - " << ip_addr << std::endl;
+	
+			if (validate_ip_address(ip_addr)) {
+	
+				do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_sshbf_whitelist_shm);
+	
 			}
-		}
-
-		return 0;						
-
-	} else if (std::regex_search(line, match, bad_algo) && match.size() == 2) {
-
-		std::string ip_addr = match.str(1);
-
-		//std::cout << "TESTING BAD ALGO" << std::endl;
-
-		if (validate_ip_address(ip_addr)) {
+	
+			return 0;
+	
+		} else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
+	
+			std::string ip_addr = match.str(1);
+	
+			//std::cout << "TESTING INVALID USER" << std::endl;
+	
+			if (validate_ip_address(ip_addr)) {
+				
+				handle_ip_addr(ip_addr);
 			
-			handle_ip_addr(ip_addr);
-			
-		}
-
-		return 0;	
-
-	} else {
-
-		if (sshd_regexes.size() > 0) {
-
-			for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
-
-				/* std::cout << *it; ... */
-				std::regex testreg(*it);
-
-				//std::cout << "SZ: " << match.size() << std::endl;
-
-				//if (std::regex_search(line, match, testreg) && match.size() > 1) {
-				if (std::regex_search(line, match, testreg) && match.size() == 2) {
-
-					std::string ip_addr = match.str(1);
-					if (validate_ip_address(ip_addr)) {
-						
-						handle_ip_addr(ip_addr);
+			} else {
+	
+				std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+				/*
+				 * this is a hackjob because when reading output
+				 * from journalctl the regex doesnt seem to work
+				 * as expected (but when tailing a standard log
+				 * file it does work)
+				 */
+				// the hack found an ip addr
+				if (hip.size()) {
 					
+					handle_ip_addr(hip);
+				
+				}
+			}
+	
+			return 0;						
+	
+		} else if (std::regex_search(line, match, bad_algo) && match.size() == 2) {
+	
+			std::string ip_addr = match.str(1);
+	
+			//std::cout << "TESTING BAD ALGO" << std::endl;
+	
+			if (validate_ip_address(ip_addr)) {
+				
+				handle_ip_addr(ip_addr);
+				
+			}
+	
+			return 0;	
+	
+		} else {
+	
+			if (sshd_regexes.size() > 0) {
+	
+				for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
+	
+					/* std::cout << *it; ... */
+					std::regex testreg(*it);
+	
+					//std::cout << "SZ: " << match.size() << std::endl;
+	
+					//if (std::regex_search(line, match, testreg) && match.size() > 1) {
+					if (std::regex_search(line, match, testreg) && match.size() == 2) {
+	
+						std::string ip_addr = match.str(1);
+						if (validate_ip_address(ip_addr)) {
+							
+							handle_ip_addr(ip_addr);
+						
+						}
+						break;
 					}
-					break;
 				}
 			}
 		}
+
+	} catch (std::regex_error& e) {
+		
+		std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
+		std::cout << "Regex exception code is: " << e.code() << std::endl;
+		std::cout << "Cannot continue ..." << std::endl << std::endl;
+		return 1;
+		
 	}
-	
+
 	return 0;
 }
 
@@ -381,12 +393,15 @@ int main(int argc, char *argv[])
 
 		
 	SingletonProcess singleton(ssh_bf_port);
-	if (!singleton()) {
+	try {
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_lscand_ssh_bruteforce", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	} catch (std::runtime_error& e) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_lscand_ssh_bruteforce", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
-	
-	
 
 	// default = 6
 	size_t num_hits;
@@ -498,8 +513,16 @@ int main(int argc, char *argv[])
 				while (std::getline(ifs, line)) {
 
 					//std::cout << line << std::endl;
-					if (line.size() > 0)
-						handle_log_line(line);
+					if (line.size() > 0) {
+					
+						if (handle_log_line(line) != 0) {
+							
+							// problem with the regexes
+							return 1;
+							
+						}
+					
+					}
 
 				}
 
@@ -527,7 +550,14 @@ int main(int argc, char *argv[])
 					while (fgets(buff, BUF_SZ, fp) != NULL) {
 						
 						//std::cout << "--- " << buff << " --- " << strlen(buff) << std::endl;
-						handle_log_line(buff);
+						//handle_log_line(buff);
+						if (handle_log_line(buff) != 0) {
+							
+							// problem with the regexes
+							pclose(fp);
+							return 1;
+							
+						}
 
 					}
 					pclose(fp);
