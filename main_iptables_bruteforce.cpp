@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 #include "ip_addr_controller.h"
 #include "sqlite_wrapper_api.h"
@@ -54,6 +55,8 @@
 char DB_LOCATION[SQL_CMD_MAX+1];
 bool ENFORCE = true;
 bool ENABLED = false;
+bool DEBUG = false;
+//bool DEBUG = true;
 int BUF_SZ = 512;
 
 std::vector<std::string> sshd_regexes;
@@ -167,10 +170,10 @@ void process_iteration(int num_seconds, int num_hits) {
 		int now_delta = now - original_timestamp;
 		int l_num_hits = IP_HITMAP[p.first][1];
 		
-		/*
+		
 		std::cout << original_timestamp << " -- " << now << std::endl;
 		std::cout << "[" << p.first << "]" << std::endl << "Delta: " << now_delta << std::endl << "Hits: " << IP_HITMAP[p.first][1] << std::endl << std::endl;
-		*/
+		
 		
 		// delta longer than num_seconds - just cleanup
 		if (now_delta > num_seconds) {
@@ -223,7 +226,6 @@ void handle_ip_addr(const std::string &ip_addr) {
 
 	}
 
-	//display_map();
 }
 
 
@@ -313,65 +315,115 @@ int main(int argc, char *argv[]) {
 
     std::string line;
 	std::smatch match;
-
+	struct stat f_var;
+	int ret = -1;
+	
 	try {
 		
 		std::regex l_regex(regex_str);	
-		while(true) {
+		//while(true) {
+		while(ifs.is_open()) {
 			
-			// try to read line
-			if(!std::getline(ifs, line) || ifs.eof()) {
+			while(!ifs.eof()) {
+			
+				line.clear();
+				//std::getline(ifs, line);
 				
-				// if we fail, clear stream, return to beginning of line
-				ifs.clear();
-				ifs.seekg(gpos);
-	
-				// and wait to try again
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				continue;
-			}
-	
-			
-			// remember the position of the next line in case
-			// the next read fails
-			gpos = ifs.tellg();
-	
-			// process line here
-			std::cout << "line: " << line << std::endl;
-			
-			if (std::regex_search(line, match, l_regex)) {
-	
 				/*
-				std::cout << "MATCH SZ: " << match.size() << std::endl;
-				std::cout << "MATCH 0: " << match.str(0) << std::endl;
-				std::cout << "MATCH 1: " << match.str(1) << std::endl;
-				*/
-				std::string ip_addr = match.str(1);
-				//std::cout << "IP: " << ip_addr << std::endl;
-				
-				if (validate_ip_address(ip_addr)) {
-	
-					//std::cout << "MATCH: " << ip_addr << std::endl;
+				 * since this is a live running daemon we need
+				 * to detect when a log file gets rotated
+				 * because it obviously gets a new inode and
+				 * is a new file entity altogether. I thought
+				 * we could catch that with the detcetion of
+				 * eof but that doesnt seem to work tremendously
+				 * well so the detection of size zero when the
+				 * new log file gets created turns out to be
+				 * more reliable even though its more expensive
+				 * 
+				 */
+				//if (get_file_size(log_entity) == 0)
+				//	break;
+				ret = stat(log_entity.c_str(), &f_var);
+				if (ret >= 0) {
 					
-					//do_block_actions(ip_addr, 50, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE);
-					handle_ip_addr(ip_addr);
-	
-				} else {
-					
-					std::string hip = hunt_for_ip_addr(ip_addr, ' ');
-	
-					// the hack found an ip addr
-					if (hip.size()) {
-						
-						handle_ip_addr(hip);
-					
+					if (f_var.st_size == 0) {
+						break;
 					}
 					
 				}
+				
+				// try to read line
+				if(!std::getline(ifs, line) || ifs.eof()) {
+					
+					// if we fail, clear stream, return to beginning of line
+					ifs.clear();
+					ifs.seekg(gpos);
 	
+					// and wait to try again
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					continue;
+				}
+		
+				
+				// remember the position of the next line in case
+				// the next read fails
+				gpos = ifs.tellg();
+				
+		
+				// process line here
+				//std::cout << "line: " << line << std::endl;
+				
+				if (std::regex_search(line, match, l_regex)) {
+		
+					if (DEBUG) {
+						std::cout << "MATCH SZ: " << match.size() << std::endl;
+						std::cout << "MATCH 0: " << match.str(0) << std::endl;
+						std::cout << "MATCH 1: " << match.str(1) << std::endl;
+					}
+					
+					std::string ip_addr;
+					if (match.size() >= 2) {
+						ip_addr = match.str(1);
+						//std::cout << "IP: " << ip_addr << std::endl;
+					}
+					
+					if (ip_addr.size()) {
+						
+						if (validate_ip_address(ip_addr)) {
+			
+							if (DEBUG) {
+								std::cout << "MATCH IP ADDR: " << ip_addr << std::endl;
+							}
+							handle_ip_addr(ip_addr);
+			
+						} else {
+							
+							std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+							// the hack found an ip addr
+							if (hip.size()) {
+								
+								handle_ip_addr(hip);
+							
+							}
+							
+						}
+						
+						process_iteration(num_seconds, num_hits);
+					
+					}
+		
+				}
+				
+				//process_iteration(num_seconds, num_hits);
+			
 			}
 			
-			process_iteration(num_seconds, num_hits);
+			if (DEBUG) {
+				std::cout << "Log file: " << log_entity << " CLOSED" << std::endl;
+			}
+			ifs.close();
+			// Roll-over -- the logrotate closed the current file and re-opened it
+			ifs.open(log_entity.c_str());
 			
 		}
 	
