@@ -72,7 +72,7 @@ int FAKE_PORT = 65537;
 int PROCESS_TIME_CHECK = 60;
 bool ENFORCE = true;
 bool ENABLED = true;
-int BUF_SZ = 1024;
+int BUF_SZ = 2048;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
