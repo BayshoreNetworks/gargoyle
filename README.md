@@ -211,11 +211,11 @@ Notes:
 		
 		/opt/gargoyle_pscand/.gargoyle_ssh_bruteforce_config
 		
-	The most important element in that file is the key/value pair:
+		The most important element in that file is the key/value pair:
 	
 		log_entity:journalctl -u ssh --since "1 minute ago"
 		
-	You must ensure that this journalctl command yields results when called. Some systems use 'sshd' and not 'ssh' for instance.
+		You must ensure that this journalctl command yields results when called. Some systems use 'sshd' and not 'ssh' for instance.
 
 
 Notes on gargoyle_regex_tester:
