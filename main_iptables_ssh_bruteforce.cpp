@@ -503,6 +503,7 @@ int main(int argc, char *argv[])
 	 */
 	if (!use_journalctl) {
 
+		/*
 		std::ifstream ifs(log_entity.c_str());
 
 		if (ifs.is_open()) {
@@ -534,8 +535,74 @@ int main(int argc, char *argv[])
 				// sleep here to avoid being a CPU hog.
 				std::this_thread::sleep_for (std::chrono::seconds(3));
 				process_iteration(num_seconds, num_hits);
+			
 			}
+		
 		}
+		*/
+		
+		std::ifstream ifs(log_entity.c_str(), std::ios::ate);
+	    // remember file position
+	    std::ios::streampos gpos = ifs.tellg();
+	    
+	    std::string line;
+	    struct stat f_var;
+	    int ret = -1;
+	    
+		while(ifs.is_open()) {
+			
+			while(!ifs.eof()) {
+			
+				ret = stat(log_entity.c_str(), &f_var);
+				if (ret >= 0) {
+					
+					if (f_var.st_size == 0) {
+						break;
+					}
+					
+				}
+				
+				// try to read line
+				if(!std::getline(ifs, line) || ifs.eof()) {
+					
+					// if we fail, clear stream, return to beginning of line
+					ifs.clear();
+					ifs.seekg(gpos);
+	
+					// and wait to try again
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					continue;
+				}
+		
+				
+				// remember the position of the next line in case
+				// the next read fails
+				gpos = ifs.tellg();
+				
+		
+				// process line here
+				//std::cout << "line: " << line << std::endl;
+				if (line.size() > 0) {
+				
+					if (handle_log_line(line) != 0) {
+						// problem with the regexes
+						return 1;
+					}
+				
+				}
+
+				// sleep here to avoid being a CPU hog.
+				//std::this_thread::sleep_for (std::chrono::seconds(3));
+				process_iteration(num_seconds, num_hits);				
+
+			}
+			
+			ifs.close();
+			// Roll-over -- the logrotate closed the current file and re-opened it
+			ifs.open(log_entity.c_str());
+			
+		}
+		
 	} else if (use_journalctl) {
 		
 		char buff[BUF_SZ];
