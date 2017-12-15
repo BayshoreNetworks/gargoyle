@@ -206,6 +206,16 @@ Notes:
 	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
 	
 	- To remove ip addresses from the white (or ignore) list, or the blacklist, use the respective standalone programs "gargoyle_pscand_remove_from_whitelist" or "gargoyle_pscand_remove_from_blacklist", do not manually remove that ip address from the DB table.
+	
+	- If your system uses journalctl and you want to use the SSH brute force detection make sure you modify the file called '.gargoyle_ssh_bruteforce_config'. It lives at the root of gargoyle's installed path, so for example the default location would be:
+		
+		/opt/gargoyle_pscand/.gargoyle_ssh_bruteforce_config
+		
+	The most important element in that file is the key/value pair:
+	
+		log_entity:journalctl -u ssh --since "1 minute ago"
+		
+	You must ensure that this journalctl command yields results when called. Some systems use 'sshd' and not 'ssh' for instance.
 
 
 Notes on gargoyle_regex_tester:
