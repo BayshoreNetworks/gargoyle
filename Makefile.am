@@ -2,6 +2,10 @@ CPPFLAGS=-I. -Ilib -Wreturn-type
 
 include_HEADERS = lib/config_variables.h lib/gargoyle_config_vals.h lib/iptables_wrapper_api.h lib/singleton.h lib/sqlite_wrapper_api.h packet_handler.h ip_addr_controller.h
 
+gargoyle_pscand_LDFLAGS = -L/opt/bayshore/lib -lnfnetlink -lnetfilter_log
+gargoyle_lscand_ssh_bruteforce_LDFLAGS = -L/opt/bayshore/lib -lnfnetlink -lnetfilter_log -lpcrecpp
+gargoyle_lscand_bruteforce_LDFLAGS = -L/opt/bayshore/lib -lnfnetlink -lnetfilter_log -lpcrecpp
+
 lib_GARGOYLE_PSCAND = lib
 
 bin_PROGRAMS = gargoyle_pscand \
