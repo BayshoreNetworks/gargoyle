@@ -555,6 +555,12 @@ int main(int argc, char *argv[])
     	}
     }
 
+	const char *gargoyle_debug_flag;
+	gargoyle_debug_flag = getenv("GARGOYLE_DEBUG_FLAG");
+	if (gargoyle_debug_flag != NULL) {
+		DEBUG = true;
+	}
+
     // Get port config data
 	int daemon_port;
 	const char *port_config_file;
