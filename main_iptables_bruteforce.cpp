@@ -189,18 +189,30 @@ void process_iteration(int num_seconds, int num_hits) {
 			// block based purely on number of hits
 			if (l_num_hits >= num_hits) {
 
-				do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
+				do_block_actions(ip_addr,
+					51,
+					DB_LOCATION,
+					IPTABLES_SUPPORTS_XLOCK,
+					ENFORCE,
+					(void *) gargoyle_bf_whitelist_shm,
+					DEBUG);
 				IP_HITMAP.erase(ip_addr);
 				continue;
 
 			}
-			
+
 		}
-		
+
 		// fuck time, if we see this many hits we block
 		if (l_num_hits >= (num_hits * 2)) {
-			
-			do_block_actions(ip_addr, 51, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *) gargoyle_bf_whitelist_shm);
+
+			do_block_actions(ip_addr,
+				51,
+				DB_LOCATION,
+				IPTABLES_SUPPORTS_XLOCK,
+				ENFORCE,
+				(void *) gargoyle_bf_whitelist_shm,
+				DEBUG);
 			IP_HITMAP.erase(ip_addr);
 		
 		}
