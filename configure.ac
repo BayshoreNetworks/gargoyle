@@ -37,6 +37,8 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([strchr strstr malloc free atoi snprintf strncat strtok_r])
 
+AC_DEFINE([USE_LIBPCRECPP],[1],[Use libprcecpp for regular expressions])
+
 GARG_CPPFLAGS="-std=c++11 -Ilib"
 
 AC_SUBST([AM_CXXFLAGS], [-std=c++11])
