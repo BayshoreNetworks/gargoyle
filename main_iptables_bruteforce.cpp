@@ -32,7 +32,6 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
-#include <regex>
 #include <vector>
 #include <csignal>
 #include <map>
@@ -42,6 +41,14 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
+#include "config.h"
+
+#ifdef USE_LIBPCRECPP
+#include <pcrecpp.h>
+#else
+#include <regex>
+#endif
 
 #include "ip_addr_controller.h"
 #include "sqlite_wrapper_api.h"
@@ -137,7 +144,6 @@ std::string hunt_for_ip_addr(const std::string &line, const char& c) {
 	}
 	return resp;
 }
-
 
 void display_map() {
 
@@ -325,14 +331,20 @@ int main(int argc, char *argv[]) {
     // remember file position
     std::ios::streampos gpos = ifs.tellg();
 
+
     std::string line;
-	std::smatch match;
 	struct stat f_var;
 	int ret = -1;
 	
-	try {
 		
-		std::regex l_regex(regex_str);	
+#ifdef USE_LIBPCRECPP
+	pcrecpp::RE l_regex(regex_str);
+#else
+	try {
+
+		std::smatch match;
+		std::regex l_regex(regex_str);
+#endif
 		//while(true) {
 		while(ifs.is_open()) {
 			
@@ -384,7 +396,13 @@ int main(int argc, char *argv[]) {
 		
 				// process line here
 				//std::cout << "line: " << line << std::endl;
+
+				std::string ip_addr;
 				
+#ifdef USE_LIBPCRECPP
+				if (l_regex.PartialMatch(line, &ip_addr)) {
+					//TODO: Ensure correctly formed PCRE regular expression
+#else
 				if (std::regex_search(line, match, l_regex)) {
 		
 					if (DEBUG) {
@@ -393,11 +411,11 @@ int main(int argc, char *argv[]) {
 						std::cout << "MATCH 1: " << match.str(1) << std::endl;
 					}
 					
-					std::string ip_addr;
 					if (match.size() >= 2) {
 						ip_addr = match.str(1);
 						//std::cout << "IP: " << ip_addr << std::endl;
 					}
+#endif
 					
 					if (ip_addr.size()) {
 						
@@ -438,7 +456,8 @@ int main(int argc, char *argv[]) {
 			ifs.open(log_entity.c_str());
 			
 		}
-	
+
+#ifndef USE_LIBPCRECPP	
 	} catch (std::regex_error& e) {
 		
 		std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
@@ -447,6 +466,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 		
 	}
+#else
+#endif
 
 	return 0;
 }
