@@ -79,6 +79,9 @@ case "$1" in
 
 	log_daemon_msg "Starting Gargoyle Portscan monitoring daemon" || true
         ./gargoyle_pscand_monitor &
+	
+	log_daemon_msg "Starting Gargoyle Logscan daemon" || true
+        ./gargoyle_lscand_bruteforce_detect &
 
         # Only start SSH bruteforce if ssh is running
         if [ "$(ps -ef|grep sshd |grep -v grep)" ];then

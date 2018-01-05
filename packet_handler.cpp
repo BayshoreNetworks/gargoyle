@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * packet handling code
  *
  * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -40,7 +40,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <linux/netfilter.h> 
+#include <linux/netfilter.h>
 #include <linux/tcp.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -65,7 +65,6 @@ int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
  */
 bool ADD_RULES_KNOWN_SCAN_AGGRESSIVE = true;
 bool SYSLOG_ALL_DETECTIONS = true;
-bool DEBUG = true;
 
 int BASE_TIME;
 //int PROCESS_TIME_CHECK = 120;
@@ -142,6 +141,7 @@ int levenshtein(const char *s1, const char *s2) {
 /////////////////////////////////////////////////////////////////////////////////
 
 GargoylePscandHandler::GargoylePscandHandler() {
+
 	BASE_TIME = (int) time(NULL);
 	ENFORCE = true;
 	PH_SINGLE_IP_SCAN_THRESHOLD = 6;
@@ -150,36 +150,37 @@ GargoylePscandHandler::GargoylePscandHandler() {
 	EPHEMERAL_LOW = 1024;
 	EPHEMERAL_HIGH = 65535;
 	IPTABLES_SUPPORTS_XLOCK = 0;
-	
+	DEBUG = false;
+
 	gargoyle_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
 }
 
 
 GargoylePscandHandler::~GargoylePscandHandler() {
-	
+
     if(gargoyle_whitelist_shm) {
         delete gargoyle_whitelist_shm;
         //gargoyle_whitelist_shm;
     }
-    
+
     if(gargoyle_blacklist_shm) {
         delete gargoyle_blacklist_shm;
         //gargoyle_blacklist_shm;
     }
-    
+
 }
 
 
 int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *ldata)
 {
-	
+
 	GargoylePscandHandler* _this = (GargoylePscandHandler *)ldata;
-	
+
 	if (_this) {
-		
+
 		int id = 0;
-		
+
 		/*
 		struct nfulnl_msg_packet_hdr* ph = nflog_get_msg_packet_hdr(nfa);
 		if (ph)
@@ -188,28 +189,28 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 			//printf("hw_protocol=0x%04x hook=%u id=%u ", ntohs(ph->hw_protocol), ph->hook, id);
 		}
 		*/
-	
+
 		/*
 		struct nfulnl_msg_packet_hw* hwph = nflog_get_packet_hw(nfa);
 		if (hwph)
 		{
-			
+
 			int i, hlen = ntohs(hwph->hw_addrlen);
-			
+
 			printf("hw_src_addr=");
 			for (i = 0; i < hlen-1; i++)
 				printf("%02x:", hwph->hw_addr[i]);
 			printf("%02x ", hwph->hw_addr[hlen-1]);
-			
+
 		}
 		*/
-		
+
 		/*
 		u_int32_t mark = nflog_get_nfmark(nfa);
 		if (mark)
 			printf("mark=%u ", mark);
 		*/
-		
+
 		/*
 		u_int32_t ifi = nflog_get_indev(nfa);
 		if (ifi)
@@ -230,42 +231,42 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 
 		char *data;
 		int ret = nflog_get_payload(nfa, &data);
-		
+
 		if (ret < 0)
 			return 0;
 
 		if (ret >= sizeof(struct iphdr))
 		{
-	
+
 			struct iphdr* ip = (struct iphdr*)(data);
-	
+
 			// TCP
 			if (ip->protocol == IPPROTO_TCP) {
-	
+
 				u_int16_t flags = ntohs(ip->frag_off);
-	
+
 				struct tcphdr *tcp_info;
 				unsigned short dst_port;
 				unsigned short src_port;
 				unsigned short seq_num;
 				unsigned short ack_num;
-	
+
 				tcp_info = (struct tcphdr*)(data + sizeof(*ip));
-	
+
 				dst_port = ntohs(tcp_info->dest);
 				src_port = ntohs(tcp_info->source);
 				seq_num = ntohs(tcp_info->seq);
 				ack_num = ntohs(tcp_info->ack_seq);
-	
+
 				/*
 				printf("\n    ip { version=%d, ihl=%d, tos=%d, len=%d, id=%d, flags=%d frag_off=%d, ttl=%d, protocol=%d, check=%d } ",
 						ip->version, ip->ihl, ip->tos, ntohs(ip->tot_len), ip->id, flags >> 13, flags & 0x1FFF, ip->ttl, ip->protocol, ntohs(ip->check)
 				);
 				 */
-	
+
 				// we don't ignore this port
 				if (!_this->ignore_this_port(dst_port)) {
-	
+
 					/*
 					 * in_addr - a statically allocated buffer, which subsequent calls overwrite
 					 * so it can't be used twice in a function, have to write out results and
@@ -275,10 +276,10 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 					std::string s_src(inet_ntoa(src_addr));
 					struct in_addr dst_addr = {ip->daddr};
 					std::string s_dst(inet_ntoa(dst_addr));
-					
+
 					// we dont ignore this ip addr
 					if (!_this->is_white_listed_ip_addr(s_src)) {
-						
+
 						/////////////////////////////////////////////////////////////////
 						/*
 						 * if there is a hit that is on the list
@@ -288,28 +289,28 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 						 * specified port
 						 */
 						if (_this->is_in_hot_ports(dst_port)) {
-							
+
 							/*
 							 * We will not query iptables here as that overhead
 							 * is unacceptable, the analysis process should
 							 * catch and cleanup any dupes in iptables if that
 							 * situation arises
 							 */
-							
+
 							// get ix for ip_addr
 							int added_host_ix = add_host(s_src.c_str(), _this->DB_LOCATION.c_str());
-									
+
 							if (added_host_ix == -1) {
 								// get existing index
 								added_host_ix = get_host_ix(s_src.c_str(), _this->DB_LOCATION.c_str());
 							}
-									
+
 							//std:cout << added_host_ix << std::endl;
 
 							if (added_host_ix > 0) {
 
 								_this->add_block_rule(s_src, 9);
-								
+
 								_this->add_to_scanned_ports_dict(s_src.c_str(), dst_port);
 
 							}
@@ -330,7 +331,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 						/*
 						std::cout << "FLAGS: - " << flags << std::endl;
 						//std::vector<int> tcp_flags = calculate_flags(flags >> 13);
-						
+
 						std::cout << "URG: " << tcp_info->urg << std::endl;
 						std::cout << "ACK: " << tcp_info->ack << std::endl;
 						std::cout << "PSH: " << tcp_info->psh << std::endl;
@@ -338,7 +339,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 						std::cout << "SYN: " << tcp_info->syn << std::endl;
 						std::cout << "FIN: " << tcp_info->fin << std::endl;
 						*/
-						
+
 						/*
 						 * U  A  P R S F
 						 * 32 16 8 4 2 1
@@ -356,7 +357,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 							tcp_flags.push_back(2);
 						if (tcp_info->fin)
 							tcp_flags.push_back(1);
-	
+
 						/*
 						std::cout << "FLAGS: - " << tcp_flags.size() << std::endl;
 						for (std::vector<int>::const_iterator i = tcp_flags.begin(); i != tcp_flags.end(); ++i) {
@@ -364,13 +365,13 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 						}
 						std::cout << std::endl;
 						*/
-		
+
 						if (s_src.size() > 0 && src_port > 0 && s_dst.size() > 0 && dst_port > 0) {
-							
+
 							std::ostringstream testdata_tmp;
-							testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;		
+							testdata_tmp << s_src << ":" << src_port << "->" << s_dst << ":" << dst_port;
 							std::string testdata = testdata_tmp.str();
-			
+
 							/*
 							std::cout << "SRC: " << s_src << ", LEN: " << s_src.size() << " - " << ip->saddr << std::endl;
 							std::cout << "SRCPORT: " << src_port << std::endl;
@@ -388,21 +389,21 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 							}
 							std::cout << std::endl << std::endl;
 							*/
-		
+
 							bool is_in = _this->THREE_WAY_HANDSHAKE.find(testdata) != _this->THREE_WAY_HANDSHAKE.end();
 							if (!is_in)
 								_this->three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
-			
+
 							_this->main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
-							
+
 						}
 					}
 				}
 			} // end of TCP handling
-	
+
 			// UDP
 			// TODO
-	
+
 			///////////////////////////////////////////////////////////////////////////////
 			/*
 			 * process to run at certain intervals (see PROCESS_TIME_CHECK)
@@ -410,11 +411,11 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 			 * if appropriate
 			 */
 			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
-				
+
 				// are there any new white list entries in the DB?
 				_this->process_ignore_ip_list();
 				_this->process_blacklist_ip_list();
-	
+
 				_this->add_block_rules();
 				BASE_TIME = (int)time(NULL);
 			}
@@ -451,7 +452,7 @@ void GargoylePscandHandler::three_way_check (
 			WAITING.insert(str_tmp.str());
 		}
 	} else if ((tcp_flags.size() == 2) &&
-			(std::find(tcp_flags.begin(), tcp_flags.end(), 2) != tcp_flags.end()) && 
+			(std::find(tcp_flags.begin(), tcp_flags.end(), 2) != tcp_flags.end()) &&
 			(std::find(tcp_flags.begin(), tcp_flags.end(), 16) != tcp_flags.end())) { // flags = SYN,ACK - len flags = 2
 
 		for(twh_it = WAITING.begin(); twh_it != WAITING.end(); twh_it++) {
@@ -531,11 +532,11 @@ bool GargoylePscandHandler::is_white_listed_ip_addr(std::string s) {
 
 	bool result;
 	gargoyle_whitelist_shm->Contains(s, &result);
-	
+
 	if (result)
 		return true;
 	return false;
-	
+
 }
 
 
@@ -567,7 +568,7 @@ void GargoylePscandHandler::main_port_scan_check(
 		int seq_num,
 		int ack_num,
 		std::vector<int> tcp_flags) {
-	
+
 	/*
 	std::cout << "IP: " << src_ip << std::endl;
 	std::cout << "SZ: " << tcp_flags.size() << std::endl;
@@ -588,10 +589,10 @@ void GargoylePscandHandler::main_port_scan_check(
 	//reverse_src_ip_dst_ip_dat = dst_ip + "->" + src_ip
 
 	size_t tcp_flags_sz = tcp_flags.size();
-	
-	
+
+
 	if (tcp_flags_sz == 0) {
-		
+
 		int null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "null_scan_ret: " << null_scan_ret << std::endl;
@@ -600,9 +601,9 @@ void GargoylePscandHandler::main_port_scan_check(
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "NULL port scan detected");
 			return;
 		}
-		
+
 	} else if (tcp_flags_sz == 1) {
-		
+
 		int fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "fin_scan_ret: " << fin_scan_ret << std::endl;
@@ -611,38 +612,38 @@ void GargoylePscandHandler::main_port_scan_check(
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "FIN port scan detected");
 			return;
 		}
-		
+
 	} else if (tcp_flags_sz == 3) {
-		
+
 		int xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
-		
+
 		if (xmas_scan_ret == 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
 			return;
 		}
-		
+
 	}
-	
-	
-	
+
+
+
 	/*
 	if (tcp_flags.size() == 3) {
-		
+
 		int xmas_scan_ret = xmas_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
-		
+
 		if (xmas_scan_ret == 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
 			return;
 		}
 	}
 	*/
-	
+
 	/*
 	//int fin_scan_ret;
 	//if (xmas_scan_ret == 1) {
 	//	fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 	if (tcp_flags.size() == 1) {
-		
+
 		int fin_scan_ret = fin_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "fin_scan_ret: " << fin_scan_ret << std::endl;
@@ -659,7 +660,7 @@ void GargoylePscandHandler::main_port_scan_check(
 	//if (fin_scan_ret == 1) {
 	//	null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 	if (tcp_flags.size() == 0) {
-		
+
 		int null_scan_ret = null_scan(src_ip,src_port,dst_ip,dst_port,seq_num,ack_num,tcp_flags);
 
 		//std::cout << "null_scan_ret: " << null_scan_ret << std::endl;
@@ -675,7 +676,7 @@ void GargoylePscandHandler::main_port_scan_check(
 	 * if we are here that means that none of the
 	 * previous checks yielded anything, but we will
 	 * keep track of the data in SCANNED_PORTS_CNT_DICT anyway
-	 * 
+	 *
 	 * But we ignore locally bound ip addr's if that flag is set
 	 */
 	if (IGNORE_WHITE_LISTED_IP_ADDRS) {
@@ -697,14 +698,14 @@ void GargoylePscandHandler::add_to_scanned_ports_dict(std::string the_ip, int th
 	 */
 
 	/*
-	 * SCANNED_PORTS_CNT_DICT example: 
+	 * SCANNED_PORTS_CNT_DICT example:
 	 * 	192.168.1.115:64 :: 2 :: 1482869817
 	 * 	192.168.1.117:5558 :: 11 :: 1482869646
 	 * 	192.168.1.117:5559 :: 4 :: 1482869673
-	 * 
-	 * 
+	 *
+	 *
 	 * structure is:
-	 * 
+	 *
 	 * 	key = ip:port
 	 * 	value = hit_count:last_timestamp
 	 */
@@ -770,7 +771,7 @@ void GargoylePscandHandler::set_ephemeral_low(size_t val) {
 
 void GargoylePscandHandler::set_ephemeral_high(size_t val) {
 	if (val)
-		EPHEMERAL_HIGH = val;	
+		EPHEMERAL_HIGH = val;
 }
 
 
@@ -810,7 +811,7 @@ void GargoylePscandHandler::display_scanned_ports_dict() {
 
 
 void GargoylePscandHandler::display_hot_ports() {
-	
+
 	for (std::vector<int>::const_iterator i = HOT_PORTS.begin(); i != HOT_PORTS.end(); ++i) {
 			std::cout << *i << " ";
 		}
@@ -857,25 +858,23 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 		size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 		char *host_ip = (char*) malloc(dst_buf_sz1+1);
 		*/
-		
+
 		int added_host_ix = 0;
 		int tstamp;
-		
+
 		size_t d_buf_sz = DEST_BUF_SZ * 2;
 		char *l_hosts = (char*) malloc(d_buf_sz);
-		*l_hosts = 0;
-		
+
 		size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 		char *host_ip = (char*) malloc(dst_buf_sz1+1);
-		*host_ip = 0;
-		
+
 		const char *dash_dash = "--  ";
 		size_t dash_dash_len = 4;
 		const char *w_space = " ";
 		char *s_lchains3;
 		char *s_lchains4;
 
-		// whats active in iptables?		
+		// whats active in iptables?
 		iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 		if (l_hosts) {
 			token1 = strtok_r(l_hosts, tok1, &token1_save);
@@ -883,29 +882,35 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 
 				s_lchains3 = strstr (token1, dash_dash);
 				if (s_lchains3) {
-					
+
 					size_t position1 = s_lchains3 - token1;
 					s_lchains4 = strstr (token1 + position1 + dash_dash_len, w_space);
 					size_t position2 = s_lchains4 - token1;
 
 					*host_ip = 0;
 					if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
-						
+
 						ip_tables_entries.insert(host_ip);
-					
+
 					}
 				}
 				token1 = strtok_r(NULL, tok1, &token1_save);
 			}
-		}		
-		
+		}
+
 
 		if (ip_tables_entries.count(the_ip) == 0) {
 			/*
 			 * !! ENFORCE - if ip in question has been flagged as doing
 			 * something blatantly stupid then block this bitch
 			 */
-			added_host_ix = do_block_actions(the_ip, detection_type, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
+			added_host_ix = do_block_actions(the_ip,
+				detection_type,
+				DB_LOCATION,
+				IPTABLES_SUPPORTS_XLOCK,
+				ENFORCE,
+				(void *)gargoyle_whitelist_shm,
+				get_debug());
 
 			if (is_in_black_listed_hosts(the_ip) == true) {
 				BLACK_LISTED_HOSTS.erase(the_ip);
@@ -926,7 +931,7 @@ int GargoylePscandHandler::add_ip_to_hosts_table(std::string the_ip) {
 	if (the_ip.size() > 0) {
 
 		// add blacklisted ip to db
-		/* 
+		/*
 		 * if add_host is successful then it returns
 		 * the ix of the DB row it added. Otherwise
 		 * it returns 0 (zero) or -1. if -1 is returned then
@@ -940,7 +945,7 @@ int GargoylePscandHandler::add_ip_to_hosts_table(std::string the_ip) {
 			// get existing index
 			added_host_ix = get_host_ix(the_ip.c_str(), DB_LOCATION.c_str());
 		}
-	}	
+	}
 	return added_host_ix;
 }
 
@@ -963,10 +968,10 @@ int GargoylePscandHandler::xmas_scan(
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
 				add_block_rule(src_ip, 3);
-				
+
 				int host_ix = add_ip_to_hosts_table(src_ip);
 				if (host_ix > 0) {
-					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION, get_debug());
 				}
 			}
 
@@ -998,10 +1003,10 @@ int GargoylePscandHandler::fin_scan(
 
 				if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
 					add_block_rule(src_ip, 2);
-					
+
 					int host_ix = add_ip_to_hosts_table(src_ip);
 					if (host_ix > 0) {
-						add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+						add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION, get_debug());
 					}
 				}
 
@@ -1010,7 +1015,7 @@ int GargoylePscandHandler::fin_scan(
 				if (!is_in_black_listed_hosts(src_ip)) {
 					BLACK_LISTED_HOSTS.insert(src_ip);
 				}
-				return 0;	
+				return 0;
 			}
 		}
 	}
@@ -1031,17 +1036,17 @@ int GargoylePscandHandler::null_scan(
 		if(tcp_flags.size() == 0) {
 
 			if (ADD_RULES_KNOWN_SCAN_AGGRESSIVE) {
-				
+
 				add_block_rule(src_ip, 1);
-				
+
 				int host_ix = add_ip_to_hosts_table(src_ip);
 				if (host_ix > 0) {
-					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION);
+					add_to_hosts_port_table(src_ip, dst_port, 1, DB_LOCATION, get_debug());
 				}
 			}
 
 			add_to_scanned_ports_dict(dst_ip, src_port);
-			
+
 			if (!is_in_black_listed_hosts(src_ip)) {
 				BLACK_LISTED_HOSTS.insert(src_ip);
 			}
@@ -1091,24 +1096,24 @@ bool GargoylePscandHandler::ignore_this_port(int the_port) {
 
 
 void GargoylePscandHandler::add_block_rules() {
-	
+
 	srand((int)time(0));
 
 	/*
 	 *
 	 * there are 2 phases to this function:
-	 * 
+	 *
 	 * - phase 1 processes ip addr's that are in list BLACK_LISTED_HOSTS and
 	 *   then removes them from that list
-	 *   
+	 *
 	 * - phase 2 process data from map SCANNED_PORTS_CNT_DICT where the structure is
-	 * 
+	 *
 	 *   {'ip_addr:port_number':{'hit_count,time_stamp'}}
-	 *   
+	 *
 	 *   example:
-	 *   
+	 *
 	 *   {'201.172.17.35:23':{'1:1479688559'}}, ...
-	 * 
+	 *
 	 */
 
 	std::set<std::string> ip_tables_entries;
@@ -1125,19 +1130,17 @@ void GargoylePscandHandler::add_block_rules() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
 	*/
-	
+
 	const char *tok1 = "\n";
 	char *token1;
 	char *token1_save;
-	
+
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_hosts = (char*) malloc(d_buf_sz);
-	*l_hosts = 0;
-	
+
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
-	*host_ip = 0;
-	
+
 	const char *dash_dash = "--  ";
 	size_t dash_dash_len = 4;
 	const char *w_space = " ";
@@ -1150,34 +1153,34 @@ void GargoylePscandHandler::add_block_rules() {
 
 	// whats active in iptables?
 	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
-	
+
 	if (l_hosts) {
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
 		while (token1 != NULL) {
 
 			s_lchains3 = strstr (token1, dash_dash);
 			if (s_lchains3) {
-				
+
 				size_t position1 = s_lchains3 - token1;
 				s_lchains4 = strstr (token1 + position1 + dash_dash_len, w_space);
 				size_t position2 = s_lchains4 - token1;
 
 				*host_ip = 0;
 				if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
-					
+
 					ip_tables_entries.insert(host_ip);
-				
+
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
 	}
-	
-	
+
+
 
 	/*
 	 * PHASE 1
-	 * 
+	 *
 	 * process the ip addr is list BLACK_LISTED_HOSTS - no analysis needed
 	 * these just get blocked
 	 */
@@ -1209,7 +1212,13 @@ void GargoylePscandHandler::add_block_rules() {
 			 * !! ENFORCE - if ip in question is in BLACK_LISTED_HOSTS
 			 * and we have reached this code path then block this bitch
 			 */
-			added_host_ix = do_block_actions(*it, 0, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
+			added_host_ix = do_block_actions(*it,
+				0,
+				DB_LOCATION,
+				IPTABLES_SUPPORTS_XLOCK,
+				ENFORCE,
+				(void *)gargoyle_whitelist_shm,
+				get_debug());
 
 			ip_tables_entries.insert(*it);
 		} else {
@@ -1225,7 +1234,7 @@ void GargoylePscandHandler::add_block_rules() {
 			add_detected_host(added_host_ix, tstamp, DB_LOCATION.c_str());
 		}
 
-		BLACK_LISTED_HOSTS.erase(*it);   
+		BLACK_LISTED_HOSTS.erase(*it);
 	}
 
 	/*
@@ -1237,16 +1246,16 @@ void GargoylePscandHandler::add_block_rules() {
 	int the_port;
 	int the_cnt;
 	std::map<std::string, int> LOCAL_IP_ROW_CNT;
-	
+
 	size_t limit_cnt = 0;
 	if (SCANNED_PORTS_CNT_DICT.size() > 0) {
 
 		while(limit_cnt <= PROCESSING_LIMIT) {
 
-			std::map< std::string, std::pair <int, int> >::iterator s_port_it = SCANNED_PORTS_CNT_DICT.begin();			
+			std::map< std::string, std::pair <int, int> >::iterator s_port_it = SCANNED_PORTS_CNT_DICT.begin();
 			std::advance(s_port_it, rand() % SCANNED_PORTS_CNT_DICT.size());
 
-	
+
 			//std::cout << s_port_it->first << " :: " << s_port_it->second.first << " :: " << s_port_it->second.second << std::endl;
 			current_key = "";
 			the_ip = "";
@@ -1254,13 +1263,13 @@ void GargoylePscandHandler::add_block_rules() {
 			the_cnt = 0;
 			tstamp = (int)time(NULL);
 			added_host_ix = 0;
-	
+
 			current_key = s_port_it->first;
 			std::size_t pos = (s_port_it->first).find(":");
 			the_ip = (s_port_it->first).substr(0, pos);
 			the_port = atoi(((s_port_it->first).substr(pos + 1, (s_port_it->first).size())).c_str());
 			the_cnt = s_port_it->second.first;
-	
+
 			/*
 			 * populate this to process when this while
 			 * loop is done
@@ -1275,29 +1284,35 @@ void GargoylePscandHandler::add_block_rules() {
 			if (the_ip.size() > 0 && the_cnt > 0) {
 				// add non blacklisted ip to db
 				added_host_ix = add_ip_to_hosts_table(the_ip);
-	
+
 				if (the_cnt >= PH_SINGLE_PORT_SCAN_THRESHOLD) {
-	
+
 					if (ip_tables_entries.count(the_ip) == 0) {
-	
-						do_block_actions(the_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
-	
+
+						do_block_actions(the_ip,
+							7,
+							DB_LOCATION,
+							IPTABLES_SUPPORTS_XLOCK,
+							ENFORCE,
+							(void *)gargoyle_whitelist_shm,
+							get_debug());
+
 						ip_tables_entries.insert(the_ip);
 					}
-					
+
 					if (is_in_scanned_ports_cnt_dict(current_key)) {
 						SCANNED_PORTS_CNT_DICT.erase(current_key);
 					}
 					break;
-					
+
 				} else {
-				
+
 					//syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%d\"", "host_ix", added_host_ix);
-					
+
 					if (added_host_ix > 0 && !is_white_listed_ip_addr(the_ip)) {
-						add_to_hosts_port_table(the_ip, the_port, the_cnt, DB_LOCATION);
+						add_to_hosts_port_table(the_ip, the_port, the_cnt, DB_LOCATION, get_debug());
 					}
-					
+
 					/*
 					 * do some output to syslog in case
 					 * this data is being used for analytics
@@ -1308,14 +1323,14 @@ void GargoylePscandHandler::add_block_rules() {
 				}
 			}
 			//std::cout << "IP: " << the_ip << " - port " << the_port << " - CNT " << the_cnt << std::endl;
-	
+
 			if (is_in_scanned_ports_cnt_dict(current_key)) {
 				SCANNED_PORTS_CNT_DICT.erase(current_key);
 			}
 
 			if (limit_cnt == PROCESSING_LIMIT || SCANNED_PORTS_CNT_DICT.size() == 0)
 				break;
-			
+
 			s_port_it++;
 			limit_cnt++;
 		}
@@ -1324,25 +1339,31 @@ void GargoylePscandHandler::add_block_rules() {
 	if (LOCAL_IP_ROW_CNT.size() > 0) {
 		std::map<std::string, int>::iterator loc_ip_it = LOCAL_IP_ROW_CNT.begin();
 		while(loc_ip_it != LOCAL_IP_ROW_CNT.end()) {
-	
+
 			//std::cout << "VIOLATOR: " << loc_ip_it->first << " - CNT: " << loc_ip_it->second << std::endl;
-	
+
 			if (loc_ip_it->second >= PH_SINGLE_IP_SCAN_THRESHOLD) {
-	
+
 				if (ip_tables_entries.count(loc_ip_it->first) == 0) {
-	
-					do_block_actions(loc_ip_it->first, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_whitelist_shm);
-	
-					ip_tables_entries.insert(loc_ip_it->first);	
+
+					do_block_actions(loc_ip_it->first,
+						6,
+						DB_LOCATION,
+						IPTABLES_SUPPORTS_XLOCK,
+						ENFORCE,
+						(void *)gargoyle_whitelist_shm,
+						get_debug());
+
+					ip_tables_entries.insert(loc_ip_it->first);
 				}
 			}
 			loc_ip_it++;
 		}
 	}
-	
+
 	free(l_hosts);
 	free(host_ip);
-	
+
 	if (LOCAL_IP_ROW_CNT.size() > 0)
 		LOCAL_IP_ROW_CNT.clear();
 }
@@ -1378,26 +1399,26 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	char *l_hosts = (char*) malloc(dst_buf_sz);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
-	
+
 	std::stringstream ss_orig;
 	gargoyle_whitelist_shm->ToString(ss_orig);
 	std::string white_list_orig = ss_orig.str();
 
 
 	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
-	
+
 	if (resp == 0) {
 
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			if (atoi(token1) > 0) {
-			
+
 				int host_ix = atoi(token1);
 				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
-				
+
 				if (strcmp(host_ip, "") != 0) {
-					
+
 					add_to_white_listed_entries(host_ip);
 
 					/*
@@ -1408,20 +1429,20 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 					 */
 					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 					if(rule_ix > 0) {
-						
+
 						size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION.c_str());
-						
+
 						if (row_ix > 0) {
 
 							// delete all records for this host_ix from hosts_ports_hits table
 							remove_host_ports_all(host_ix, DB_LOCATION.c_str());
-							
+
 							// delete row from detected_hosts
 							remove_detected_host(row_ix, DB_LOCATION.c_str());
-							
+
 							// reset last_seen to 1972
 							update_host_last_seen(host_ix, DB_LOCATION.c_str());
-							
+
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
 							do_unblock_action_output(host_ip, (int) time(NULL));
@@ -1434,15 +1455,15 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 	}
 	free(l_hosts);
 	free(host_ip);
-	
+
 	std::stringstream ss;
 	gargoyle_whitelist_shm->ToString(ss);
 	std::string white_list_new = ss.str();
-	
+
 	if (levenshtein(white_list_orig.c_str(), white_list_new.c_str()) > 0) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s", "ignoring IP addr's:", (white_list_new.c_str()));
 	}
-	
+
 }
 
 
@@ -1459,12 +1480,12 @@ void GargoylePscandHandler::set_db_location(const char *db_loc) {
 
 
 bool GargoylePscandHandler::is_in_hot_ports(int the_port) {
-	
+
 	std::vector<int>::const_iterator hot_ports_iter = std::find(HOT_PORTS.begin(), HOT_PORTS.end(), the_port);
 	if (hot_ports_iter != HOT_PORTS.end())
 		return true;
 	return false;
-	
+
 }
 
 
@@ -1489,33 +1510,44 @@ void GargoylePscandHandler::process_blacklist_ip_list() {
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
 	size_t resp = get_hosts_blacklist_all(l_hosts, dst_buf_sz, DB_LOCATION.c_str());
-	
+
 	if (resp == 0) {
 
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			if (atoi(token1) > 0) {
-			
+
 				int host_ix = atoi(token1);
 				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION.c_str());
-				
+
 				if (strcmp(host_ip, "") != 0) {
-					
+
 					if (!is_black_listed(host_ip, (void *)gargoyle_blacklist_shm)) {
-					
+
 						//gargoyle_blacklist_shm->Add(host_ip);
 						do_black_list_actions(host_ip, (void *)gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
-					
+
 					}
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
 	}
-	
+
 	free(l_hosts);
 	free(host_ip);
 
+}
+
+
+void GargoylePscandHandler::set_debug (bool b_val) {
+	if (b_val || !b_val)
+		DEBUG = b_val;
+}
+
+
+bool GargoylePscandHandler::get_debug () {
+	return DEBUG;
 }
 /////////////////////////////////////////////////////////////////////////////////

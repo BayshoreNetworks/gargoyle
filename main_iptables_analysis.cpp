@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * main analysis daemon - port scan detection and protection
  *
  * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -68,6 +68,7 @@ size_t OVERALL_PORT_SCAN_THRESHOLD = 8;
 // 8 hours
 size_t LAST_SEEN_DELTA = 28800;
 bool ENFORCE = true;
+bool DEBUG = false;
 size_t IPTABLES_SUPPORTS_XLOCK;
 // 5 days
 size_t LAST_SEEN_THRESHOLD = 432000;
@@ -91,12 +92,12 @@ void clean_up_iptables_dupe_data();
 void handle_signal (int signum) {
 	stop = 1;
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
-	
+
     if(gargoyle_analysis_whitelist_shm) {
         delete gargoyle_analysis_whitelist_shm;
         //gargoyle_analysis_whitelist_shm;
     }
-	
+
 	exit(0);
 }
 
@@ -226,7 +227,7 @@ void query_for_single_port_hits_last_seen() {
 					std::cout << host_ip << " - " << first_seen << " - "
 							<< last_seen << std::endl << std::endl;
 					*/
-					
+
 					now = (int) time(NULL);
 					if ((now - last_seen) <= LAST_SEEN_DELTA) {
 						/*
@@ -236,9 +237,15 @@ void query_for_single_port_hits_last_seen() {
 						 * did we see this host less than LAST_SEEN_DELTA hours ago?
 						 * if so block this bitch
 						 */
-						do_block_actions(host_ip, 7, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_analysis_whitelist_shm);
+						do_block_actions(host_ip,
+                            7,
+                            DB_LOCATION,
+                            IPTABLES_SUPPORTS_XLOCK,
+                            ENFORCE,
+                            (void *)gargoyle_analysis_whitelist_shm,
+                            DEBUG);
 						add_to_iptables_entries(host_ix);
-						
+
 					}
 					free(h_all);
 					free(host_ip);
@@ -265,33 +272,33 @@ void query_for_multiple_ports_hits_last_seen() {
 	int now;
 	int hit_cnt_resp;
 	int l_count;
-	
+
 	const char *tok1 = ">";
 	char *token1;
 	char *token1_save;
 	const char *tok2 = ":";
 	char *token2;
 	char *token2_save;
-	
+
 	size_t dst_buf_sz = MEDIUM_DEST_BUF;
 	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
 	char *host_ip = (char*) malloc(60);
-	
+
 	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
 	/*
 	std::cout << hosts_all_buf << std::endl;
 	std::cout << strlen(hosts_all_buf) << std::endl;
 	*/
-	
+
 	if (ret == 0) {
 		token1 = strtok_r(hosts_all_buf, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			iter_cnt = 0;
 			token2 = strtok_r(token1, tok2, &token2_save);
-			
+
 			while (token2 != NULL) {
-				
+
 				if (iter_cnt == 0) {
 					host_ix = atoi(token2);
 				} else if (iter_cnt == 1) {
@@ -301,7 +308,7 @@ void query_for_multiple_ports_hits_last_seen() {
 				} else if (iter_cnt == 3) {
 					last_seen = atoi(token2);
 				}
-				
+
 				iter_cnt++;
 				token2 = strtok_r(NULL, tok2, &token2_save);
 			}
@@ -310,27 +317,33 @@ void query_for_multiple_ports_hits_last_seen() {
 					<< last_seen << std::endl << std::endl;
 			*/
 			if (!exists_in_iptables_entries(host_ix)) {
-				
+
 				now = (int) time(NULL);
 				if ((now - last_seen) <= LAST_SEEN_DELTA) {
-					
+
 					hit_cnt_resp = 0;
 					hit_cnt_resp = get_total_hit_count_one_host_by_ix(host_ix, DB_LOCATION);
 					if (hit_cnt_resp >= SINGLE_IP_SCAN_THRESHOLD) {
 						/*
 						 * !! ENFORCE - if more than SINGLE_IP_SCAN_THRESHOLD ports
 						 * were scanned by this src ip then block this bitch
-						 * 
+						 *
 						 * do this by row count from the DB
 						 */
-						do_block_actions(host_ip, 6, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_analysis_whitelist_shm);
+						do_block_actions(host_ip,
+                            6,
+                            DB_LOCATION,
+                            IPTABLES_SUPPORTS_XLOCK,
+                            ENFORCE,
+                            (void *)gargoyle_analysis_whitelist_shm,
+                            DEBUG);
 						add_to_iptables_entries(host_ix);
-						
+
 					} else {
 						/*
 						 * !! ENFORCE - if the collective activity for
 						 * this host surpasses a threshold then block this bitch.
-						 * 
+						 *
 						 * we already have host_ix and host_ip
 						 * get a total count of port hits for this host
 						 */
@@ -338,9 +351,15 @@ void query_for_multiple_ports_hits_last_seen() {
 						l_count = get_one_host_hit_count_all_ports(host_ix, DB_LOCATION);
 						if (l_count >= OVERALL_PORT_SCAN_THRESHOLD) {
 
-							do_block_actions(host_ip, 8, DB_LOCATION, IPTABLES_SUPPORTS_XLOCK, ENFORCE, (void *)gargoyle_analysis_whitelist_shm);
+							do_block_actions(host_ip,
+                                8,
+                                DB_LOCATION,
+                                IPTABLES_SUPPORTS_XLOCK,
+                                ENFORCE,
+                                (void *)gargoyle_analysis_whitelist_shm,
+                                DEBUG);
 							add_to_iptables_entries(host_ix);
-							
+
 						}
 					}
 				}
@@ -354,25 +373,25 @@ void query_for_multiple_ports_hits_last_seen() {
 
 
 void run_analysis() {
-	
+
 	int start_time = (int) time(NULL);
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process commencing at", start_time);
-	
+
 	IPTABLES_ENTRIES.clear();
 	//get_white_list_addrs();
-	
+
 	const char *tok1 = "\n";
 	char *token1;
 	char *token1_save;
-	
+
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_hosts = (char*) malloc(d_buf_sz);
 	*l_hosts = 0;
-	
+
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
 	*host_ip = 0;
-	
+
 	const char *dash_dash = "--  ";
 	size_t dash_dash_len = 4;
 	const char *w_space = " ";
@@ -382,7 +401,7 @@ void run_analysis() {
 	size_t added_host_ix;
 	added_host_ix = 0;
 	int tstamp;
-	
+
 	/*
 	 * get the latest data from iptables and
 	 * populate vector IPTABLES_ENTRIES with
@@ -390,23 +409,23 @@ void run_analysis() {
 	 * via iptables
 	 */
 	iptables_list_chain(GARGOYLE_CHAIN_NAME, l_hosts, d_buf_sz, IPTABLES_SUPPORTS_XLOCK);
-	
+
 	if (l_hosts) {
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
 		while (token1 != NULL) {
 
 			s_lchains3 = strstr (token1, dash_dash);
 			if (s_lchains3) {
-				
+
 				size_t position1 = s_lchains3 - token1;
 				s_lchains4 = strstr (token1 + position1 + dash_dash_len, w_space);
 				size_t position2 = s_lchains4 - token1;
 
 				*host_ip = 0;
 				added_host_ix = 0;
-				
+
 				if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
-					
+
 					added_host_ix = get_host_ix(host_ip, DB_LOCATION);
 					if (added_host_ix > 0) {
 						add_to_iptables_entries(added_host_ix);
@@ -421,18 +440,18 @@ void run_analysis() {
 	query_for_single_port_hits_last_seen();
 	query_for_multiple_ports_hits_last_seen();
 	clean_up_iptables_dupe_data();
-	
+
 	int end_time = (int) time(NULL);
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "analysis process finishing at", end_time);
 	syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "analysis process took", end_time - start_time, "seconds");
-	
+
 	free(l_hosts);
 	free(host_ip);
 }
 
 
 void clean_up_stale_data() {
-	
+
 	int ret;
 	int row_ix;
 	int host_ix;
@@ -442,34 +461,34 @@ void clean_up_stale_data() {
 	int now;
 	int hit_cnt_resp;
 	int l_count;
-	
+
 	const char *tok1 = ">";
 	char *token1;
 	char *token1_save;
 	const char *tok2 = ":";
 	char *token2;
 	char *token2_save;
-	
+
 	size_t dst_buf_sz = MEDIUM_DEST_BUF;
 	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
 	char *host_ip = (char*) malloc(60);
-	
+
 	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
 	/*
 	std::cout << hosts_all_buf << std::endl;
 	std::cout << strlen(hosts_all_buf) << std::endl;
 	*/
-	
+
 	if (ret == 0) {
-		
+
 		token1 = strtok_r(hosts_all_buf, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			iter_cnt = 0;
 			token2 = strtok_r(token1, tok2, &token2_save);
-			
+
 			while (token2 != NULL) {
-				
+
 				if (iter_cnt == 0) {
 					host_ix = atoi(token2);
 				} else if (iter_cnt == 1) {
@@ -479,7 +498,7 @@ void clean_up_stale_data() {
 				} else if (iter_cnt == 3) {
 					last_seen = atoi(token2);
 				}
-				
+
 				iter_cnt++;
 				token2 = strtok_r(NULL, tok2, &token2_save);
 			}
@@ -487,7 +506,7 @@ void clean_up_stale_data() {
 			//if (!exists_in_iptables_entries(host_ix) && !is_white_listed_ip_addr(host_ip)) {
 			if (!exists_in_iptables_entries(host_ix) &&
 					!is_white_listed(host_ip, (void *) gargoyle_analysis_whitelist_shm)) {
-				
+
 				now = (int) time(NULL);
 				if ((now - last_seen) >= LAST_SEEN_THRESHOLD) {
 					/*
@@ -496,19 +515,19 @@ void clean_up_stale_data() {
 					 * analysis process as it can peg a CPU at
 					 * close to 100% when there is a lot of data
 					 * to process
-					 * 
+					 *
 					 * the next steps will remove all traces of
 					 * a particular host if we havent encountered
 					 * it in over LAST_SEEN_THRESHOLD (5 days by
 					 * default)
 					 */
-					
+
 					/*
 					// delete all records for this host_ix from hosts_ports_hits table
 					remove_host_ports_all(host_ix, DB_LOCATION);
 					// delete the host record
 					remove_host(host_ix, DB_LOCATION);
-					
+
 					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", "removing record",
 							VIOLATOR_SYSLOG, host_ip, "first_seen", first_seen, "last_seen", last_seen);
 					*/
@@ -524,54 +543,54 @@ void clean_up_stale_data() {
 
 
 void clean_up_iptables_dupe_data() {
-	
+
 	size_t dst_buf_sz = DEST_BUF_SZ;
 	char *l_chains = (char*) malloc(dst_buf_sz + 1);
 	*l_chains = 0;
 	char *l_chains2 = (char*) malloc(dst_buf_sz + 1);
 	*l_chains2 = 0;
-	
+
 	const char *tok1 = "\n";
-	
+
 	char *token1;
 	char *token1_save;
 	char *token2;
 	char *token2_save;
-	
-	
+
+
 	const char *dash_dash = "--  ";
 	size_t dash_dash_len = 4;
 	const char *w_space = " ";
-	
+
 	char *s_lchains1;
 	char *s_lchains2;
 	char *s_lchains3;
 	char *s_lchains4;
-	
+
 	char *host_ip = (char*) malloc(60);
 	char *host_ip2 = (char*) malloc(60);
-	
+
 	int rule_ix1;
 	int rule_ix2;
-	
+
 	std::map<std::string, int> iptables_map;
 
 	iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
 	if (l_chains) {
 		token1 = strtok_r(l_chains, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			rule_ix1 = atoi(token1);
 			s_lchains1 = strstr (token1, dash_dash);
-			
+
 			if (s_lchains1) {
-				
+
 				size_t position1 = s_lchains1 - token1;
 				s_lchains2 = strstr (token1 + position1 + dash_dash_len, w_space);
 				size_t position2 = s_lchains2 - token1;
 
 				*host_ip = 0;
-				
+
 				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
 				if (host_ip) {
 					iptables_map.insert(std::pair<std::string,int>(host_ip,rule_ix1));
@@ -584,25 +603,25 @@ void clean_up_iptables_dupe_data() {
 	std::map<std::string,int>::iterator it = iptables_map.begin();
 	/*
 	for (it=iptables_map.begin(); it!=iptables_map.end(); ++it) {
-			
+
 		std::cout << it->first << " => " << it->second << '\n';
 	}
 	*/
 	std::vector<int> vec;
 	for (it=iptables_map.begin(); it!=iptables_map.end(); ++it) {
-		
+
 	    //std::cout << it->first << " => " << it->second << '\n';
 		iptables_list_chain_with_line_numbers(GARGOYLE_CHAIN_NAME, l_chains2, dst_buf_sz, IPTABLES_SUPPORTS_XLOCK);
-							
+
 		if (l_chains2) {
-			
+
 			token2 = strtok_r(l_chains2, tok1, &token2_save);
 			while (token2 != NULL) {
-				
+
 				rule_ix2 = atoi(token2);
 				s_lchains3 = strstr (token2, dash_dash);
 				if (s_lchains3) {
-					
+
 					size_t position3 = s_lchains3 - token2;
 					s_lchains4 = strstr (token2 + position3 + dash_dash_len, w_space);
 					size_t position4 = s_lchains4 - token2;
@@ -646,7 +665,7 @@ void clean_up_iptables_dupe_data() {
 int main(int argc, char *argv[]) {
 
 	signal(SIGINT, handle_signal);
-	
+
 	if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
@@ -659,14 +678,14 @@ int main(int argc, char *argv[]) {
      * maybe we replace this in the future ...
      */
     if (argc > 2 || argc < 1) {
-    	
+
     	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
-    	
+
     } else if (argc == 2) {
-    	
+
     	std::string arg_one = argv[1];
-    	
+
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
@@ -675,31 +694,31 @@ int main(int argc, char *argv[]) {
     		return 0;
     	}
     }
-	
+
 	int analysis_port;
 	const char *port_config_file;
 	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
 	if (port_config_file == NULL)
 		port_config_file = ".gargoyle_internal_port_config";
 	analysis_port = 0;
-	
+
 	ConfigVariables cv;
 	if (cv.get_vals(port_config_file) == 0) {
 		analysis_port = cv.get_gargoyle_pscand_analysis_udp_port();
 	} else {
 		return 1;
 	}
-	
+
 	if (analysis_port <= 0)
 		return 1;
 
-		
+
 	SingletonProcess singleton(analysis_port);
 	if (!singleton()) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
-	
+
 	/*
 	 * Get location for the DB file
 	 */
@@ -715,16 +734,16 @@ int main(int argc, char *argv[]) {
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
-	
+
 	// Get config data
 	const char *config_file;
 	config_file = getenv("GARGOYLE_CONFIG");
 	if (config_file == NULL)
 		config_file = ".gargoyle_config";
-	
+
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {
-		
+
 		ENFORCE = cvv.get_enforce_mode();
 		PORT_SCAN_THRESHOLD = cvv.get_port_scan_threshold();
 		SINGLE_IP_SCAN_THRESHOLD = cvv.get_single_ip_scan_threshold();
@@ -734,17 +753,17 @@ int main(int argc, char *argv[]) {
 	} else {
 		return 1;
 	}
-	
+
 	gargoyle_analysis_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
-	
+
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
-	
+
 	// processing loop
 	while (!stop) {
 		run_analysis();
 		// every 15 minutes by default
 		sleep(900);
 	}
-	
+
 	return 0;
 }

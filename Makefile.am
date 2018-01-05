@@ -15,7 +15,8 @@ bin_PROGRAMS = gargoyle_pscand \
 				gargoyle_pscand_remove_from_blacklist \
 				gargoyle_lscand_bruteforce \
 				gargoyle_lscand_bruteforce_detect \
-				gargoyle_view_shared_mem
+				gargoyle_view_shared_mem \
+				gargoyle_regex_tester
 				
 gargoyle_pscand_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp packet_handler.cpp lib/shared_config.cpp lib/shared_mem.cpp main_daemon.cpp
 
@@ -40,4 +41,8 @@ gargoyle_lscand_bruteforce_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapp
 gargoyle_lscand_bruteforce_detect_SOURCES = main_iptables_bruteforce_detect.c
 
 gargoyle_view_shared_mem_SOURCES = lib/shared_config.cpp lib/shared_mem.cpp view_shared_mem.cpp
+
+gargoyle_regex_tester_SOURCES = gargoyle_regex_tester.cpp
+
+
 

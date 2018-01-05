@@ -314,7 +314,12 @@ int main(int argc, char *argv[]) {
 
 	
 	SingletonProcess singleton(monitor_port);
-	if (!singleton()) {
+	try {
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	} catch (std::runtime_error& e) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}

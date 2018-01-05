@@ -1,9 +1,12 @@
 # gargoyle
 
+<p>
 <a href="https://scan.coverity.com/projects/bayshorenetworks-gargoyle">
   <img alt="Coverity Scan Build Status"
        src="https://scan.coverity.com/projects/13905/badge.svg"/>
 </a>
+<a href="https://www.openhub.net/p/gargoyle-scand?ref=Thin+badge" rel="nofollow"><img alt="OpenHub-Status" src="https://www.openhub.net/p/gargoyle-scand/widgets/project_thin_badge?format=gif" data-canonical-src="https://www.openhub.net/p/gargoyle-scand/widgets/project_thin_badge?format=gif" style="max-width:100%;"></a></p>
+</p>
 
 Gargoyle Protection for Linux
 
@@ -20,7 +23,7 @@ Gargoyle_pscand is based on the notion of different severity levels where some b
 
 There are numerous run time entities:
 
-	1. gargoyle_pscand - runs as the main daemon and expects signal 2 (SIGINT) to be brought down as there is a complex cleanup process upon the reciept of SIGINT.
+	1. gargoyle_pscand - runs as the main daemon and expects signal 2 (SIGINT) to be brought down as there is a complex cleanup process upon the receipt of SIGINT.
 
 		This is the main daemon that reads packet data right off iptables via NFLOG (set up as: "iptables -I INPUT -j NFLOG --nflog-group 5")
 
@@ -59,7 +62,9 @@ There are numerous run time entities:
 
 	7. gargoyle_pscand_remove_from_blacklist - this is a standalone program that accepts one argument (an ip address string) and will remove that ip address from the black list (blocked ip addresses) and all related entities (DB table, shared mem, etc).
 
-	8. gargoyle_lscand_bruteforce - runs as a daemon and monitors log file data looking for inidcators and patterns based on the user provided data in the .conf files located in directory conf.d. 
+	8. gargoyle_lscand_bruteforce - runs as a daemon and monitors log file data looking for indicators and patterns based on the user provided data in the .conf files located in directory conf.d. 
+
+	9. gargoyle_regex_tester - a standalone program to help users test their regex strings against either a string or data in a file. For details and examples see the section entitled 'notes on gargoyle_regex_tester'
 
 
 Default install path: /opt/gargoyle_pscand
@@ -201,7 +206,88 @@ Notes:
 	- If you are interested in performing analysis on data that Gargoyle_pscand generates then make sure you pipe syslog to an endpoint you control and where this data will be properly stored for analysis. The internal DB that Gargoyle_pscand uses will clean itself up over time in order to keep performance acceptable.
 	
 	- To remove ip addresses from the white (or ignore) list, or the blacklist, use the respective standalone programs "gargoyle_pscand_remove_from_whitelist" or "gargoyle_pscand_remove_from_blacklist", do not manually remove that ip address from the DB table.
+	
+	- If your system uses journalctl and you want to use the SSH brute force detection make sure you modify the file called '.gargoyle_ssh_bruteforce_config'. It lives at the root of gargoyle's installed path, so for example the default location would be:
+		
+		/opt/gargoyle_pscand/.gargoyle_ssh_bruteforce_config
+		
+		The most important element in that file is the key/value pair:
+	
+		log_entity:journalctl -u ssh --since "1 minute ago"
+		
+		You must ensure that this journalctl command yields results when called. Some systems use 'sshd' and not 'ssh' for instance.
 
+
+Notes on gargoyle_regex_tester:
+
+	The most important point here is that this is NOT a generic regex tester. It is designed to be useful in verifying a regex to be used with gargoyle to detect ip addresses within log file data. Your regex should be written to target ip addresses that are doing something nefarious to the system gargoyle is protecting. 
+
+	Usage:
+	
+		./gargoyle_regex_tester -r regex_string -l target_string_or_file
+
+
+	Example:
+	
+		For this example we have a web application that logs unsuccessful login attempts to a file called "/var/log/myapp_bad_logins.log"
+
+		Our log file used for this example has the following data in it:
+
+			$ cat /var/log/myapp_bad_logins.log 
+			Dec 12 23:53:27 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.228.120.126) 25.79msffabcdef
+			Dec 12 23:53:27 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.228.120.126) 25.79msffabcdef
+			Dec 12 23:53:27 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.228.120.126) 25.79msffabcdef
+			Dec 12 23:53:27 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.228.120.126) 25.79msff
+			Dec 12 23:53:28 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.228.120.126) 25.79msffabcdef
+			Dec 12 23:53:28 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.228.120.126) 25.79msffabcdef
+			Dec 12 23:53:28 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.258.120.126) 25.79msffabcdef
+			Dec 12 23:53:28 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.258.120.126) 25.79ms
+			Dec 12 23:53:29 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.258.120.126) 25.79msffabcdef
+			Dec 12 23:53:29 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.251.120.126) 25.79msffabc
+			Dec 12 23:53:29 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.251.120.126) 25.79msffabcdef
+			Dec 12 23:53:30 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (192.251.120.126) 25.79msffabcdef
+			Dec 12 23:53:30 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (12.168.170.26) 25.79msffabcdef
+
+		Our regex test run:
+		
+			$ ./gargoyle_regex_tester -r "401 POST *.+ \((.*)\)" -l /var/log/myapp_bad_logins.log
+
+			Results
+			=======
+			
+			Entity scanned is a file named "/var/log/myapp_bad_logins.log"
+			13 lines were consumed and scanned
+			Regex used: 401 POST *.+ \((.*)\)
+			Number of hits for this regex: 13
+			Number of valid IP ADDRs from regex hits: 10
+			
+			Unique list of valid IP ADDRs discovered:
+			-----------------
+			192.228.120.126
+			192.251.120.126
+			12.168.170.26
+			
+		*** Take note that ip addresses are validated here and this is why there were 13 regex hits but only 10 valid ones as "192.258.120.126" is not a valid ip address ***
+
+
+		You could also use gargoyle_regex_tester with a target string instead of a file as such:
+		
+			$ ./gargoyle_regex_tester -r "401 POST *.+ \((.*)\)" -l "Dec 12 23:53:30 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (12.168.170.26) 25.79msffabcdef"
+
+			Results
+			=======
+			
+			Entity scanned is a string: "Dec 12 23:53:30 GARGOYLE-EXT-TEST spal: WARNING bayshore - 401 POST /login (12.168.170.26) 25.79msffabcdef"
+			Regex used: 401 POST *.+ \((.*)\)
+			Number of hits for this regex: 1
+			Number of valid IP ADDRs from regex hits: 1
+			
+			Unique list of valid IP ADDRs discovered:
+			-----------------
+			12.168.170.26
+
+
+			
 
 
 
