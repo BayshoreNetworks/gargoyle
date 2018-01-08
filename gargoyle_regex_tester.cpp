@@ -30,12 +30,20 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <regex>
 #include <vector>
+#include <algorithm>
 
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+
+#include "config.h"
+
+#ifdef USE_LIBPCRECPP
+#include <pcrecpp.h>
+#else
+#include <regex>
+#endif
 
 #include "system_functions.h"
 
@@ -51,7 +59,11 @@ std::vector<std::string> valid_ip_addr;
 bool validate_ip_address(const std::string &);
 bool valid_ip_addr_exists(const std::string &);
 std::string hunt_for_ip_addr(std::string);
+#ifndef USE_LIBPCRECPP
 void do_regex_check(const std::string &, const std::regex &);
+#else
+void do_regex_check(const std::string &line, pcrecpp::RE &);
+#endif
 void add_valid_ip_addr(const std::string &);
 void display_valid_ip_addr();
 
@@ -64,8 +76,8 @@ bool validate_ip_address(const std::string &ip_address) {
 }
 
 
-bool valid_ip_addr_exists(const std::string &ip_addr) {
-	if(std::find(valid_ip_addr.begin(), valid_ip_addr.end(), ip_addr) != valid_ip_addr.end())
+bool valid_ip_addr_exists(const std::string& ip_addr) {
+	if(std::find(valid_ip_addr.cbegin(), valid_ip_addr.cend(), ip_addr) != valid_ip_addr.cend())
 		return true;
 	return false;
 }
@@ -92,12 +104,23 @@ std::string hunt_for_ip_addr(const std::string &line, const char& c) {
 }
 
 
+#ifndef USE_LIBPCRECPP
 void do_regex_check(const std::string &line, const std::regex &l_regex) {
+#else
+void do_regex_check(const std::string &line, pcrecpp::RE &l_regex) {
+#endif
+
+	std::string ip_addr;
 	
 	line_cnt++;
+
+#ifndef USE_LIBPCRECPP
 	std::smatch match;
 	
 	if (std::regex_search(line, match, l_regex)) {
+#else
+	if (l_regex.PartialMatch(line, &ip_addr)) {
+#endif
 
 		regex_num_hits++;
 		/*
@@ -105,7 +128,9 @@ void do_regex_check(const std::string &line, const std::regex &l_regex) {
 		std::cout << "MATCH 0: " << match.str(0) << std::endl;
 		std::cout << "MATCH 1: " << match.str(1) << std::endl;
 		*/
-		std::string ip_addr = match.str(1);
+#ifndef USE_LIBPCRECPP
+		ip_addr = match.str(1);
+#endif
 		//std::cout << "IP: " << ip_addr << std::endl;
 		
 		if (validate_ip_address(ip_addr)) {
@@ -202,10 +227,15 @@ int main(int argc, char *argv[]) {
     //std::ios::streampos gpos = ifs.tellg();
 
     std::string line;
+
+#ifndef USE_LIBPCRECPP
 	
 	try {
 		
 		std::regex l_regex(regex_str);
+#else
+		pcrecpp::RE l_regex(regex_str);
+#endif
 		
 		// working with one target string, not file
 		if (!using_file) {
@@ -237,6 +267,7 @@ int main(int argc, char *argv[]) {
 			inf.close();
 		}
 
+#ifndef USE_LIBPCRECPP
 	} catch (std::regex_error& e) {
 		
 		std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
@@ -245,6 +276,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 		
 	}
+#endif
 
 	std::cout << std::endl << "Results" << std::endl << "=======" << std::endl << std::endl;
 	
