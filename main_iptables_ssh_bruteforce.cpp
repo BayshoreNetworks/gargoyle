@@ -4,7 +4,7 @@
  *
  * Program to detect and block SSH brute force attacks
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -186,7 +186,9 @@ int handle_log_line(const std::string &line) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					""
+				);
 
 			}
 
@@ -299,7 +301,10 @@ void process_iteration(int num_seconds, int num_hits) {
 				IPTABLES_SUPPORTS_XLOCK,
 				ENFORCE,
 				(void *)gargoyle_sshbf_whitelist_shm,
-				DEBUG);
+				DEBUG,
+				""
+			);
+
 			IP_HITMAP.erase(ip_addr);
 
 		} else if (now_delta > (num_seconds * 3)) {
@@ -312,7 +317,9 @@ void process_iteration(int num_seconds, int num_hits) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					""
+				);
 
 			}
 
@@ -328,7 +335,10 @@ void process_iteration(int num_seconds, int num_hits) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					""
+				);
+
 				IP_HITMAP.erase(ip_addr);
 
 			}

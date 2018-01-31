@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * Program to spawn off child processes for detection, and blocking, of brute force attack attempts (gargoyle_lscand_bruteforce)
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -44,7 +44,7 @@ char GARG_BF_CONFIG_DIR[BF_CONF_DIR_MAX + 1];
 
 
 int is_dir(const char *dpath) {
-	
+
     struct stat buf;
 
     if (stat(dpath, &buf) == 0 && S_ISDIR(buf.st_mode)) {
@@ -63,9 +63,9 @@ void spawn(char *program,char *argv[]) {
 	pid_t child_pid = vfork();
 
 	if(child_pid == 0) {
-	
+
 		execvp(argv[0], argv);
-	
+
 	}
 }
 
@@ -77,7 +77,7 @@ void signal_handler(int signum) {
 		wait(&child_process_ret_status);
 
 	}
-	
+
 	if(signum == SIGINT){
 
 		exit(0);
@@ -104,38 +104,38 @@ int main(void){
 		snprintf (GARG_BF_CONFIG_DIR, BF_CONF_DIR_MAX, "%s/", gargoyle_bf_config_dir);
 	}
 
-	
+
 	size_t file_cnt = 0;
 	DIR *dpdf1;
 	struct dirent *epdf1;
-	
+
 	if (is_dir(GARG_BF_CONFIG_DIR) == 0) {
-	
+
 		dpdf1 = opendir(GARG_BF_CONFIG_DIR);
 		if (dpdf1 != NULL) {
 			// get a count
 			while (NULL!=(epdf1 = readdir(dpdf1))){
-				
+
 				if (epdf1->d_name[0] != '.') {
-		
+
 					file_cnt++;
-		
+
 				}
 			}
 			closedir(dpdf1);
 		}
-	
+
 	} else {
-		
+
 		//printf("\nCould not access dir: %s\n\n", GARG_BF_CONFIG_DIR);
 		return 1;
-		
+
 	}
 
 	DIR *dpdf;
 	struct dirent *epdf;
 	char fs[BF_CONF_DIR_MAX + 64 + 1];
-	
+
 	dpdf = opendir(GARG_BF_CONFIG_DIR);
 	if (dpdf != NULL) {
 
@@ -143,7 +143,7 @@ int main(void){
 
 		// spawn processes based on detected conf files
 		while (NULL!=(epdf = readdir(dpdf))){
-			
+
 			//FILE *file = NULL;
 
 			size_t garg_bf_dir_sz = strlen(GARG_BF_CONFIG_DIR);
@@ -151,7 +151,7 @@ int main(void){
 			fs[garg_bf_dir_sz] = '\0';
 
 			//printf("FNAME: %s\n", epdf->d_name);
-			
+
 			if (epdf->d_name[0] != '.') {
 
 				strncat (fs, epdf->d_name, strlen(epdf->d_name));
@@ -159,18 +159,18 @@ int main(void){
 
 
 				if(strstr(fs, ".conf") != NULL) {
-	
+
 					if (strlen(fs) && strcmp(fs, GARG_BF_CONFIG_DIR) != 0) {
-		
+
 						char *program = "./gargoyle_lscand_bruteforce";
 						char *argv[]={
 								program,
 								fs,
 								NULL
 						};
-		
+
 						spawn(program, argv);
-						
+
 						files_processed++;
 						//printf("CNT1: %lu\n\n", files_processed);
 						if (files_processed == file_cnt) {
@@ -180,7 +180,7 @@ int main(void){
 				}
 			}
 		}
-		
+
 		closedir(dpdf);
 	}
 

@@ -4,7 +4,7 @@
  *
  * Program to detect and block based on regex and log data
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -72,7 +72,7 @@ size_t get_regexes(const char *);
 void signal_handler(int);
 bool validate_ip_address(const std::string &);
 int handle_log_line(const std::string &, const std::string &);
-void process_iteration(int, int);
+void process_iteration(int, int, const std::string &);
 std::string hunt_for_ip_addr(std::string);
 void handle_ip_addr(const std::string &);
 void display_map();
@@ -159,7 +159,7 @@ void display_map() {
 }
 
 
-void process_iteration(int num_seconds, int num_hits) {
+void process_iteration(int num_seconds, int num_hits, const std::string &config_file) {
 
 	for (const auto &p : IP_HITMAP) {
 
@@ -195,7 +195,9 @@ void process_iteration(int num_seconds, int num_hits) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *) gargoyle_bf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					config_file
+				);
 				IP_HITMAP.erase(ip_addr);
 				continue;
 
@@ -212,7 +214,9 @@ void process_iteration(int num_seconds, int num_hits) {
 				IPTABLES_SUPPORTS_XLOCK,
 				ENFORCE,
 				(void *) gargoyle_bf_whitelist_shm,
-				DEBUG);
+				DEBUG,
+				config_file
+			);
 			IP_HITMAP.erase(ip_addr);
 
 		}
@@ -362,7 +366,7 @@ int main(int argc, char *argv[]) {
 						std::this_thread::sleep_for(std::chrono::seconds(5));
 						break;
 					}
-					
+
 				}
 
 				// try to read line
@@ -421,7 +425,7 @@ int main(int argc, char *argv[]) {
 
 						}
 
-						process_iteration(num_seconds, num_hits);
+						process_iteration(num_seconds, num_hits, config_file);
 
 					}
 

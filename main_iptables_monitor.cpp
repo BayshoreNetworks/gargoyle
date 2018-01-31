@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * main cleanup daemon
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -64,12 +64,12 @@ volatile sig_atomic_t stop;
 
 void handle_signal (int signum) {
 	stop = 1;
-	
+
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
         //gargoyle_monitor_blacklist_shm;
     }
-	
+
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 	exit(0);
 }
@@ -102,27 +102,27 @@ void run_monitor() {
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
 	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
-	
+
 	if (resp3 == 0) {
 
 		/*
 		 std::cout << std::endl << resp3 << std::endl;
 		 std::cout << l_hosts3 << std::endl;
-		 */ 
+		 */
 		token1 = strtok_r(l_hosts3, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			iter_cnt = 0;
 			timestamp = 0;
 			host_ix = 0;
 			//active = -1;
 			//processed = -1;
 			row_ix = -1;
-			
+
 			//std::cout << token1 << std::endl;
 			token2 = strtok_r(token1, tok2, &token2_save);
 			while (token2 != NULL) {
-	
+
 				//std::cout << token2 << " - " << iter_cnt << std::endl;
 				if (iter_cnt == 0) {
 					row_ix = atoi(token2);
@@ -130,7 +130,7 @@ void run_monitor() {
 					host_ix = atoi(token2);
 				} else if (iter_cnt == 2) {
 					timestamp = atoi(token2);
-				} 
+				}
 				/*
 				else if (iter_cnt == 3) {
 					active = atoi(token2);
@@ -141,10 +141,10 @@ void run_monitor() {
 				iter_cnt++;
 				token2 = strtok_r(NULL, tok2, &token2_save);
 			}
-			
+
 			//if (row_ix >= 0 && active >= 0 && processed >= 0 && host_ix > 0) {
 			if (row_ix >= 0 && host_ix > 0) {
-	
+
 				//std::cout << row_ix << " - " << host_ix << " - " << timestamp << " - " << active << " - " << processed << std::endl;
 				now = (int) time(NULL);
 				*host_ip = 0;
@@ -155,33 +155,33 @@ void run_monitor() {
 				 */
 				// has it been in jail long enuf?
 				if ((now - timestamp) >= LOCKOUT_TIME) {
-		
+
 					// we have the host ix so get the ip addr from the DB
 					if (get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION) == 0) {
 						//std::cout << "HOST IP: " << host_ip << std::endl;
-			
+
 						// we have the ip addr so get the rule ix from iptables
 						//rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip);
 						//std::cout << "RULE IX: " << rule_ix << std::endl;
 						//if (rule_ix > 0 && strcmp(host_ip, "") != 0) {
 						if (strcmp(host_ip, "") != 0) {
-							
+
 							// if the ip is blaclisted leave it alone
 							if (!is_black_listed(host_ip, (void *)gargoyle_monitor_blacklist_shm)) {
-							
+
 								// find the row ix for this host (in detected_hosts table)
 								size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
 								if (row_ix > 0) {
-								
+
 									// remove DB row from when we blocked this host
 									if (remove_detected_host(row_ix, DB_LOCATION) == 0) {
-										
+
 										size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 										// delete rule from chain
 										iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-	
+
 										do_unblock_action_output(host_ip, (int) time(NULL));
-										
+
 									}
 								}
 							}
@@ -192,7 +192,7 @@ void run_monitor() {
 			token1 = strtok_r(NULL, tok1, &token1_save);
 		}
 	}
-	
+
 	free(l_hosts3);
 	free(host_ip);
 }
@@ -222,9 +222,9 @@ void run_orphan_cleanup() {
 
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
 		while (token1 != NULL) {
-			
+
 			//std::cout << token1 << std::endl;
-			
+
 			int rep = get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
 
 			if (rep == 0) {
@@ -248,12 +248,12 @@ void run_orphan_cleanup() {
 int main(int argc, char *argv[]) {
 
 	signal(SIGINT, handle_signal);
-	
+
     if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
     }
-    
+
     /*
      * in order to keep stuff lean and mean I
      * am doing this manually here and not
@@ -261,14 +261,14 @@ int main(int argc, char *argv[]) {
      * maybe we replace this in the future ...
      */
     if (argc > 2 || argc < 1) {
-    	
+
     	std::cerr << std::endl << GARG_MONITOR_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
     	return 1;
-    	
+
     } else if (argc == 2) {
-    	
+
     	std::string arg_one = argv[1];
-    	
+
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
-	
+
 	int monitor_port;
 	//const char *port_config_file = ".gargoyle_internal_port_config";
 	const char *port_config_file;
@@ -301,18 +301,18 @@ int main(int argc, char *argv[]) {
 	if (port_config_file == NULL)
 		port_config_file = ".gargoyle_internal_port_config";
 	monitor_port = 0;
-	
+
 	ConfigVariables cv;
 	if (cv.get_vals(port_config_file) == 0) {
 		monitor_port = cv.get_gargoyle_pscand_monitor_udp_port();
 	} else {
 		return 1;
 	}
-	
+
 	if (monitor_port <= 0)
 		return 1;
 
-	
+
 	SingletonProcess singleton(monitor_port);
 	try {
 		if (!singleton()) {
@@ -323,36 +323,36 @@ int main(int argc, char *argv[]) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_monitor", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
-	
+
 	// Get config data
 	//const char *config_file = ".gargoyle_config";
 	const char *config_file;
 	config_file = getenv("GARGOYLE_CONFIG");
 	if (config_file == NULL)
 		config_file = ".gargoyle_config";
-	
+
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {
 		LOCKOUT_TIME = cvv.get_lockout_time();
 	} else {
 		return 1;
 	}
-	
+
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
-	
+
 	gargoyle_monitor_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
 
 	// processing loop
 	while (!stop) {
 		// every 12 hours by default
 		sleep(43200);
-		
+
 		int start_time = (int) time(NULL);
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process commencing at", start_time);
-		
+
 		run_monitor();
 		run_orphan_cleanup();
-		
+
 		int end_time = (int) time(NULL);
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");

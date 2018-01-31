@@ -4,7 +4,7 @@
  *
  * main analysis daemon - port scan detection and protection
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -243,7 +243,9 @@ void query_for_single_port_hits_last_seen() {
                             IPTABLES_SUPPORTS_XLOCK,
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
-                            DEBUG);
+                            DEBUG,
+                            ""
+                        );
 						add_to_iptables_entries(host_ix);
 
 					}
@@ -336,7 +338,9 @@ void query_for_multiple_ports_hits_last_seen() {
                             IPTABLES_SUPPORTS_XLOCK,
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
-                            DEBUG);
+                            DEBUG,
+                            ""
+                        );
 						add_to_iptables_entries(host_ix);
 
 					} else {
@@ -357,7 +361,9 @@ void query_for_multiple_ports_hits_last_seen() {
                                 IPTABLES_SUPPORTS_XLOCK,
                                 ENFORCE,
                                 (void *)gargoyle_analysis_whitelist_shm,
-                                DEBUG);
+                                DEBUG,
+                                ""
+                            );
 							add_to_iptables_entries(host_ix);
 
 						}
