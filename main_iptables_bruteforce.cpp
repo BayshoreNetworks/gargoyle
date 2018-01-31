@@ -49,6 +49,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "system_functions.h"
+#include "string_functions.h"
 #include "shared_config.h"
 
 
