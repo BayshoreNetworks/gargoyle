@@ -138,18 +138,24 @@ int main(int argc, char *argv[])
 							// delete row from detected_hosts
 							remove_detected_host(row_ix, DB_LOCATION);
 							
-							int tstamp = (int) time(NULL);
-	
-							// add to ignore ip table
-							add_host_to_ignore(host_ix, (size_t)tstamp, DB_LOCATION);
+							//int tstamp = (int) time(NULL);
+							time_t t_now = time(NULL);
 							
-							// reset last_seen to 1972
-							update_host_last_seen(host_ix, DB_LOCATION);
+							if (t_now > 0) {
+								
+								size_t tstamp = t_now;
+		
+								// add to ignore ip table
+								add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
+								
+								// reset last_seen to 1972
+								update_host_last_seen(host_ix, DB_LOCATION);
+								
+								iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
+		
+								do_unblock_action_output(ip, (int) tstamp);
 							
-							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-	
-							do_unblock_action_output(ip, tstamp);
-							
+							}
 						}
 					}
 				}

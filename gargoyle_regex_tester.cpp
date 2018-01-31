@@ -41,6 +41,7 @@
 
 
 //std::vector<std::string> sshd_regexes;
+size_t line_sz = 2048;
 size_t line_cnt = 0;
 size_t regex_num_hits = 0;
 size_t valid_ip_addr_cnt = 0;
@@ -221,10 +222,10 @@ int main(int argc, char *argv[]) {
 				return 1;
 			}
 			
-			char str[512];
+			char str[line_sz];
 			
 			while(inf) {
-				inf.getline(str, 512);
+				inf.getline(str, line_sz);
 				if(inf) {
 				
 					do_regex_check(str, l_regex);
