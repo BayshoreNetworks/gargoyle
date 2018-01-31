@@ -171,8 +171,8 @@ void process_iteration(int num_seconds, int num_hits, const std::string &config_
 		int l_num_hits = IP_HITMAP[p.first][1];
 
 
-		std::cout << original_timestamp << " -- " << now << std::endl;
-		std::cout << "[" << p.first << "]" << std::endl << "Delta: " << now_delta << std::endl << "Hits: " << IP_HITMAP[p.first][1] << std::endl << std::endl;
+		//std::cout << original_timestamp << " -- " << now << std::endl;
+		//std::cout << "[" << p.first << "]" << std::endl << "Delta: " << now_delta << std::endl << "Hits: " << IP_HITMAP[p.first][1] << std::endl << std::endl;
 
 
 		// delta longer than num_seconds - just cleanup
