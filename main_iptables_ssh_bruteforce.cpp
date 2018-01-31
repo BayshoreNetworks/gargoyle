@@ -582,6 +582,7 @@ int main(int argc, char *argv[])
 				if (ret >= 0) {
 
 					if (f_var.st_size == 0) {
+						std::this_thread::sleep_for(std::chrono::seconds(5));
 						break;
 					}
 

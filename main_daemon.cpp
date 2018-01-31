@@ -326,8 +326,7 @@ void add_to_ip_entries(std::string s) {
 void get_ephemeral_range_to_ignore() {
 
 	FILE *fp;
-	char *ephemeral_tcp = (char*) malloc(13);
-	char *target = (char*) malloc(6);
+	char ephemeral_tcp[32];
 
 	const char *tok1 = "\t";
 	char *token1;
@@ -337,7 +336,7 @@ void get_ephemeral_range_to_ignore() {
 
 	fp = popen("cat /proc/sys/net/ipv4/ip_local_port_range", "r");
 	if (fp) {
-		if (fgets(ephemeral_tcp, 20, fp) != NULL) {
+		if (fgets(ephemeral_tcp, sizeof(ephemeral_tcp), fp) != NULL) {
 			//std::cout << "--- " << ephemeral_tcp << " --- " << strlen(ephemeral_tcp) << std::endl;
 			iter_cnt = 0;
 			token1 = strtok_r(ephemeral_tcp, tok1, &token1_save);
@@ -355,8 +354,6 @@ void get_ephemeral_range_to_ignore() {
 		}
 		pclose(fp);
 	}
-	free(ephemeral_tcp);
-	free(target);
 }
 
 
