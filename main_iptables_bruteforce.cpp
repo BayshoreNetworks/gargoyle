@@ -425,7 +425,11 @@ int main(int argc, char *argv[]) {
 
 						}
 
-						process_iteration(num_seconds, num_hits, config_file);
+						std::string cfg_file_out = get_file_name(config_file);
+						if (cfg_file_out.size() > 0)
+							process_iteration(num_seconds, num_hits, cfg_file_out);
+						else
+							process_iteration(num_seconds, num_hits, config_file);
 
 					}
 
