@@ -136,11 +136,11 @@ int do_block_actions(const std::string &the_ip,
 
 					if (detection_type > 0) {
 
-						do_block_action_output(the_ip, detection_type, tstamp, "");
+						do_block_action_output(the_ip, detection_type, tstamp, config_file_id);
 
 					} else {
 
-						do_block_action_output(the_ip, 0, tstamp, "");
+						do_block_action_output(the_ip, 0, tstamp, config_file_id);
 
 					}
 
