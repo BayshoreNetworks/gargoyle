@@ -50,6 +50,7 @@
 #include "config_variables.h"
 #include "ip_addr_controller.h"
 #include "shared_config.h"
+#include "system_functions.h"
 
 bool DEBUG = false;
 size_t IPTABLES_SUPPORTS_XLOCK;
@@ -79,15 +80,15 @@ int main(int argc, char *argv[])
 	const char *gargoyle_db_file;
 	gargoyle_db_file = getenv("GARGOYLE_DB");
 	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
+        snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", GARGOYLE_DEFAULT_ROOT_PATH, DB_PATH);
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
+
+    if (!does_file_exist(DB_LOCATION)) {
+        syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "DB file:", DB_LOCATION, "does not exist - cannot continue");
+        return 1;
+    }
 
     char ip[16];
 

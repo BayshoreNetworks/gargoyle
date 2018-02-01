@@ -41,6 +41,7 @@ extern "C" {
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
 #define GARGOYLE_VERSION "1.6.4"
 #define GARGOYLE_DEBUG "GARGOYLE DEBUG -"
+#define GARGOYLE_DEFAULT_ROOT_PATH "/opt/gargoyle_pscand"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
 #define IPTABLES_INPUT_CHAIN "INPUT"
