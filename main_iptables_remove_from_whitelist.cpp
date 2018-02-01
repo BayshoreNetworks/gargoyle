@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * ip addr removal from whitelist
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -67,12 +67,12 @@ bool validate_ip_addr(std::string ip_addr)
 
 int main(int argc, char *argv[])
 {
-	
+
     if (geteuid() != 0) {
     	std::cerr << std::endl << "Root privileges are necessary for this to run ..." << std::endl << std::endl;
     	return 1;
     }
-    
+
 	/*
 	 * Get location for the DB file
 	 */
@@ -88,30 +88,30 @@ int main(int argc, char *argv[])
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
-    
+
 	gargoyle_whitelist_removal_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
     char ip[16];
-    
+
     if (DEBUG)
     	std::cout << "ARGC " << argc << std::endl;
-    
+
     if (argc == 2) {
-    	
+
 		if (validate_ip_addr(argv[1])) {
-			
+
 			strncpy(ip, argv[1], 15);
 			ip[strlen(argv[1])] = '\0';
-			
+
 			if (DEBUG)
 				std::cout << "IP addr: " << ip << std::endl;
-			
+
 			if (strcmp(ip, "") != 0) {
-				
+
 				// find the host ix for the ip
 				int host_ix = get_host_ix(ip, DB_LOCATION);
-				
+
 				if (host_ix > 0) {
-					
+
 					if (is_host_ignored(host_ix, DB_LOCATION) > 0) {
 
 						// remove from DB
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 
 						// remove from shared mem region
 						gargoyle_whitelist_removal_shm->Remove(string(ip));
-					
+
 					}
 				}
 			}
@@ -127,11 +127,11 @@ int main(int argc, char *argv[])
     } else {
     	std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_whitelist ip_addr" << std::endl << std::endl;
     }
-    
+
     if(gargoyle_whitelist_removal_shm) {
         delete gargoyle_whitelist_removal_shm;
         //gargoyle_whitelist_removal_shm;
     }
-    
+
 	return 0;
 }

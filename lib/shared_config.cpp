@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * configuration object for sharing IP addresses between processes
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -55,11 +55,11 @@ int32_t SharedIpConfig::compareAndExpand() {
 
         //printf("Resizing: local capacity %ld to %ld\n", local_capacity, hdr->capacity);
         local_capacity = hdr->capacity;
-        if(region->Resize(sizeof(Header) + local_capacity * sizeof(in_addr_t)) < 0) 
+        if(region->Resize(sizeof(Header) + local_capacity * sizeof(in_addr_t)) < 0)
             return -1;
         loadHeader();
-    } 
-    
+    }
+
     return 0;
 }
 
@@ -149,7 +149,7 @@ int32_t SharedIpConfig::init() {
  * initial size is 100 IP elements and an expansion is needed, then the new size
  * would be 200 elements.
  *
- * N.B. for nearly all operations in this object, an inter-process lock 
+ * N.B. for nearly all operations in this object, an inter-process lock
  * is maintained. If a failure or some other signal (e.g., SIGINT) occurs while
  * one of these global locks is held and the process exits, then other processes
  * accessing the inter-process lock *will* deadlock. It is therefore the responsibility
@@ -157,7 +157,7 @@ int32_t SharedIpConfig::init() {
  * the reference to this object in order to release the lock.
  *
  */
-SharedIpConfig *SharedIpConfig::Create(string name, size_t size) { 
+SharedIpConfig *SharedIpConfig::Create(string name, size_t size) {
     SharedIpConfig *config = new SharedIpConfig(name, size);
     if(!config)
         return NULL;
@@ -207,7 +207,7 @@ int32_t SharedIpConfig::Add(string ip4_addr) {
         local_capacity = hdr->capacity;
 
         // Do the resize
-        if(region->Resize(sizeof(Header) + local_capacity * sizeof(in_addr_t)) < 0) 
+        if(region->Resize(sizeof(Header) + local_capacity * sizeof(in_addr_t)) < 0)
             return -1;
 
         /*
@@ -215,7 +215,7 @@ int32_t SharedIpConfig::Add(string ip4_addr) {
          * reload the header reference
          */
         loadHeader();
-        
+
         // Do we really need this? Didn't we just set it?
         local_capacity = hdr->capacity;
     }
@@ -318,7 +318,7 @@ int32_t SharedIpConfig::Remove(string ip4_addr) {
 
     if(ix >= 0) {
         for(int64_t i = Size() - 1; i >= ix; i--) {
-            uint32_t tmp2 = vec_ptr[i]; 
+            uint32_t tmp2 = vec_ptr[i];
             vec_ptr[i] = tmp;
             tmp = tmp2;
         }
@@ -339,7 +339,7 @@ int32_t SharedIpConfig::ToString(stringstream &ss) {
 
     if(lock() < 0)
         return -1;
-    
+
     vec_ptr = ipVectorPtr();
     const char *commaStr = "";
     for(int64_t i = 0; i < Size(); i++) {
