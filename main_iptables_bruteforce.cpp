@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 	} else {
-		syslog(LOG_INFO | LOG_LOCAL6, "Config entity: \"%s\" does not exist, cannot continue", config_file.c_str());
+		syslog(LOG_INFO | LOG_LOCAL6, "Config entity: \"%s\" %s, %s", config_file.c_str(), DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
 		return 1;
 	}
 
@@ -311,7 +311,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!does_file_exist(DB_LOCATION)) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "DB file:", DB_LOCATION, "does not exist - cannot continue");
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
 		return 1;
 	}
 
@@ -319,7 +319,7 @@ int main(int argc, char *argv[]) {
 
 
 	if (!does_file_exist(log_entity.c_str())) {
-		syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" does not exist, cannot continue", log_entity.c_str());
+		syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" %s, %s", log_entity.c_str(), DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
 		return 1;
 	}
 

@@ -41,6 +41,7 @@ extern "C" {
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
 #define GARGOYLE_VERSION "1.6.4"
 #define GARGOYLE_DEBUG "GARGOYLE DEBUG -"
+#define GARGOYLE_ERROR "GARGOYLE ERROR -"
 #define GARGOYLE_DEFAULT_ROOT_PATH "/opt/gargoyle_pscand"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
@@ -71,6 +72,9 @@ extern "C" {
 #define FIRST_SEEN_SYSLOG "first_seen"
 #define LAST_SEEN_SYSLOG "last_seen"
 #define CONFIG_SYSLOG "config"
+#define DB_FILE_SYSLOG "DB file:"
+#define DOESNT_EXIST_SYSLOG "does not exist"
+#define CANNOT_CONTINUE_SYSLOG "cannot continue"
 
 
 #define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"

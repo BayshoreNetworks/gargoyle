@@ -600,7 +600,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (!does_file_exist(DB_LOCATION)) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "DB file:", DB_LOCATION, "does not exist - cannot continue");
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
 		return 1;
 	}
 
