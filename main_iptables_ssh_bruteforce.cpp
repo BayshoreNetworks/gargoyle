@@ -63,6 +63,7 @@
 #include "string_functions.h"
 #include "singleton.h"
 #include "shared_config.h"
+#include "LogTail.h"
 
 
 int BASE_TIME;
@@ -74,6 +75,15 @@ bool ENFORCE = true;
 bool ENABLED = true;
 bool DEBUG = false;
 int BUF_SZ = 2048;
+
+/*
+ * Return code:
+ *  0 == graceful exit (no error, SIGINT received)
+ *  1 == invalid configuration (or missing required configuration file(s))
+ *  2 == invalid regular expression detected
+ */
+volatile int ret_code = 0;
+volatile bool stop_processing = false;
 
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
@@ -111,10 +121,11 @@ size_t get_regexes(const char *fname) {
 
 void signal_handler(int signum) {
 
+	stop_processing = true;
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 
 	// terminate program
-	exit(0);
+	exit(ret_code);
 
 }
 
@@ -375,6 +386,167 @@ void handle_ip_addr(const std::string &ip_addr) {
 	}
 }
 
+class LogProcessor : public LogTail 
+{
+public:
+	LogProcessor(
+			const std::string& logFile, 
+			size_t _num_hits,
+			size_t _num_seconds) 
+		: LogTail(logFile) 
+		, num_hits(_num_hits)
+		, num_seconds(_num_seconds) 
+		, invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*")
+		, max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port")
+		, bad_algo("Unable to negotiate with (.*) port")
+		{}
+	virtual ~LogProcessor() {}
+
+	virtual void OnLine(const std::string& line) {
+
+		//std::cout << "LINE: " << line << std::endl;
+		std::smatch match;
+
+		try {
+
+			/*
+			* handle instant block regexes first
+			*/
+			#if 0
+			// initialized in ctor()
+			std::regex invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*");
+			std::regex max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
+			// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
+			std::regex bad_algo("Unable to negotiate with (.*) port");
+			#endif
+
+			//if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
+			if (std::regex_search(line, match, max_exceeded) && match.size() == 2) {
+
+				std::string ip_addr = match.str(1);
+
+				// if we are here then do an instant block because sshd already did
+				// the work for us of detecting too many login attempts
+
+				//std::cout << "TESTING MAX EXCEEDED" << std::endl;
+				//std::cout << "INSTANT BLOCK HERE - " << ip_addr << std::endl;
+
+				if (validate_ip_address(ip_addr)) {
+
+					do_block_actions(ip_addr,
+						50,
+						DB_LOCATION,
+						IPTABLES_SUPPORTS_XLOCK,
+						ENFORCE,
+						(void *)gargoyle_sshbf_whitelist_shm,
+						DEBUG,
+						""
+					);
+
+				}
+
+				process_iteration(num_seconds, num_hits);
+
+				return;
+
+			} else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
+
+				std::string ip_addr = match.str(1);
+
+				//std::cout << "TESTING INVALID USER" << std::endl;
+
+				if (validate_ip_address(ip_addr)) {
+
+					handle_ip_addr(ip_addr);
+
+				} else {
+
+					std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+					/*
+					* this is a hackjob because when reading output
+					* from journalctl the regex doesnt seem to work
+					* as expected (but when tailing a standard log
+					* file it does work)
+					*/
+					// the hack found an ip addr
+					if (hip.size()) {
+
+						handle_ip_addr(hip);
+
+					}
+				}
+
+				process_iteration(num_seconds, num_hits);
+
+				return;
+
+			} else if (std::regex_search(line, match, bad_algo) && match.size() == 2) {
+
+				std::string ip_addr = match.str(1);
+
+				//std::cout << "TESTING BAD ALGO" << std::endl;
+
+				if (validate_ip_address(ip_addr)) {
+
+					handle_ip_addr(ip_addr);
+
+				}
+
+				process_iteration(num_seconds, num_hits);
+
+				return;
+
+			} else {
+
+				if (sshd_regexes.size() > 0) {
+
+					for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
+
+						/* std::cout << *it; ... */
+						std::regex testreg(*it);
+
+						//std::cout << "SZ: " << match.size() << std::endl;
+
+						//if (std::regex_search(line, match, testreg) && match.size() > 1) {
+						if (std::regex_search(line, match, testreg) && match.size() == 2) {
+
+							std::string ip_addr = match.str(1);
+							if (validate_ip_address(ip_addr)) {
+
+								handle_ip_addr(ip_addr);
+
+							}
+							break;
+						}
+					}
+				}
+			}
+
+		} catch (std::regex_error& e) {
+
+			std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
+			std::cout << "Regex exception code is: " << e.code() << std::endl;
+			std::cout << "Cannot continue ..." << std::endl << std::endl;
+			stop_processing = true;
+
+			ret_code = 2;
+			return;
+		}
+
+		process_iteration(num_seconds, num_hits);
+
+		return;
+	}
+
+private:
+	size_t num_hits;
+	size_t num_seconds;
+
+	// Hard-coded regular expressions:
+	std::regex invalid_user;
+	std::regex max_exceeded;
+	std::regex bad_algo;
+};
 
 
 int main(int argc, char *argv[])
@@ -538,107 +710,11 @@ int main(int argc, char *argv[])
 	 */
 	if (!use_journalctl) {
 
-		/*
-		std::ifstream ifs(log_entity.c_str());
-
-		if (ifs.is_open()) {
-
-			std::string line;
-			while (true) {
-
-				while (std::getline(ifs, line)) {
-
-					//std::cout << line << std::endl;
-					if (line.size() > 0) {
-
-						if (handle_log_line(line) != 0) {
-
-							// problem with the regexes
-							return 1;
-
-						}
-
-					}
-
-				}
-
-				if (!ifs.eof()) {
-					break;
-				}
-				ifs.clear();
-
-				// sleep here to avoid being a CPU hog.
-				std::this_thread::sleep_for (std::chrono::seconds(3));
-				process_iteration(num_seconds, num_hits);
-
-			}
-
-		}
-		*/
-
-		std::ifstream ifs(log_entity.c_str(), std::ios::ate);
-	    // remember file position
-	    std::ios::streampos gpos = ifs.tellg();
-
-	    std::string line;
-	    struct stat f_var;
-	    int ret = -1;
-
-		while(ifs.is_open()) {
-
-			while(!ifs.eof()) {
-
-				ret = stat(log_entity.c_str(), &f_var);
-				if (ret >= 0) {
-
-					if (f_var.st_size == 0) {
-						std::this_thread::sleep_for(std::chrono::seconds(5));
-						break;
-					}
-
-				}
-
-				// try to read line
-				if(!std::getline(ifs, line) || ifs.eof()) {
-
-					// if we fail, clear stream, return to beginning of line
-					ifs.clear();
-					ifs.seekg(gpos);
-
-					// and wait to try again
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
-					continue;
-				}
-
-
-				// remember the position of the next line in case
-				// the next read fails
-				gpos = ifs.tellg();
-
-
-				// process line here
-				//std::cout << "line: " << line << std::endl;
-				if (line.size() > 0) {
-
-					if (handle_log_line(line) != 0) {
-						// problem with the regexes
-						return 1;
-					}
-
-				}
-
-				// sleep here to avoid being a CPU hog.
-				//std::this_thread::sleep_for (std::chrono::seconds(3));
-				process_iteration(num_seconds, num_hits);
-
-			}
-
-			ifs.close();
-			// Roll-over -- the logrotate closed the current file and re-opened it
-			ifs.open(log_entity.c_str());
-
-		}
-
+		LogProcessor lp(log_entity, num_hits, num_seconds);
+		if (lp.Initialize()) 
+			lp.Process(stop_processing);
+		else 
+			ret_code = 1;
 	} else if (use_journalctl) {
 
 		char buff[BUF_SZ];
@@ -682,5 +758,5 @@ int main(int argc, char *argv[])
 
 	}
 
-	return 0;
+	return ret_code;
 }
