@@ -312,7 +312,8 @@ int handle_log_line(const std::string &line) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					"");
 
 		}
 
