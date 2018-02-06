@@ -58,6 +58,7 @@
 #include "system_functions.h"
 #include "string_functions.h"
 #include "shared_config.h"
+#include "LogTail.h"
 
 
 char DB_LOCATION[SQL_CMD_MAX+1];
@@ -67,16 +68,25 @@ bool DEBUG = false;
 //bool DEBUG = true;
 int BUF_SZ = 512;
 
+/*
+ * Return code:
+ *  0 == graceful exit (no error, SIGINT received)
+ *  1 == invalid configuration (or missing required configuration file(s))
+ *  2 == invalid regular expression detected
+ */
+volatile int ret_code = 0;
+volatile bool stop_processing = false;
+
 std::vector<std::string> sshd_regexes;
 std::map<std::string, int[2]> IP_HITMAP;
 
 size_t IPTABLES_SUPPORTS_XLOCK;
 size_t ITER_CNT_MAX = 50;
-static int last_position = 0;
+//static int last_position = 0;
 
 SharedIpConfig *gargoyle_bf_whitelist_shm = NULL;
 
-size_t get_regexes(const char *);
+//size_t get_regexes(const char *);
 void signal_handler(int);
 bool validate_ip_address(const std::string &);
 int handle_log_line(const std::string &, const std::string &);
@@ -86,6 +96,7 @@ void handle_ip_addr(const std::string &);
 void display_map();
 
 
+#ifdef NOT_USED
 size_t get_regexes(const char *fname) {
 
 	std::string line;
@@ -101,19 +112,21 @@ size_t get_regexes(const char *fname) {
 		return 1;
 	}
 }
+#endif
 
 
 void signal_handler(int signum) {
+
+	stop_processing = true;
 
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 
     if(gargoyle_bf_whitelist_shm) {
         delete gargoyle_bf_whitelist_shm;
-        //gargoyle_bf_whitelist_shm;
     }
 
 	// terminate program
-	exit(0);
+	exit(ret_code);
 
 }
 
@@ -251,6 +264,111 @@ void handle_ip_addr(const std::string &ip_addr) {
 
 }
 
+/*
+ * Handle the log files line-by-line
+ * The base class takes care of conditions where the log file is 
+ * rotated, truncated or altered.
+ */ 
+class LogProcessor : public LogTail 
+{
+public:
+	LogProcessor(
+			const std::string& logFile, 
+			const std::string& regex,
+			const std::string& conf,
+			size_t _num_hits,
+			size_t _num_seconds) 
+		: LogTail(logFile), l_regex(regex), config_file(conf), num_hits(_num_hits), num_seconds(_num_seconds) {}
+	virtual ~LogProcessor() {}
+
+	virtual void OnLine(const std::string& line) {
+
+#ifdef USE_LIBPCRECPP
+		pcrecpp::RE l_regex(regex_str);
+#else
+		try {
+
+			std::smatch match;
+#endif
+
+
+#ifdef USE_LIBPCRECPP
+			if (l_regex.PartialMatch(line, &ip_addr)) {
+				//TODO: Ensure correctly formed PCRE regular expression
+#else
+			if (std::regex_search(line, match, l_regex)) {
+
+				if (DEBUG) {
+					std::cout << "MATCH SZ: " << match.size() << std::endl;
+					std::cout << "MATCH 0: " << match.str(0) << std::endl;
+					std::cout << "MATCH 1: " << match.str(1) << std::endl;
+				}
+					
+				if (match.size() >= 2) {
+					ip_addr = match.str(1);
+					//std::cout << "IP: " << ip_addr << std::endl;
+				}
+#endif
+
+				if (ip_addr.size()) {
+
+					if (validate_ip_address(ip_addr)) {
+
+						if (DEBUG) {
+							std::cout << "MATCH IP ADDR: " << ip_addr << std::endl;
+						}
+						handle_ip_addr(ip_addr);
+
+					} else {
+
+						std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+						// the hack found an ip addr
+						if (hip.size()) {
+						handle_ip_addr(hip);
+
+					}
+
+				}
+
+				std::string cfg_file_out = get_file_name(config_file);
+				if (cfg_file_out.size() > 0)
+					process_iteration(num_seconds, num_hits, cfg_file_out);
+				else
+					process_iteration(num_seconds, num_hits, config_file);
+
+				}
+
+			}
+
+			//process_iteration(num_seconds, num_hits);
+
+#ifndef USE_LIBPCRECPP	
+		} catch (std::regex_error& e) {
+
+			std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
+			std::cout << "Regex exception code is: " << e.code() << std::endl;
+			std::cout << "Cannot continue ..." << std::endl << std::endl;
+		
+			//Signal error
+			ret_code = 2;			
+			stop_processing = true;
+		}
+#endif
+
+	}
+
+private:
+	std::string config_file;
+
+#ifdef USE_LIBPCRECPP
+	pcrecpp::RE l_regex;
+#else
+	std::regex l_regex;
+#endif
+
+	size_t num_hits;
+	size_t num_seconds;
+};
 
 int main(int argc, char *argv[]) {
 
@@ -332,153 +450,12 @@ int main(int argc, char *argv[]) {
 	gargoyle_bf_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 
 
-	std::ifstream ifs(log_entity.c_str(), std::ios::ate);
-    // remember file position
-    std::ios::streampos gpos = ifs.tellg();
-
-
-    std::string line;
-	struct stat f_var;
-	int ret = -1;
-	
-		
-#ifdef USE_LIBPCRECPP
-	pcrecpp::RE l_regex(regex_str);
-#else
-	try {
-
-		std::smatch match;
-		std::regex l_regex(regex_str);
-#endif
-
-		//while(true) {
-		while(ifs.is_open()) {
-
-			while(!ifs.eof()) {
-
-				line.clear();
-				//std::getline(ifs, line);
-
-				/*
-				 * since this is a live running daemon we need
-				 * to detect when a log file gets rotated
-				 * because it obviously gets a new inode and
-				 * is a new file entity altogether. I thought
-				 * we could catch that with the detcetion of
-				 * eof but that doesnt seem to work tremendously
-				 * well so the detection of size zero when the
-				 * new log file gets created turns out to be
-				 * more reliable even though its more expensive
-				 *
-				 */
-				//if (get_file_size(log_entity) == 0)
-				//	break;
-				ret = stat(log_entity.c_str(), &f_var);
-				if (ret >= 0) {
-
-					if (f_var.st_size == 0) {
-						std::this_thread::sleep_for(std::chrono::seconds(5));
-						break;
-					}
-
-				}
-
-				// try to read line
-				if(!std::getline(ifs, line) || ifs.eof()) {
-
-					// if we fail, clear stream, return to beginning of line
-					ifs.clear();
-					ifs.seekg(gpos);
-
-					// and wait to try again
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
-					continue;
-				}
-
-
-				// remember the position of the next line in case
-				// the next read fails
-				gpos = ifs.tellg();
-
-
-				// process line here
-				//std::cout << "line: " << line << std::endl;
-
-				std::string ip_addr;
-				
-#ifdef USE_LIBPCRECPP
-				if (l_regex.PartialMatch(line, &ip_addr)) {
-					//TODO: Ensure correctly formed PCRE regular expression
-#else
-				if (std::regex_search(line, match, l_regex)) {
-
-					if (DEBUG) {
-						std::cout << "MATCH SZ: " << match.size() << std::endl;
-						std::cout << "MATCH 0: " << match.str(0) << std::endl;
-						std::cout << "MATCH 1: " << match.str(1) << std::endl;
-					}
-					
-					if (match.size() >= 2) {
-						ip_addr = match.str(1);
-						//std::cout << "IP: " << ip_addr << std::endl;
-					}
-#endif
-					
-					if (ip_addr.size()) {
-
-						if (validate_ip_address(ip_addr)) {
-
-							if (DEBUG) {
-								std::cout << "MATCH IP ADDR: " << ip_addr << std::endl;
-							}
-							handle_ip_addr(ip_addr);
-
-						} else {
-
-							std::string hip = hunt_for_ip_addr(ip_addr, ' ');
-							// the hack found an ip addr
-							if (hip.size()) {
-
-								handle_ip_addr(hip);
-
-							}
-
-						}
-
-						std::string cfg_file_out = get_file_name(config_file);
-						if (cfg_file_out.size() > 0)
-							process_iteration(num_seconds, num_hits, cfg_file_out);
-						else
-							process_iteration(num_seconds, num_hits, config_file);
-
-					}
-
-				}
-
-				//process_iteration(num_seconds, num_hits);
-
-			}
-
-			if (DEBUG) {
-				std::cout << "Log file: " << log_entity << " CLOSED" << std::endl;
-			}
-			ifs.close();
-			// Roll-over -- the logrotate closed the current file and re-opened it
-			ifs.open(log_entity.c_str());
-
-		}
-
-#ifndef USE_LIBPCRECPP	
-	} catch (std::regex_error& e) {
-
-		std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
-		std::cout << "Regex exception code is: " << e.code() << std::endl;
-		std::cout << "Cannot continue ..." << std::endl << std::endl;
-		return 1;
-
+	LogProcessor lp(log_entity, regex_str, config_file, num_hits, num_seconds);
+	if (lp.Initialize()) {
+		lp.Process(stop_processing);
+		// never reached..
 	}
-#else
-#endif
 
-	return 0;
+	// Initialize() failed.
+	return 1;
 }

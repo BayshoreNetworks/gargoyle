@@ -104,7 +104,7 @@ int do_block_actions(const std::string &the_ip,
 
 			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 			if (debug) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s %s %d %s %s", GARGOYLE_DEBUG, "Iptables rule IX: ", rule_ix, "in Chain: ", GARGOYLE_CHAIN_NAME);
+				syslog(LOG_INFO | LOG_LOCAL6, "%s %s %lu %s %s", GARGOYLE_DEBUG, "Iptables rule IX: ", rule_ix, "in Chain: ", GARGOYLE_CHAIN_NAME);
 			}
 			/*
 			 * if this ip does not exist in iptables ...
@@ -266,7 +266,7 @@ void do_block_action_output(const std::string &the_ip,
 		syslog_line << " " << CONFIG_SYSLOG << "=\"" << config_file_id << "\"";
 	}
 
-	syslog(LOG_INFO | LOG_LOCAL6, syslog_line.str().c_str());
+	syslog(LOG_INFO | LOG_LOCAL6, "%s", syslog_line.str().c_str());
 
 	/*
 	if (detection_type > 0) {
