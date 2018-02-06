@@ -40,7 +40,7 @@
 #include "shared_config.h"
 
 
-int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, bool  ) {
+int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, bool debug) {
 
 	int added_host_ix;
 	added_host_ix = 0;
