@@ -170,9 +170,14 @@ int do_block_actions(const std::string &the_ip,
 						if (debug) {
 							if (adh != 0) {
 								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s (%d) %s", GARGOYLE_DEBUG, "Error adding IP: ", the_ip.c_str(), host_ix, "to the detected_hosts table");
+								return -1;
+							} else {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s (%d) %s", GARGOYLE_DEBUG, "Added IP: ", the_ip.c_str(), host_ix, "to the detected_hosts table");
 							}
 						}
 
+					} else {
+						return -1;
 					}
 
 				}
@@ -182,6 +187,7 @@ int do_block_actions(const std::string &the_ip,
 				if (debug) {
 					syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Not adding: ", the_ip.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
 				}
+				return -1;
 
 			}
 		}
