@@ -149,20 +149,21 @@ bool LogTail::_wait_file(volatile bool & stop) {
 				if (len <= 0)
 					break;
 
+				uint32_t reset_mask = IN_MOVE_SELF|IN_DELETE_SELF|IN_DELETE;
+				uint32_t follow_mask = IN_MODIFY|IN_CLOSE_WRITE;
+
 				/* Loop over all events in the buffer */
 				for (ptr = buf; ptr < buf + len; ptr += sizeof(struct inotify_event) + event->len) {
 
 					event = (const struct inotify_event *) ptr;
-					if (event->mask & IN_MODIFY) {
+					if (event->mask & follow_mask) {
+						//std::cerr << "follow" << std::endl;
 						done = true;
 						break;
 					}
-					if (event->mask & IN_MOVE_SELF) {
+					if (event->mask & reset_mask) {
+						//std::cerr << "re-open" << std::endl;
 						loc = 0;
-						done = true;
-						break;
-					}
-					if (event->mask & IN_CLOSE_WRITE) {
 						done = true;
 						break;
 					}
