@@ -1,24 +1,24 @@
 '''
- 
+
   GARGOYLE_PSCAND: Gargoyle Port Scan Detector
-  
+
   Wrapper for admin functions
- 
-  Copyright (c) 2017, Bayshore Networks, Inc.
+
+  Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
   All rights reserved.
-  
+
   Redistribution and use in source and binary forms, with or without modification, are permitted provided that
   the following conditions are met:
-  
+
   1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
   following disclaimer.
-  
+
   2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
   following disclaimer in the documentation and/or other materials provided with the distribution.
-  
+
   3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
   products derived from this software without specific prior written permission.
-  
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
   INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -1339,7 +1339,7 @@ def IPAddress(address, version=None):
 ''' *********************************************************************************************************** '''
 
 def list_of_ports(list):
-    """ List of Ports 
+    """ List of Ports
 
         Converts a list of strings of numbers to a list of integers
 
@@ -1411,11 +1411,11 @@ def is_there_conflict(list1, list2):
         ignore = list1.split(',')
         hot = list2.split(',')
 
-        ports_to_ignore = list_of_ports(ignore) 
+        ports_to_ignore = list_of_ports(ignore)
 
         if ports_to_ignore == 1:
-            return 1        
-        
+            return 1
+
         hot_list = list_of_ports(hot)
         if hot_list == 1:
             return 1
@@ -1423,7 +1423,7 @@ def is_there_conflict(list1, list2):
         for port in ports_to_ignore:
             if port in hot_list:
                 return 1
-    
+
     return 0
 
 def get_current_config():
@@ -1454,7 +1454,7 @@ def get_current_config():
 
     file = open(config_file, 'r')
     lines = file.read().splitlines()
-      
+
     cur = {}
     for x in lines:
         key_val = x.split(':')
@@ -1466,7 +1466,7 @@ def get_current_config():
     file.close()
 
     return json.dumps(cur)
-    
+
 def set_config(objct):
     """ Set Configuration
 
@@ -1492,12 +1492,12 @@ def set_config(objct):
         1
     """
     data = json.loads(objct)
-    
+
     try:
         config_file = os.environ["GARGOYLE_CONFIG"]
     except KeyError:
         config_file = '.gargoyle_config'
-  
+
     temp = get_current_config()
     current = json.loads(temp)
     if 'ports_to_ignore' and 'hot_ports' in data.keys():
@@ -1513,11 +1513,11 @@ def set_config(objct):
         data[key] = str(data[key])
 
         if data[key].isalpha():
-            return 1    
+            return 1
 
         if key not in current.keys():
             current[key] = data[key]
-        elif data[key] != current[key]:      
+        elif data[key] != current[key]:
             current[key] = data[key]
 
     file = open(config_file,'w')
@@ -1529,7 +1529,7 @@ def set_config(objct):
             file.write(str(current[key]))
             file.write('\n')
     file.close()
-        
+
     return 0
 
 def unblock_ip(ip_addr='',version=None):
@@ -1554,7 +1554,7 @@ def unblock_ip(ip_addr='',version=None):
         >>> unblock_ip('100.100')
         1
     """
-    ip_address = IPAddress(ip_addr)   
+    ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
     black_list_ix = None
@@ -1562,11 +1562,11 @@ def unblock_ip(ip_addr='',version=None):
     db_loc = get_db()
 
     try:
-        table = sqlite3.connect(db_loc)    
+        table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
         raise e
-                
+
     try:
         with table:
             cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
@@ -1578,7 +1578,7 @@ def unblock_ip(ip_addr='',version=None):
     if host_ix:
         ''' using the ip addr ix we talk to black_ip_list table '''
         try:
-            with table:   
+            with table:
                 cursor.execute("SELECT ix FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
                 black_list_ix = cursor.fetchone()[0]
         except TypeError:
@@ -1587,9 +1587,9 @@ def unblock_ip(ip_addr='',version=None):
     if black_list_ix:
             return 2
 
-    ''' 
-    This works from any directory that has the 
-    gargoyle_pscand_unblockip executable as long 
+    '''
+    This works from any directory that has the
+    gargoyle_pscand_unblockip executable as long
     as the correct GARGOYLE_DB environment variable is set
     '''
 
@@ -1623,13 +1623,13 @@ def get_db():
     """
     DB_PATH = "/db/gargoyle_attack_detect.db"
     db_file = None
-        
+
     try:
         db_file = os.environ["GARGOYLE_DB"]
 
     except KeyError:
         pass
-               
+
     if not db_file:
         cur_dir = os.getcwd()
         db_loc = cur_dir + DB_PATH
@@ -1691,7 +1691,7 @@ def get_current_white_list():
                 pass
 
     return white_listed_ips
-    
+
 def add_to_white_list(ip_addr=''):
     """ Add to White List
 
@@ -1716,7 +1716,7 @@ def add_to_white_list(ip_addr=''):
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
-    
+
     host_ix = None
     detected_host_ix = None
     black_list_ix = None
@@ -1724,18 +1724,18 @@ def add_to_white_list(ip_addr=''):
     db_loc = get_db()
 
     try:
-        table = sqlite3.connect(db_loc)    
+        table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
         raise e
-                
+
     '''
     	have to get the ip addr ix first
-    	
+
     	if it exists need to update last_seen to 63072000 so that
     	the clean up process does not delete the ip addr from the
     	hosts_table
-    	
+
     	63072000 = 01/01/1972 @ 12:00am (UTC)
     '''
     try:
@@ -1751,21 +1751,21 @@ def add_to_white_list(ip_addr=''):
             cursor.execute("INSERT INTO hosts_table (host, first_seen, last_seen) VALUES (?,?,?)",(ip_addr, tstamp, 63072000))
             cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
             host_ix = cursor.fetchone()[0]
-            
-        
+
+
     if host_ix:
         ''' using the ip addr ix we talk to detected_hosts table '''
         try:
-            with table:   
+            with table:
                 cursor.execute("SELECT ix FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
                 detected_host_ix = cursor.fetchone()[0]
 
         except TypeError:
             pass
-    
+
         ''' using the ip addr ix we talk to black_ip_list table '''
         try:
-            with table:   
+            with table:
                 cursor.execute("SELECT ix FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
                 black_list_ix = cursor.fetchone()[0]
         except TypeError:
@@ -1783,15 +1783,15 @@ def add_to_white_list(ip_addr=''):
             '''
             unblock_ip(ip_addr = ip_addr)
 
-        else: 
+        else:
             with table:
                 cursor.execute("SELECT * FROM ignore_ip_list where host_ix = '{}'".format(host_ix))
                 val = cursor.fetchone()
 
-            if val == None:   
-    
+            if val == None:
+
                 ''' not in white list so insert '''
-                
+
                 with table:
                     tstamp = int(time.mktime(time.localtime()))
                     cursor.execute("INSERT INTO ignore_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
@@ -1828,7 +1828,7 @@ def remove_from_white_list(ip_addr=''):
 
     cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_whitelist {}'.format(ip_addr)]
     call(cmd)
-    
+
     tstamp = int(time.mktime(time.localtime()))
     syslog.openlog("gargoyle_pscand")
     syslog.syslog('action="remove from whitelist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
@@ -1890,7 +1890,7 @@ def get_current_black_list():
     return black_listed_ips
 
 def add_to_black_list(ip_addr=''):
-    """ Add to Black List 
+    """ Add to Black List
 
         Given an ip address, it queries the detected_hosts table. If it exists, calls unblock then adds a row to black list table. If not, it just adds a row to black list.
         A cycled process within gargoyle will create blocking rules for ip addr's that have been flagged as black listed.
@@ -1914,26 +1914,26 @@ def add_to_black_list(ip_addr=''):
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
-    
+
     host_ix = None
     detected_host_ix = None
     white_list_ix = None
     val = None
     db_loc = get_db()
-    
+
     try:
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
     except sqlite3.Error as e:
         raise e
-                
+
     '''
     	have to get the ip addr ix first
-    	
+
     	if it exists need to update last_seen to 63072000 so that
     	the clean up process does not delete the ip addr from the
     	hosts_table
-    	
+
     	63072000 = 01/01/1972 @ 12:00am (UTC)
     '''
     try:
@@ -1949,18 +1949,18 @@ def add_to_black_list(ip_addr=''):
             cursor.execute("INSERT INTO hosts_table (host, first_seen, last_seen) VALUES (?,?,?)",(ip_addr, tstamp, 63072000))
             cursor.execute("SELECT ix FROM hosts_table WHERE host = '{}'".format(ip_addr))
             host_ix = cursor.fetchone()[0]
-            
-        
+
+
     if host_ix:
         ''' using the ip addr ix we talk to detected_hosts table '''
         try:
-            with table:   
+            with table:
                 cursor.execute("SELECT ix FROM detected_hosts WHERE host_ix = '{}'".format(host_ix))
                 detected_host_ix = cursor.fetchone()[0]
 
         except TypeError:
             pass
-    
+
         ''' exists actively in detected_hosts '''
         if detected_host_ix:
 
@@ -1977,15 +1977,15 @@ def add_to_black_list(ip_addr=''):
         if white_list_ix:
             ''' exists in ignore_ip_list so we delete '''
             remove_from_white_list(ip_addr)
- 
+
         with table:
             cursor.execute("SELECT * FROM black_ip_list where host_ix = '{}'".format(host_ix))
             val = cursor.fetchone()
 
-        if val == None:   
-    
+        if val == None:
+
             ''' not in black list so insert '''
-                
+
             with table:
                 tstamp = int(time.mktime(time.localtime()))
                 cursor.execute("INSERT INTO black_ip_list (host_ix, timestamp) VALUES ({},{})".format(host_ix, tstamp))
@@ -2019,18 +2019,18 @@ def remove_from_black_list(ip_addr=''):
     ip_address = IPAddress(ip_addr)
     if ip_address == 1:
         return 1
-    
+
     cmd = ['sudo', 'su', '-c', 'gargoyle_pscand_remove_from_blacklist {}'.format(ip_addr)]
     call(cmd)
-    
+
     tstamp = int(time.mktime(time.localtime()))
     syslog.openlog("gargoyle_pscand")
     syslog.syslog('action="remove from blacklist" violator="%s" timestamp="%d"'% (ip_addr,tstamp))
 
     return 0
-  
+
 def get_current_from_iptables():
-    """ Get Current Information From Iptables 
+    """ Get Current Information From Iptables
 
         Retrieves ips in iptables
 
@@ -2059,18 +2059,18 @@ def get_current_from_iptables():
     cmd = ['sudo iptables -L GARGOYLE_Input_Chain -n']
     p = Popen(cmd, stdout=PIPE, shell=True)
     out,err = p.communicate()
-    
-    
+
+
     lines = out.split('\n')
     for line in lines:
         if len(line) > 0:
             each_line = line.split()
             if each_line[0] == 'DROP':
                 ips_in_iptables.append(each_line[3])
-    
+
     host_ix = None
     db_loc = get_db()
-    
+
     try:
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
@@ -2093,11 +2093,11 @@ def get_current_from_iptables():
             pass
 
         blocked_ips[ip] = [first_seen,last_seen]
-        
+
     return blocked_ips
 
 def blocked_time():
-    """ Blocked Time 
+    """ Blocked Time
 
         Returns information on blocked ips.
 
@@ -2141,7 +2141,7 @@ def blocked_time():
 
         except TypeError:
             pass
-    
+
 
         if host_ix:
             if ip in get_current_black_list().keys():
@@ -2152,7 +2152,7 @@ def blocked_time():
                 except TypeError:
                     pass
                 if blocked_time:
-                    blocked_time = int(blocked_time)           
+                    blocked_time = int(blocked_time)
                     blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , 0]
 
 
@@ -2163,22 +2163,22 @@ def blocked_time():
                         blocked_time = cursor.fetchone()[0]
                 except TypeError:
                     pass
-    
-        
+
+
                 if blocked_time:
-                    blocked_time = int(blocked_time)            
+                    blocked_time = int(blocked_time)
                     if blocked_time + lockout_time <= next_monitor_run:
                         blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
                     else:
                         while((blocked_time + lockout_time) > next_monitor_run):
                             next_monitor_run += 43200
                         blocked_timestamps[ip] = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(blocked_time)) , time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_monitor_run))]
-                
+
     return blocked_timestamps
 
 def daemon_stats():
     """ Daemon Statistics
- 
+
         Returns information about gargoyle daemon statistics
 
         Args:
@@ -2199,7 +2199,7 @@ def daemon_stats():
     cmd = ['service gargoyle_pscand status']
     p = Popen (cmd, stdout=PIPE, shell=True)
     out, err = p.communicate()
-    
+
     splitOut = out.split('\n')
 
     for x in splitOut:
@@ -2225,7 +2225,7 @@ def daemon_stats():
             time_converted = datetime.strptime(time_str.rstrip(),"%Y-%m-%d %H:%M:%S")
             last_analysis = int(time_converted.strftime("%s"))
             next_analysis = last_analysis + 900
-            
+
         try:
             last_monitor = int(subprocess.check_output(["cat /var/log/syslog | grep  'monitor process commencing at'"], shell=True).split()[-1])
             next_monitor = last_monitor + 43200
@@ -2234,7 +2234,7 @@ def daemon_stats():
             time_converted = datetime.strptime(time_str.rstrip(),"%Y-%m-%d %H:%M:%S")
             last_monitor = int(time_converted.strftime("%s"))
             next_monitor = last_monitor + 43200
-                           
+
         current_time = int(time.mktime(time.localtime()))
         while next_monitor < current_time:
             last_monitor += 43200
@@ -2249,5 +2249,3 @@ def daemon_stats():
         daemon["next_analysis"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_analysis))
 
     return daemon
-
-

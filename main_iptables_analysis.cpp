@@ -4,7 +4,7 @@
  *
  * main analysis daemon - port scan detection and protection
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -52,7 +52,7 @@
 #include "string_functions.h"
 #include "ip_addr_controller.h"
 #include "shared_config.h"
-
+#include "system_functions.h"
 
 struct greater_val
 {
@@ -243,7 +243,9 @@ void query_for_single_port_hits_last_seen() {
                             IPTABLES_SUPPORTS_XLOCK,
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
-                            DEBUG);
+                            DEBUG,
+                            ""
+                        );
 						add_to_iptables_entries(host_ix);
 
 					}
@@ -336,7 +338,9 @@ void query_for_multiple_ports_hits_last_seen() {
                             IPTABLES_SUPPORTS_XLOCK,
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
-                            DEBUG);
+                            DEBUG,
+                            ""
+                        );
 						add_to_iptables_entries(host_ix);
 
 					} else {
@@ -357,7 +361,9 @@ void query_for_multiple_ports_hits_last_seen() {
                                 IPTABLES_SUPPORTS_XLOCK,
                                 ENFORCE,
                                 (void *)gargoyle_analysis_whitelist_shm,
-                                DEBUG);
+                                DEBUG,
+                                ""
+                            );
 							add_to_iptables_entries(host_ix);
 
 						}
@@ -724,16 +730,16 @@ int main(int argc, char *argv[]) {
 	 */
 	const char *gargoyle_db_file;
 	gargoyle_db_file = getenv("GARGOYLE_DB");
-	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
+    if (gargoyle_db_file == NULL) {
+        snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", GARGOYLE_DEFAULT_ROOT_PATH, DB_PATH);
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
+
+    if (!does_file_exist(DB_LOCATION)) {
+        syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
+        return 1;
+    }
 
 	// Get config data
 	const char *config_file;

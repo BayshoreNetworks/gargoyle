@@ -4,7 +4,7 @@
  *
  * Program to detect and block SSH brute force attacks
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -194,7 +194,9 @@ int handle_log_line(const std::string &line) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					""
+				);
 
 			}
 
@@ -411,7 +413,10 @@ void process_iteration(int num_seconds, int num_hits) {
 				IPTABLES_SUPPORTS_XLOCK,
 				ENFORCE,
 				(void *)gargoyle_sshbf_whitelist_shm,
-				DEBUG);
+				DEBUG,
+				""
+			);
+
 			IP_HITMAP.erase(ip_addr);
 
 		} else if (now_delta > (num_seconds * 3)) {
@@ -424,7 +429,9 @@ void process_iteration(int num_seconds, int num_hits) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					""
+				);
 
 			}
 
@@ -440,7 +447,10 @@ void process_iteration(int num_seconds, int num_hits) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					""
+				);
+
 				IP_HITMAP.erase(ip_addr);
 
 			}
@@ -590,14 +600,14 @@ int main(int argc, char *argv[])
 	const char *gargoyle_db_file;
 	gargoyle_db_file = getenv("GARGOYLE_DB");
 	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
+        snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", GARGOYLE_DEFAULT_ROOT_PATH, DB_PATH);
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
+	}
+
+	if (!does_file_exist(DB_LOCATION)) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
+		return 1;
 	}
 
 	gargoyle_sshbf_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
@@ -694,6 +704,7 @@ int main(int argc, char *argv[])
 				if (ret >= 0) {
 
 					if (f_var.st_size == 0) {
+						std::this_thread::sleep_for(std::chrono::seconds(5));
 						break;
 					}
 
