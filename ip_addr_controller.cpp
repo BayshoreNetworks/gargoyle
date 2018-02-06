@@ -40,7 +40,7 @@
 #include "shared_config.h"
 
 
-int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, bool debug) {
+int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, bool  ) {
 
 	int added_host_ix;
 	added_host_ix = 0;
@@ -115,7 +115,16 @@ int do_block_actions(const std::string &the_ip,
 			 */
 			if(!rule_ix > 0) {
 
-				size_t ret;
+				if (debug) {
+					syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "IP: ", the_ip.c_str(), "does not exist in Chain: ", GARGOYLE_CHAIN_NAME);
+				}
+
+				/*
+				 * ret should be 1 or 0 once iptables_add_drop_rule_to_chain
+				 * gets called
+				 *
+				 */
+				size_t ret = 5;
 				int tstamp = (int) time(NULL);
 
 				if (tstamp > 0) {
@@ -132,22 +141,48 @@ int do_block_actions(const std::string &the_ip,
 					 */
 					if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0) {
 						ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+
+						if (debug) {
+							if (ret == 0) {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Added IP: ", the_ip.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
+							} else {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "IP: ", the_ip.c_str(), "not added to Chain: ", GARGOYLE_CHAIN_NAME);
+							}
+						}
 					}
 
-					if (detection_type > 0) {
+					// ret == 0 means ip has been added via iptables
+					if (ret == 0) {
 
-						do_block_action_output(the_ip, detection_type, tstamp, config_file_id);
+						if (detection_type > 0) {
 
-					} else {
+							do_block_action_output(the_ip, detection_type, tstamp, config_file_id);
 
-						do_block_action_output(the_ip, 0, tstamp, config_file_id);
+						} else {
+
+							do_block_action_output(the_ip, 0, tstamp, config_file_id);
+
+						}
+
+						// add to DB
+						size_t adh = add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
+
+						if (debug) {
+							if (adh != 0) {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s (%d) %s", GARGOYLE_DEBUG, "Error adding IP: ", the_ip.c_str(), host_ix, "to the detected_hosts table");
+							}
+						}
 
 					}
-
-					// add to DB
-					add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
 
 				}
+
+			} else {
+
+				if (debug) {
+					syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Not adding: ", the_ip.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
+				}
+
 			}
 		}
 	}
