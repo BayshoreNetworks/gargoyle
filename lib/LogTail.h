@@ -61,6 +61,8 @@ public:
 	bool Process(volatile bool & stop);
 	
 	virtual void OnLine(const std::string& line) {}
+	virtual void OnFollow() {}
+	virtual void OnRewind() {}
 
 private:
 

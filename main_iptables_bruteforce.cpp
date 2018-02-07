@@ -275,6 +275,8 @@ public:
 		: LogTail(logFile), l_regex(regex), config_file(conf), num_hits(_num_hits), num_seconds(_num_seconds) {}
 	virtual ~LogProcessor() {}
 
+	virtual void OnRewind() { process_iteration(num_seconds, num_hits, config_file); }
+	virtual void OnFollow() { process_iteration(num_seconds, num_hits, config_file); }
 	virtual void OnLine(const std::string& line) {
 
 		try {

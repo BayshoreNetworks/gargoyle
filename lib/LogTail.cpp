@@ -158,6 +158,10 @@ bool LogTail::_wait_file(volatile bool & stop) {
 					event = (const struct inotify_event *) ptr;
 					if (event->mask & follow_mask) {
 						//std::cerr << "follow" << std::endl;
+						struct stat st;
+						if (0==stat(_name.c_str(), &st) && S_ISREG(st.st_mode)) 
+							loc = (loc>st.st_size?0:loc);
+						else loc = 0;
 						done = true;
 						break;
 					}
@@ -176,6 +180,7 @@ bool LogTail::_wait_file(volatile bool & stop) {
 	close(fd);
 
 	_post();
+	loc==0?OnFollow():OnRewind();
 	struct timespec tv = { .tv_sec = 1, .tv_nsec = 0};
 	nanosleep(&tv, NULL);
 	_pre(loc);
