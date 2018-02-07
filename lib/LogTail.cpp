@@ -180,7 +180,7 @@ bool LogTail::_wait_file(volatile bool & stop) {
 	close(fd);
 
 	_post();
-	loc==0?OnFollow():OnRewind();
+	loc!=0?OnFollow():OnRewind();
 	struct timespec tv = { .tv_sec = 1, .tv_nsec = 0};
 	nanosleep(&tv, NULL);
 	_pre(loc);
