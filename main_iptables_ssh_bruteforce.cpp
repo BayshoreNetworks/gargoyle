@@ -518,25 +518,23 @@ public:
 	virtual void OnLine(const std::string& line) {
 
 		//std::cout << "LINE: " << line << std::endl;
+
+		std::string ip_addr;
+
+#ifdef USE_LIBPCRECPP
+			if (max_exceeded.PartialMatch(line, &ip_addr)) {
+#else		
 		std::smatch match;
 
 		try {
 
-			/*
-			* handle instant block regexes first
-			*/
-			#if 0
-			// initialized in ctor()
-			std::regex invalid_user("[iI](?:llegal|nvalid) user .* from (.*)\\s*");
-			std::regex max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
-			// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
-			std::regex bad_algo("Unable to negotiate with (.*) port");
-			#endif
+
 
 			//if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
 			if (std::regex_search(line, match, max_exceeded) && match.size() == 2) {
 
 				std::string ip_addr = match.str(1);
+#endif
 
 				// if we are here then do an instant block because sshd already did
 				// the work for us of detecting too many login attempts
@@ -562,9 +560,13 @@ public:
 
 				return;
 
+#ifdef USE_LIBPCRECPP
+			} else if (invalid_user.PartialMatch(line, &ip_addr)) {
+#else
 			} else if (std::regex_search(line, match, invalid_user) && match.size() == 2) {
 
 				std::string ip_addr = match.str(1);
+#endif
 
 				//std::cout << "TESTING INVALID USER" << std::endl;
 
@@ -593,9 +595,13 @@ public:
 
 				return;
 
+#ifdef USE_LIBPCRECPP
+			} else if (bad_algo.PartialMatch(line, &ip_addr)) {
+#else
 			} else if (std::regex_search(line, match, bad_algo) && match.size() == 2) {
 
 				std::string ip_addr = match.str(1);
+#endif
 
 				//std::cout << "TESTING BAD ALGO" << std::endl;
 
@@ -616,6 +622,15 @@ public:
 					for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
 
 						/* std::cout << *it; ... */
+
+#ifdef USE_LIBPCRECPP
+						pcrecpp::RE testreg(*it);
+
+						//std::cout << "SZ: " << match.size() << std::endl;
+
+						//std::cout << "Line: " << line << " @ " << *it << std::endl;
+						if (testreg.PartialMatch(line, &ip_addr)) {
+#else
 						std::regex testreg(*it);
 
 						//std::cout << "SZ: " << match.size() << std::endl;
@@ -624,6 +639,8 @@ public:
 						if (std::regex_search(line, match, testreg) && match.size() == 2) {
 
 							std::string ip_addr = match.str(1);
+#endif
+
 							if (validate_ip_address(ip_addr)) {
 
 								handle_ip_addr(ip_addr);
@@ -635,6 +652,7 @@ public:
 				}
 			}
 
+#ifndef USE_LIBPCRECPP
 		} catch (std::regex_error& e) {
 
 			std::cout << std::endl << "Regex exception: " << e.what() << std::endl;
@@ -645,6 +663,7 @@ public:
 			ret_code = 2;
 			return;
 		}
+#endif
 
 		process_iteration(num_seconds, num_hits);
 
@@ -656,9 +675,15 @@ private:
 	size_t num_seconds;
 
 	// Hard-coded regular expressions:
+#ifdef USE_LIBPCRECPP
+	pcrecpp::RE invalid_user;
+	pcrecpp::RE max_exceeded;
+	pcrecpp::RE bad_algo;
+#else
 	std::regex invalid_user;
 	std::regex max_exceeded;
 	std::regex bad_algo;
+#endif
 };
 
 
@@ -828,6 +853,7 @@ int main(int argc, char *argv[])
 			lp.Process(stop_processing);
 		else 
 			ret_code = 1;
+			
 	} else if (use_journalctl) {
 
 		char buff[BUF_SZ];

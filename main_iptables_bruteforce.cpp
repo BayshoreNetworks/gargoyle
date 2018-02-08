@@ -283,14 +283,13 @@ public:
 
 	virtual void OnLine(const std::string& line) {
 
-#ifdef USE_LIBPCRECPP
-		pcrecpp::RE l_regex(regex_str);
-#else
+#ifndef USE_LIBPCRECPP
 		try {
 
 			std::smatch match;
 #endif
 
+			std::string ip_addr;
 
 #ifdef USE_LIBPCRECPP
 			if (l_regex.PartialMatch(line, &ip_addr)) {
