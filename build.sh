@@ -87,9 +87,7 @@ if [ ! -f ${DESTDIR}${DEPLOY_TO}/.gargoyle_ssh_bruteforce_config ]; then
 fi
 
 # Disable tornado lscan if package doesn't exist
-if [ ! -d /usr/local/lib/python*/dist-packages/tornado ] ; then
-   sed -i s/'enabled:1/enabled:0'/g conf.d/tornado.conf
-elif [ ! -d /usr/lib/python*/dist-packages/tornado ] ; then
+if [ ! -d /usr/local/lib/python*/dist-packages/tornado ]  &&  [! -d /usr/lib/python*/dist-packages/tornado ] ; then
    sed -i s/'enabled:1/enabled:0'/g conf.d/tornado.conf
 fi
 
