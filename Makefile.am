@@ -11,10 +11,9 @@ include_HEADERS = \
 				ip_addr_controller.h
 
 
-gargoyle_pscand_LDFLAGS = -L/opt/bayshore/lib -lnfnetlink -lnetfilter_log
-gargoyle_lscand_ssh_bruteforce_LDFLAGS = -L/opt/bayshore/lib -lnfnetlink -lnetfilter_log -lpcrecpp
-gargoyle_lscand_bruteforce_LDFLAGS = -L/opt/bayshore/lib -lnfnetlink -lnetfilter_log -lpcrecpp
-gargoyle_regex_tester_LDFLAGS = -lpcrecpp
+if ENABLE_LIBPCRECPP
+LIBS += -lpcrecpp
+endif
 
 lib_GARGOYLE_PSCAND = lib
 
