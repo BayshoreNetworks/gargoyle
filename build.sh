@@ -89,6 +89,8 @@ fi
 # Disable tornado lscan if package doesn't exist
 if [ ! -d /usr/local/lib/python*/dist-packages/tornado ] ; then
    sed -i s/'enabled:1/enabled:0'/g conf.d/tornado.conf
+elif [ ! -d /usr/lib/python*/dist-packages/tornado ] ; then
+   sed -i s/'enabled:1/enabled:0'/g conf.d/tornado.conf
 fi
 
 if [ ! -d ${DESTDIR}${DEPLOY_TO}/conf.d ]; then
