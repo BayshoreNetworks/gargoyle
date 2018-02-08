@@ -158,6 +158,10 @@ bool LogTail::_wait_file(volatile bool & stop) {
 					event = (const struct inotify_event *) ptr;
 					if (event->mask & follow_mask) {
 						//std::cerr << "follow" << std::endl;
+						struct stat st;
+						if (0==stat(_name.c_str(),&st)) {
+							if (loc>st.st_size) loc = 0;
+						} else loc = 0;
 						done = true;
 						break;
 					}
