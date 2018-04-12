@@ -41,6 +41,7 @@
 #define SMALL_DEST_BUF 2097152
 #define MEDIUM_DEST_BUF 5242880
 #define SQL_CMD_MAX 512
+#define SQL_FAIL_RETRY 5
 
 #define DETECTED_HOSTS_TABLE "detected_hosts"
 #define HOSTS_TABLE "hosts_table"
