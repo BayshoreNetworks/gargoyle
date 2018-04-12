@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
- * 
+ *
  * shared memory object for sharing memory regions between processes
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -77,7 +77,7 @@ SharedMemRegion::~SharedMemRegion() {
 
 int32_t SharedMemRegion::Init() {
     /*
-     * The caller wants to know if we are the creator, so try to open and create 
+     * The caller wants to know if we are the creator, so try to open and create
      * the file. If the file exists, then we are not the creator. If we fail for
      * some other reason, the value of is_created is undefined.
      */
@@ -124,7 +124,7 @@ int32_t SharedMemRegion::Init() {
 int32_t SharedMemRegion::Resize(size_t new_size) {
     munmap(base_addr, my_size);
     my_size = new_size;
-    
+
     if(ftruncate(fd, my_size) < 0) {
         abort_errno("ftruncate failed");
         return -1;

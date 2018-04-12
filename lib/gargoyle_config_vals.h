@@ -4,7 +4,7 @@
  *
  * Config values for use across all gargoyle daemons/progs
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -39,8 +39,10 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
-#define GARGOYLE_VERSION "1.6.3"
+#define GARGOYLE_VERSION "1.6.4"
 #define GARGOYLE_DEBUG "GARGOYLE DEBUG -"
+#define GARGOYLE_ERROR "GARGOYLE ERROR -"
+#define GARGOYLE_DEFAULT_ROOT_PATH "/opt/gargoyle_pscand"
 //const char *GARGOYLE_CHAIN_NAME = "GARGOYLE_Input_Chain";
 #define GARGOYLE_CHAIN_NAME "GARGOYLE_Input_Chain"
 #define IPTABLES_INPUT_CHAIN "INPUT"
@@ -69,6 +71,10 @@ extern "C" {
 #define REMOVE_SYSLOG "remove"
 #define FIRST_SEEN_SYSLOG "first_seen"
 #define LAST_SEEN_SYSLOG "last_seen"
+#define CONFIG_SYSLOG "config"
+#define DB_FILE_SYSLOG "DB file:"
+#define DOESNT_EXIST_SYSLOG "does not exist"
+#define CANNOT_CONTINUE_SYSLOG "cannot continue"
 
 
 #define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"

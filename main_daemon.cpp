@@ -4,7 +4,7 @@
  *
  * main daemon - port scan detection and protection
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -53,6 +53,7 @@
 #include "config_variables.h"
 #include "string_functions.h"
 #include "ip_addr_controller.h"
+#include "system_functions.h"
 
 
 #ifdef __cplusplus
@@ -593,14 +594,14 @@ int main(int argc, char *argv[])
 	const char *gargoyle_db_file;
 	gargoyle_db_file = getenv("GARGOYLE_DB");
 	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
+		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", GARGOYLE_DEFAULT_ROOT_PATH, DB_PATH);
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
+	}
+
+	if (!does_file_exist(DB_LOCATION)) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
+		return 1;
 	}
 
 	if (DEBUG) {

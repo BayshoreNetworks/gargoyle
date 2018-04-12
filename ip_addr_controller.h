@@ -4,7 +4,7 @@
  *
  * controller code for handling ip addr actions
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -37,11 +37,19 @@
 int add_ip_to_hosts_table(const std::string &, const std::string &, bool);
 int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
 
-int do_block_actions(const std::string &, int, const std::string &, size_t, bool, void *, bool);
+int do_block_actions(const std::string &,
+                    int,
+                    const std::string &,
+                    size_t,
+                    bool,
+                    void *,
+                    bool,
+                    const std::string &
+                    );
 int do_host_remove_actions(const std::string &, int, const std::string &, int, int);
 
 void do_report_action_output(const std::string &, int, int, int);
-void do_block_action_output(const std::string &, int, int);
+void do_block_action_output(const std::string &, int, int, const std::string &);
 void do_unblock_action_output(const std::string &, int);
 void do_remove_action_output(const std::string &, int, int, int);
 

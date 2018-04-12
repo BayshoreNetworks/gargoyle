@@ -4,7 +4,7 @@
  *
  * Program to detect and block based on regex and log data
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -49,6 +49,7 @@
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
 #include "system_functions.h"
+#include "string_functions.h"
 #include "shared_config.h"
 
 
@@ -72,7 +73,7 @@ size_t get_regexes(const char *);
 void signal_handler(int);
 bool validate_ip_address(const std::string &);
 int handle_log_line(const std::string &, const std::string &);
-void process_iteration(int, int);
+void process_iteration(int, int, const std::string &);
 std::string hunt_for_ip_addr(std::string);
 void handle_ip_addr(const std::string &);
 void display_map();
@@ -159,7 +160,7 @@ void display_map() {
 }
 
 
-void process_iteration(int num_seconds, int num_hits) {
+void process_iteration(int num_seconds, int num_hits, const std::string &config_file) {
 
 	for (const auto &p : IP_HITMAP) {
 
@@ -171,8 +172,8 @@ void process_iteration(int num_seconds, int num_hits) {
 		int l_num_hits = IP_HITMAP[p.first][1];
 
 
-		std::cout << original_timestamp << " -- " << now << std::endl;
-		std::cout << "[" << p.first << "]" << std::endl << "Delta: " << now_delta << std::endl << "Hits: " << IP_HITMAP[p.first][1] << std::endl << std::endl;
+		//std::cout << original_timestamp << " -- " << now << std::endl;
+		//std::cout << "[" << p.first << "]" << std::endl << "Delta: " << now_delta << std::endl << "Hits: " << IP_HITMAP[p.first][1] << std::endl << std::endl;
 
 
 		// delta longer than num_seconds - just cleanup
@@ -195,7 +196,9 @@ void process_iteration(int num_seconds, int num_hits) {
 					IPTABLES_SUPPORTS_XLOCK,
 					ENFORCE,
 					(void *) gargoyle_bf_whitelist_shm,
-					DEBUG);
+					DEBUG,
+					config_file
+				);
 				IP_HITMAP.erase(ip_addr);
 				continue;
 
@@ -212,7 +215,9 @@ void process_iteration(int num_seconds, int num_hits) {
 				IPTABLES_SUPPORTS_XLOCK,
 				ENFORCE,
 				(void *) gargoyle_bf_whitelist_shm,
-				DEBUG);
+				DEBUG,
+				config_file
+			);
 			IP_HITMAP.erase(ip_addr);
 
 		}
@@ -276,7 +281,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 	} else {
-		syslog(LOG_INFO | LOG_LOCAL6, "Config entity: \"%s\" does not exist, cannot continue", config_file.c_str());
+		syslog(LOG_INFO | LOG_LOCAL6, "Config entity: \"%s\" %s, %s", config_file.c_str(), DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
 		return 1;
 	}
 
@@ -300,21 +305,21 @@ int main(int argc, char *argv[]) {
 	const char *gargoyle_db_file;
 	gargoyle_db_file = getenv("GARGOYLE_DB");
 	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
+        snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", GARGOYLE_DEFAULT_ROOT_PATH, DB_PATH);
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
+	}
+
+	if (!does_file_exist(DB_LOCATION)) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
+		return 1;
 	}
 
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 
 
 	if (!does_file_exist(log_entity.c_str())) {
-		syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" does not exist, cannot continue", log_entity.c_str());
+		syslog(LOG_INFO | LOG_LOCAL6, "Target log entity: \"%s\" %s, %s", log_entity.c_str(), DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
 		return 1;
 	}
 
@@ -362,7 +367,7 @@ int main(int argc, char *argv[]) {
 						std::this_thread::sleep_for(std::chrono::seconds(5));
 						break;
 					}
-					
+
 				}
 
 				// try to read line
@@ -421,7 +426,11 @@ int main(int argc, char *argv[]) {
 
 						}
 
-						process_iteration(num_seconds, num_hits);
+						std::string cfg_file_out = get_file_name(config_file);
+						if (cfg_file_out.size() > 0)
+							process_iteration(num_seconds, num_hits, cfg_file_out);
+						else
+							process_iteration(num_seconds, num_hits, config_file);
 
 					}
 
