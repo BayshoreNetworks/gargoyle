@@ -36,7 +36,6 @@
 #include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
-#include "gargoyle_config_vals.h"
 #include "shared_config.h"
 
 
@@ -238,11 +237,14 @@ int add_to_hosts_port_table(const std::string &the_ip,
 void do_report_action_output(const std::string &the_ip,
 		int the_port,
 		int the_hits,
-		int the_timestamp) {
+		int the_timestamp,
+		int enforce_state) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, REPORT_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-			PORT_SYSLOG, the_port, HITS_SYSLOG, the_hits, TIMESTAMP_SYSLOG, the_timestamp);
+			PORT_SYSLOG, the_port, HITS_SYSLOG, the_hits,
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state
+			);
 
 }
 
@@ -251,6 +253,8 @@ void do_block_action_output(const std::string &the_ip,
 		int detection_type,
 		int the_timestamp,
 		const std::string &config_file_id
+		//const std::string &config_file_id,
+		//int enforce_state
 		) {
 
 	std::stringstream syslog_line;
@@ -265,6 +269,8 @@ void do_block_action_output(const std::string &the_ip,
 	if (config_file_id.size() > 0) {
 		syslog_line << " " << CONFIG_SYSLOG << "=\"" << config_file_id << "\"";
 	}
+
+	//syslog_line << " " << ENFORCE_STATE_SYSLOG << "=\"" << enforce_state << "\"";
 
 	syslog(LOG_INFO | LOG_LOCAL6, syslog_line.str().c_str());
 

@@ -1324,7 +1324,7 @@ void GargoylePscandHandler::add_block_rules() {
 					 * this data is being used for analytics
 					 */
 					if (SYSLOG_ALL_DETECTIONS) {
-						do_report_action_output(the_ip, the_port, the_cnt, tstamp);
+						do_report_action_output(the_ip, the_port, the_cnt, tstamp, ENFORCE);
 					}
 				}
 			}

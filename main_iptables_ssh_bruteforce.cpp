@@ -360,7 +360,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 		if (ENFORCE) {
 			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION, DEBUG);
 		}
-		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL));
+		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL), ENFORCE);
 
 	} else {
 
@@ -371,7 +371,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 		if (ENFORCE) {
 			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION, DEBUG);
 		}
-		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL));
+		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL), ENFORCE);
 	}
 }
 
