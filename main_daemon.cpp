@@ -101,7 +101,7 @@ void get_ephemeral_range_to_ignore();
 void get_local_ip_addrs();
 void get_default_gateway_linux();
 void get_white_list_addrs();
-void get_blacklist_ip_addrs();
+void get_blacklist_ip_addrs(int);
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -476,7 +476,7 @@ void get_white_list_addrs() {
 }
 
 
-void get_blacklist_ip_addrs() {
+void get_blacklist_ip_addrs(int enforce_state) {
 
 	const char *tok1 = ">";
 	char *token1;
@@ -502,7 +502,11 @@ void get_blacklist_ip_addrs() {
 
 				if (strcmp(host_ip, "") != 0) {
 
-					do_black_list_actions(host_ip, (void *) gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
+					do_black_list_actions(host_ip,
+										(void *) gargoyle_blacklist_shm,
+										IPTABLES_SUPPORTS_XLOCK,
+										enforce_state
+										);
 
 				}
 			}
@@ -763,7 +767,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	get_blacklist_ip_addrs();
+	get_blacklist_ip_addrs(enforce_mode);
 
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
 	get_default_gateway_linux();

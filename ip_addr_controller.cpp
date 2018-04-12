@@ -155,11 +155,21 @@ int do_block_actions(const std::string &the_ip,
 
 						if (detection_type > 0) {
 
-							do_block_action_output(the_ip, detection_type, tstamp, config_file_id);
+							do_block_action_output(the_ip,
+												detection_type,
+												tstamp,
+												config_file_id,
+												do_enforce
+												);
 
 						} else {
 
-							do_block_action_output(the_ip, 0, tstamp, config_file_id);
+							do_block_action_output(the_ip,
+												0,
+												tstamp,
+												config_file_id,
+												do_enforce
+												);
 
 						}
 
@@ -252,9 +262,8 @@ void do_report_action_output(const std::string &the_ip,
 void do_block_action_output(const std::string &the_ip,
 		int detection_type,
 		int the_timestamp,
-		const std::string &config_file_id
-		//const std::string &config_file_id,
-		//int enforce_state
+		const std::string &config_file_id,
+		int enforce_state
 		) {
 
 	std::stringstream syslog_line;
@@ -270,29 +279,21 @@ void do_block_action_output(const std::string &the_ip,
 		syslog_line << " " << CONFIG_SYSLOG << "=\"" << config_file_id << "\"";
 	}
 
-	//syslog_line << " " << ENFORCE_STATE_SYSLOG << "=\"" << enforce_state << "\"";
+	syslog_line << " " << ENFORCE_STATE_SYSLOG << "=\"" << enforce_state << "\"";
 
 	syslog(LOG_INFO | LOG_LOCAL6, syslog_line.str().c_str());
-
-	/*
-	if (detection_type > 0) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
-				ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-				DETECTION_TYPE_SYSLOG, detection_type, TIMESTAMP_SYSLOG, the_timestamp);
-	} else {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
-				ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, the_timestamp);
-	}
-	*/
 
 }
 
 
-void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
+void do_unblock_action_output(const std::string &the_ip,
+		int the_timestamp,
+		int enforce_state
+		) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, UNBLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-			TIMESTAMP_SYSLOG, the_timestamp);
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state);
 
 }
 
@@ -300,12 +301,14 @@ void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
 void do_remove_action_output(const std::string &the_ip,
 		int the_timestamp,
 		int first_seen,
-		int last_seen) {
+		int last_seen,
+		int enforce_state
+		) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, REMOVE_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
 			FIRST_SEEN_SYSLOG, first_seen, LAST_SEEN_SYSLOG, last_seen,
-			TIMESTAMP_SYSLOG, the_timestamp);
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state);
 
 }
 
@@ -387,7 +390,11 @@ bool is_black_listed(const std::string &ip_addr, void *g_shared_config) {
 }
 
 
-int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, size_t iptables_xlock) {
+int do_black_list_actions(const std::string &ip_addr,
+						void *g_shared_config,
+						size_t iptables_xlock,
+						int enforce_state
+						) {
 
 	/*
 	 * actions:
@@ -414,7 +421,12 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 			// do block action - type 100
 			iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
 
-			do_block_action_output(ip_addr, 100, (int)time(NULL), "");
+			do_block_action_output(ip_addr,
+								100,
+								(int)time(NULL),
+								"",
+								enforce_state
+								);
 
 		}
 	}
