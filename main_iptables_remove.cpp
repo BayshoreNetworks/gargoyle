@@ -132,7 +132,20 @@ int main(int argc, char *argv[])
 							if (DEBUG)
 								std::cout << "Host ix: " << host_ix << std::endl;
 							// delete all records for this host_ix from hosts_ports_hits table
-							remove_host_ports_all(host_ix, DB_LOCATION);
+							size_t rhpa = remove_host_ports_all(host_ix, DB_LOCATION);
+                            if (rhpa == 2) {
+
+                                int rhpa_i;
+                                for (rhpa_i = 0; rhpa_i < SQL_FAIL_RETRY; rhpa_i++) {
+                                    rhpa = remove_host_ports_all(host_ix, DB_LOCATION);
+                                    if (rhpa == 2) {
+                                        continue;
+                                    }
+                                    if (rhpa == 0) {
+                                        break;
+                                    }
+                                }
+                            }
 
 							if (DEBUG)
 								std::cout << "Row ix: " << row_ix << std::endl;
