@@ -1,24 +1,24 @@
 /*****************************************************************************
  *
  * GARGOYLE_PSCAND: Gargoyle Port Scan Detector
- * 
+ *
  * Program to set some config key/val pairs for use across all daemons
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
  * the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
  * following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
  * following disclaimer in the documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
  * products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -41,12 +41,12 @@
 #include "gargoyle_config_vals.h"
 
 int main () {
-	
+
 	const char *config_file;
 	config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
 	if (config_file == NULL)
 		config_file = ".gargoyle_internal_port_config";
-	
+
 	/*
 	std::cout << GARGOYLE_VERSION << std::endl;
 	std::cout << GARGOYLE_CHAIN_NAME << std::endl;
@@ -61,7 +61,7 @@ int main () {
 
 	int pscand_monitor_ix = 6667;
 	mymap.insert(std::pair<std::string,int>("gargoyle_pscand_monitor", pscand_monitor_ix));
-	
+
 	int lscand_sshbf_ix = 6668;
 	mymap.insert(std::pair<std::string,int>("gargoyle_lscand_ssh_bruteforce", lscand_sshbf_ix));
 
@@ -126,7 +126,7 @@ int main () {
 	if (myfile.is_open()) {
 
 		//myfile << "gargoyle_chain_name:GARGOYLE_Input_Chain\n";
-		
+
 		for (std::map<std::string,int>::iterator mit=mymap.begin(); mit!=mymap.end(); ++mit) {
 			myfile << mit->first << ":" << mit->second << '\n';
 		}
@@ -137,4 +137,3 @@ int main () {
 	free(dest);
 	return 0;
 }
-

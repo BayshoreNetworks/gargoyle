@@ -4,7 +4,7 @@
  *
  * controller code for handling ip addr actions
  *
- * Copyright (c) 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -27,6 +27,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#include <sstream>
 
 #include <syslog.h>
 
@@ -77,7 +78,9 @@ int do_block_actions(const std::string &the_ip,
 		size_t iptables_xlock,
 		bool do_enforce,
 		void *g_shared_mem,
-		bool debug) {
+		bool debug,
+		const std::string &config_file_id
+		) {
 
 	int host_ix;
 	host_ix = 0;
@@ -101,7 +104,7 @@ int do_block_actions(const std::string &the_ip,
 
 			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 			if (debug) {
-				syslog(LOG_INFO | LOG_LOCAL6, "%s %s %d %s %s", GARGOYLE_DEBUG, "Iptables rule IX: ", rule_ix, "in Chain: ", GARGOYLE_CHAIN_NAME);
+				syslog(LOG_INFO | LOG_LOCAL6, "%s %s %zd %s %s", GARGOYLE_DEBUG, "Iptables rule IX: ", rule_ix, "in Chain: ", GARGOYLE_CHAIN_NAME);
 			}
 			/*
 			 * if this ip does not exist in iptables ...
@@ -112,7 +115,16 @@ int do_block_actions(const std::string &the_ip,
 			 */
 			if(!rule_ix > 0) {
 
-				size_t ret;
+				if (debug) {
+					syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "IP: ", the_ip.c_str(), "does not exist in Chain: ", GARGOYLE_CHAIN_NAME);
+				}
+
+				/*
+				 * ret should be 1 or 0 once iptables_add_drop_rule_to_chain
+				 * gets called
+				 *
+				 */
+				size_t ret = 5;
 				int tstamp = (int) time(NULL);
 
 				if (tstamp > 0) {
@@ -129,22 +141,54 @@ int do_block_actions(const std::string &the_ip,
 					 */
 					if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0) {
 						ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+
+						if (debug) {
+							if (ret == 0) {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Added IP: ", the_ip.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
+							} else {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "IP: ", the_ip.c_str(), "not added to Chain: ", GARGOYLE_CHAIN_NAME);
+							}
+						}
 					}
 
-					if (detection_type > 0) {
+					// ret == 0 means ip has been added via iptables
+					if (ret == 0) {
 
-						do_block_action_output(the_ip, detection_type, tstamp);
+						if (detection_type > 0) {
+
+							do_block_action_output(the_ip, detection_type, tstamp, config_file_id);
+
+						} else {
+
+							do_block_action_output(the_ip, 0, tstamp, config_file_id);
+
+						}
+
+						// add to DB
+						size_t adh = add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
+
+						if (debug) {
+							if (adh != 0) {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s (%d) %s", GARGOYLE_DEBUG, "Error adding IP: ", the_ip.c_str(), host_ix, "to the detected_hosts table");
+								return -1;
+							} else {
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s (%d) %s", GARGOYLE_DEBUG, "Added IP: ", the_ip.c_str(), host_ix, "to the detected_hosts table");
+							}
+						}
 
 					} else {
-
-						do_block_action_output(the_ip, 0, tstamp);
-
+						return -1;
 					}
 
-					// add to DB
-					add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
-
 				}
+
+			} else {
+
+				if (debug) {
+					syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Not adding: ", the_ip.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
+				}
+				return -1;
+
 			}
 		}
 	}
@@ -205,8 +249,26 @@ void do_report_action_output(const std::string &the_ip,
 
 void do_block_action_output(const std::string &the_ip,
 		int detection_type,
-		int the_timestamp) {
+		int the_timestamp,
+		const std::string &config_file_id
+		) {
 
+	std::stringstream syslog_line;
+	syslog_line << ACTION_SYSLOG << "=\"" << BLOCKED_SYSLOG << "\" "
+				<< VIOLATOR_SYSLOG << "=\"" << the_ip << "\" "
+				<< TIMESTAMP_SYSLOG << "=\"" << the_timestamp << "\"";
+
+	if (detection_type > 0) {
+		syslog_line << " " << DETECTION_TYPE_SYSLOG << "=\"" << detection_type << "\"";
+	}
+
+	if (config_file_id.size() > 0) {
+		syslog_line << " " << CONFIG_SYSLOG << "=\"" << config_file_id << "\"";
+	}
+
+	syslog(LOG_INFO | LOG_LOCAL6, syslog_line.str().c_str());
+
+	/*
 	if (detection_type > 0) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
 				ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
@@ -215,6 +277,7 @@ void do_block_action_output(const std::string &the_ip,
 		syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
 				ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, the_timestamp);
 	}
+	*/
 
 }
 
@@ -345,7 +408,7 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 			// do block action - type 100
 			iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
 
-			do_block_action_output(ip_addr, 100, (int)time(NULL));
+			do_block_action_output(ip_addr, 100, (int)time(NULL), "");
 
 		}
 	}

@@ -4,7 +4,7 @@
  *
  * main analysis daemon - port scan detection and protection
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -52,7 +52,7 @@
 #include "string_functions.h"
 #include "ip_addr_controller.h"
 #include "shared_config.h"
-
+#include "system_functions.h"
 
 struct greater_val
 {
@@ -243,7 +243,9 @@ void query_for_single_port_hits_last_seen() {
                             IPTABLES_SUPPORTS_XLOCK,
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
-                            DEBUG);
+                            DEBUG,
+                            ""
+                        );
 						add_to_iptables_entries(host_ix);
 
 					}
@@ -266,8 +268,8 @@ void query_for_multiple_ports_hits_last_seen() {
 	int ret;
 	int row_ix;
 	int host_ix;
-	int first_seen;
-	int last_seen;
+	int first_seen = 0;
+	int last_seen = 0;
 	int iter_cnt;
 	int now;
 	int hit_cnt_resp;
@@ -336,7 +338,9 @@ void query_for_multiple_ports_hits_last_seen() {
                             IPTABLES_SUPPORTS_XLOCK,
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
-                            DEBUG);
+                            DEBUG,
+                            ""
+                        );
 						add_to_iptables_entries(host_ix);
 
 					} else {
@@ -357,7 +361,9 @@ void query_for_multiple_ports_hits_last_seen() {
                                 IPTABLES_SUPPORTS_XLOCK,
                                 ENFORCE,
                                 (void *)gargoyle_analysis_whitelist_shm,
-                                DEBUG);
+                                DEBUG,
+                                ""
+                            );
 							add_to_iptables_entries(host_ix);
 
 						}
@@ -386,7 +392,6 @@ void run_analysis() {
 
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_hosts = (char*) malloc(d_buf_sz);
-	*l_hosts = 0;
 
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
@@ -455,8 +460,8 @@ void clean_up_stale_data() {
 	int ret;
 	int row_ix;
 	int host_ix;
-	int first_seen;
-	int last_seen;
+	int first_seen = 0;
+	int last_seen = 0;
 	int iter_cnt;
 	int now;
 	int hit_cnt_resp;
@@ -546,9 +551,7 @@ void clean_up_iptables_dupe_data() {
 
 	size_t dst_buf_sz = DEST_BUF_SZ;
 	char *l_chains = (char*) malloc(dst_buf_sz + 1);
-	*l_chains = 0;
 	char *l_chains2 = (char*) malloc(dst_buf_sz + 1);
-	*l_chains2 = 0;
 
 	const char *tok1 = "\n";
 
@@ -588,8 +591,6 @@ void clean_up_iptables_dupe_data() {
 				size_t position1 = s_lchains1 - token1;
 				s_lchains2 = strstr (token1 + position1 + dash_dash_len, w_space);
 				size_t position2 = s_lchains2 - token1;
-
-				*host_ip = 0;
 
 				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
 				if (host_ip) {
@@ -714,26 +715,32 @@ int main(int argc, char *argv[]) {
 
 
 	SingletonProcess singleton(analysis_port);
-	if (!singleton()) {
+	try {
+		if (!singleton()) {
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			return 1;
+		}
+	} catch (std::runtime_error& e) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
+
 
 	/*
 	 * Get location for the DB file
 	 */
 	const char *gargoyle_db_file;
 	gargoyle_db_file = getenv("GARGOYLE_DB");
-	if (gargoyle_db_file == NULL) {
-		char cwd[SQL_CMD_MAX/2];
-		if (getcwd(cwd, sizeof(cwd)) == NULL) {
-			return 1;
-		} else {
-			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
-		}
+    if (gargoyle_db_file == NULL) {
+        snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", GARGOYLE_DEFAULT_ROOT_PATH, DB_PATH);
 	} else {
 		snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", gargoyle_db_file);
 	}
+
+    if (!does_file_exist(DB_LOCATION)) {
+        syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
+        return 1;
+    }
 
 	// Get config data
 	const char *config_file;

@@ -4,7 +4,7 @@
  *
  * packet handling code
  *
- * Copyright (c) 2016 - 2017, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -910,7 +910,9 @@ void GargoylePscandHandler::add_block_rule(std::string the_ip, int detection_typ
 				IPTABLES_SUPPORTS_XLOCK,
 				ENFORCE,
 				(void *)gargoyle_whitelist_shm,
-				get_debug());
+				get_debug(),
+				""
+			);
 
 			if (is_in_black_listed_hosts(the_ip) == true) {
 				BLACK_LISTED_HOSTS.erase(the_ip);
@@ -1218,7 +1220,9 @@ void GargoylePscandHandler::add_block_rules() {
 				IPTABLES_SUPPORTS_XLOCK,
 				ENFORCE,
 				(void *)gargoyle_whitelist_shm,
-				get_debug());
+				get_debug(),
+				""
+			);
 
 			ip_tables_entries.insert(*it);
 		} else {
@@ -1295,7 +1299,9 @@ void GargoylePscandHandler::add_block_rules() {
 							IPTABLES_SUPPORTS_XLOCK,
 							ENFORCE,
 							(void *)gargoyle_whitelist_shm,
-							get_debug());
+							get_debug(),
+							""
+						);
 
 						ip_tables_entries.insert(the_ip);
 					}
@@ -1352,7 +1358,9 @@ void GargoylePscandHandler::add_block_rules() {
 						IPTABLES_SUPPORTS_XLOCK,
 						ENFORCE,
 						(void *)gargoyle_whitelist_shm,
-						get_debug());
+						get_debug(),
+						""
+					);
 
 					ip_tables_entries.insert(loc_ip_it->first);
 				}
