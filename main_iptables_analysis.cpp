@@ -392,7 +392,6 @@ void run_analysis() {
 
 	size_t d_buf_sz = DEST_BUF_SZ * 2;
 	char *l_hosts = (char*) malloc(d_buf_sz);
-	*l_hosts = 0;
 
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1+1);
@@ -552,9 +551,7 @@ void clean_up_iptables_dupe_data() {
 
 	size_t dst_buf_sz = DEST_BUF_SZ;
 	char *l_chains = (char*) malloc(dst_buf_sz + 1);
-	*l_chains = 0;
 	char *l_chains2 = (char*) malloc(dst_buf_sz + 1);
-	*l_chains2 = 0;
 
 	const char *tok1 = "\n";
 
@@ -594,8 +591,6 @@ void clean_up_iptables_dupe_data() {
 				size_t position1 = s_lchains1 - token1;
 				s_lchains2 = strstr (token1 + position1 + dash_dash_len, w_space);
 				size_t position2 = s_lchains2 - token1;
-
-				*host_ip = 0;
 
 				bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16);
 				if (host_ip) {
