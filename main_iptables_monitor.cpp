@@ -55,6 +55,7 @@
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
 size_t IPTABLES_SUPPORTS_XLOCK;
+bool ENFORCE = true;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 const char *GARG_MONITOR_PROGNAME = "Gargoyle Pscand Monitor";
@@ -181,7 +182,7 @@ void run_monitor() {
 										// delete rule from chain
 										iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-										do_unblock_action_output(host_ip, (int) time(NULL));
+										do_unblock_action_output(host_ip, (int) time(NULL), ENFORCE);
 
 									}
 								}
@@ -334,7 +335,10 @@ int main(int argc, char *argv[]) {
 
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {
+
 		LOCKOUT_TIME = cvv.get_lockout_time();
+		ENFORCE = cvv.get_enforce_mode();
+
 	} else {
 		return 1;
 	}

@@ -286,11 +286,14 @@ void do_block_action_output(const std::string &the_ip,
 }
 
 
-void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
+void do_unblock_action_output(const std::string &the_ip,
+		int the_timestamp,
+		int enforce_state
+		) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, UNBLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-			TIMESTAMP_SYSLOG, the_timestamp);
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state);
 
 }
 

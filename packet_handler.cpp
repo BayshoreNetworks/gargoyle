@@ -1453,7 +1453,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-							do_unblock_action_output(host_ip, (int) time(NULL));
+							do_unblock_action_output(host_ip, (int) time(NULL), ENFORCE);
 						}
 					}
 				}

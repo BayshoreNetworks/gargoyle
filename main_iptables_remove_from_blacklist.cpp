@@ -53,6 +53,7 @@
 #include "system_functions.h"
 
 bool DEBUG = false;
+bool ENFORCE = true;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 SharedIpConfig *gargoyle_blacklist_removal_shm = NULL;
@@ -90,6 +91,20 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    const char *config_file;
+    config_file = getenv("GARGOYLE_CONFIG");
+    if (config_file == NULL)
+        config_file = ".gargoyle_config";
+
+    ConfigVariables cvv;
+    if (cvv.get_vals(config_file) == 0) {
+
+        ENFORCE = cvv.get_enforce_mode();
+
+    } else {
+        return 1;
+    }
+
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 	gargoyle_blacklist_removal_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
     char ip[16];
@@ -123,7 +138,7 @@ int main(int argc, char *argv[])
 							// delete rule from chain
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-							do_unblock_action_output(ip, (int) time(NULL));
+							do_unblock_action_output(ip, (int) time(NULL), ENFORCE);
 						}
 
 						// remove from DB
