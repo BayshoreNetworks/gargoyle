@@ -298,12 +298,14 @@ void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
 void do_remove_action_output(const std::string &the_ip,
 		int the_timestamp,
 		int first_seen,
-		int last_seen) {
+		int last_seen,
+		int enforce_state
+		) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, REMOVE_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
 			FIRST_SEEN_SYSLOG, first_seen, LAST_SEEN_SYSLOG, last_seen,
-			TIMESTAMP_SYSLOG, the_timestamp);
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state);
 
 }
 
