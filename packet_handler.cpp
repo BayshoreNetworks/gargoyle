@@ -1534,7 +1534,11 @@ void GargoylePscandHandler::process_blacklist_ip_list() {
 					if (!is_black_listed(host_ip, (void *)gargoyle_blacklist_shm)) {
 
 						//gargoyle_blacklist_shm->Add(host_ip);
-						do_black_list_actions(host_ip, (void *)gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
+						do_black_list_actions(host_ip,
+											(void *)gargoyle_blacklist_shm,
+											IPTABLES_SUPPORTS_XLOCK,
+											get_enforce_mode()
+											);
 
 					}
 				}
@@ -1557,5 +1561,10 @@ void GargoylePscandHandler::set_debug (bool b_val) {
 
 bool GargoylePscandHandler::get_debug () {
 	return DEBUG;
+}
+
+
+bool GargoylePscandHandler::get_enforce_mode() {
+	return ENFORCE;
 }
 /////////////////////////////////////////////////////////////////////////////////
