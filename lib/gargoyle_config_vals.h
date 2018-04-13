@@ -75,6 +75,7 @@ extern "C" {
 #define DB_FILE_SYSLOG "DB file:"
 #define DOESNT_EXIST_SYSLOG "does not exist"
 #define CANNOT_CONTINUE_SYSLOG "cannot continue"
+#define ENFORCE_STATE_SYSLOG "enforce"
 
 
 #define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"

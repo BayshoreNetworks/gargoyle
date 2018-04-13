@@ -53,6 +53,7 @@
 #include "system_functions.h"
 
 bool DEBUG = false;
+bool ENFORCE = true;
 size_t IPTABLES_SUPPORTS_XLOCK;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
@@ -87,6 +88,20 @@ int main(int argc, char *argv[])
 
     if (!does_file_exist(DB_LOCATION)) {
         syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s - %s", DB_FILE_SYSLOG, DB_LOCATION, DOESNT_EXIST_SYSLOG, CANNOT_CONTINUE_SYSLOG);
+        return 1;
+    }
+
+    const char *config_file;
+    config_file = getenv("GARGOYLE_CONFIG");
+    if (config_file == NULL)
+        config_file = ".gargoyle_config";
+
+    ConfigVariables cvv;
+    if (cvv.get_vals(config_file) == 0) {
+
+        ENFORCE = cvv.get_enforce_mode();
+
+    } else {
         return 1;
     }
 
@@ -132,7 +147,20 @@ int main(int argc, char *argv[])
 							if (DEBUG)
 								std::cout << "Host ix: " << host_ix << std::endl;
 							// delete all records for this host_ix from hosts_ports_hits table
-							remove_host_ports_all(host_ix, DB_LOCATION);
+							size_t rhpa = remove_host_ports_all(host_ix, DB_LOCATION);
+                            if (rhpa == 2) {
+
+                                int rhpa_i;
+                                for (rhpa_i = 0; rhpa_i < SQL_FAIL_RETRY; rhpa_i++) {
+                                    rhpa = remove_host_ports_all(host_ix, DB_LOCATION);
+                                    if (rhpa == 2) {
+                                        continue;
+                                    }
+                                    if (rhpa == 0) {
+                                        break;
+                                    }
+                                }
+                            }
 
 							if (DEBUG)
 								std::cout << "Row ix: " << row_ix << std::endl;
@@ -154,7 +182,7 @@ int main(int argc, char *argv[])
 
 								iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-								do_unblock_action_output(ip, (int) tstamp);
+								do_unblock_action_output(ip, (int) tstamp, ENFORCE);
 
 							}
 						}

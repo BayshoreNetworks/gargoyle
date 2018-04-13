@@ -91,19 +91,34 @@ int main(void){
 	signal(SIGCHLD, signal_handler);
 
 	const char *target_resource = "conf.d";
-	const char *gargoyle_bf_config_dir;
-	gargoyle_bf_config_dir = getenv("GARGOYLE_BRUTE_FORCE_CONFIG_DIR");
-	if (gargoyle_bf_config_dir == NULL) {
-		char cwd[BF_CONF_DIR_MAX/2];
+	char *gargoyle_bf_config_dir = getenv("GARGOYLE_BRUTE_FORCE_CONFIG_DIR");
+
+    if (gargoyle_bf_config_dir) {
+
+        size_t elen = strlen(gargoyle_bf_config_dir);
+
+        char path[gargoyle_bf_config_dir ? elen + 1 : 1];
+        strcpy(path, gargoyle_bf_config_dir ? gargoyle_bf_config_dir : "");
+
+        if (elen > 0)
+            snprintf (GARG_BF_CONFIG_DIR, BF_CONF_DIR_MAX, "%s/", gargoyle_bf_config_dir);
+
+    } else {
+
+        char cwd[BF_CONF_DIR_MAX/2];
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+            printf("\n%s\n\n", "Could not get a value for the current working directory");
 			return 1;
 		} else {
 			snprintf (GARG_BF_CONFIG_DIR, BF_CONF_DIR_MAX, "%s/%s/", cwd, target_resource);
 		}
-	} else {
-		snprintf (GARG_BF_CONFIG_DIR, BF_CONF_DIR_MAX, "%s/", gargoyle_bf_config_dir);
-	}
 
+    }
+
+    if (!strlen(GARG_BF_CONFIG_DIR) > 0) {
+        printf("\n%s\n\n", "Cannot continue without a value for the directory of config files");
+        return 1;
+    }
 
 	size_t file_cnt = 0;
 	DIR *dpdf1;

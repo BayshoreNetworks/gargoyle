@@ -111,6 +111,7 @@ class GargoylePscandHandler
 	bool ignore_this_port(int);
 	bool is_in_hot_ports(int);
 	bool get_debug();
+	bool get_enforce_mode();
 
 	private:
 

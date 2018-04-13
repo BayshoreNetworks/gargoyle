@@ -1324,7 +1324,7 @@ void GargoylePscandHandler::add_block_rules() {
 					 * this data is being used for analytics
 					 */
 					if (SYSLOG_ALL_DETECTIONS) {
-						do_report_action_output(the_ip, the_port, the_cnt, tstamp);
+						do_report_action_output(the_ip, the_port, the_cnt, tstamp, ENFORCE);
 					}
 				}
 			}
@@ -1453,7 +1453,7 @@ void GargoylePscandHandler::process_ignore_ip_list() {
 
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-							do_unblock_action_output(host_ip, (int) time(NULL));
+							do_unblock_action_output(host_ip, (int) time(NULL), ENFORCE);
 						}
 					}
 				}
@@ -1534,7 +1534,11 @@ void GargoylePscandHandler::process_blacklist_ip_list() {
 					if (!is_black_listed(host_ip, (void *)gargoyle_blacklist_shm)) {
 
 						//gargoyle_blacklist_shm->Add(host_ip);
-						do_black_list_actions(host_ip, (void *)gargoyle_blacklist_shm, IPTABLES_SUPPORTS_XLOCK);
+						do_black_list_actions(host_ip,
+											(void *)gargoyle_blacklist_shm,
+											IPTABLES_SUPPORTS_XLOCK,
+											get_enforce_mode()
+											);
 
 					}
 				}
@@ -1557,5 +1561,10 @@ void GargoylePscandHandler::set_debug (bool b_val) {
 
 bool GargoylePscandHandler::get_debug () {
 	return DEBUG;
+}
+
+
+bool GargoylePscandHandler::get_enforce_mode() {
+	return ENFORCE;
 }
 /////////////////////////////////////////////////////////////////////////////////
