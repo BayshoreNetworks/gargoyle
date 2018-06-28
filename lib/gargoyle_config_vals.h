@@ -39,6 +39,7 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
+#define GARGOYLE_PSCAND_PCAP "Gargoyle_pscand_pcap"
 #define GARGOYLE_VERSION "1.6.4"
 #define GARGOYLE_DEBUG "GARGOYLE DEBUG -"
 #define GARGOYLE_ERROR "GARGOYLE ERROR -"

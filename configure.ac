@@ -18,10 +18,10 @@ AC_CHECK_LIB([sqlite3], [main])
 AC_CHECK_LIB([netfilter_log], [main])
 AC_CHECK_LIB([rt], [main])
 AC_CHECK_LIB([pthread], [main])
-
+AC_CHECK_LIB([pcap], [main])
 
 # Checks for header files
-AC_CHECK_HEADERS([errno.h ctype.h signal.h string.h stdlib.h syslog.h unistd.h netinet/in.h netinet/ip.h])
+AC_CHECK_HEADERS([errno.h ctype.h signal.h string.h stdlib.h syslog.h unistd.h netinet/in.h netinet/ip.h netinet/ether.h])
 
 # Checks for typedefs, structures, and compiler characteristics
 AC_CHECK_HEADER_STDBOOL

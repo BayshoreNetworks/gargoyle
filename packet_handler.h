@@ -61,6 +61,8 @@ class GargoylePscandHandler
 
 	// netfilter callback
 	static int packet_handle(struct nflog_g_handle *, struct nfgenmsg *, struct nflog_data *, void *);
+	// pcap
+	static int packet_handler_pcap(unsigned char *, size_t, GargoylePscandHandler *);
 
 	void add_to_white_listed_entries(std::string);
 	void add_to_ports_entries(int);
