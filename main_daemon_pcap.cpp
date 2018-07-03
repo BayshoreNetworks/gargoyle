@@ -835,8 +835,10 @@ int main(int argc, char *argv[]){
              packetTimeStamp.tv_sec = header->ts.tv_sec;
              packetTimeStamp.tv_usec = header->ts.tv_usec;
              time = localtime(&packetTimeStamp.tv_sec);
-             std::cout << "Extract packet " << ++numPacketInPcap << " " << setfill('0') << setw(2) << time->tm_hour << ":" << setw(2) << time->tm_min << ":" <<
-                       setw(2) << time->tm_sec << ":" << setw(3) <<  (packetTimeStamp.tv_usec/1000) << std::endl;
+             if(DEBUG){
+                 std::cout << "Extract packet " << ++numPacketInPcap << " " << setfill('0') << setw(2) << time->tm_hour << ":" << setw(2) << time->tm_min << ":" <<
+                     setw(2) << time->tm_sec << ":" << setw(3) <<  (packetTimeStamp.tv_usec/1000) << std::endl;
+             }
              if(previousTimeStamp.tv_sec == 0 && previousTimeStamp.tv_usec == 0){
                  timeBetweenPackets.tv_sec = 0;
                  timeBetweenPackets.tv_usec = 0;
@@ -874,9 +876,10 @@ int main(int argc, char *argv[]){
                     packetTimeStamp.tv_sec = header->ts.tv_sec;
                     packetTimeStamp.tv_usec = header->ts.tv_usec;
                      time = localtime(&packetTimeStamp.tv_sec);
-                     std::cout << "Extract packet " << ++numPacketInPcap << " " << setfill('0') << setw(2) << time->tm_hour << ":" << setw(2) << time->tm_min << ":" <<
-                             setw(2) << time->tm_sec << ":" << setw(3) <<  (packetTimeStamp.tv_usec/1000) << std::endl;
-
+                     if(DEBUG){
+                         std::cout << "Extract packet " << ++numPacketInPcap << " " << setfill('0') << setw(2) << time->tm_hour << ":" << setw(2) << time->tm_min << ":" <<
+                                 setw(2) << time->tm_sec << ":" << setw(3) <<  (packetTimeStamp.tv_usec/1000) << std::endl;
+                    }
                     if(previousTimeStamp.tv_sec == 0 && previousTimeStamp.tv_usec == 0){
                         timeBetweenPackets.tv_sec = 0;
                         timeBetweenPackets.tv_usec = 0;
