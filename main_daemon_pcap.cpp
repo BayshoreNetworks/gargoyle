@@ -720,7 +720,7 @@ int main(int argc, char *argv[]){
          * get ports to ignore from
          * system
          */
-        //get_ports_to_ignore();
+        get_ports_to_ignore();
 
         std::stringstream ss;
         int l_cnt = 1;

@@ -1645,12 +1645,15 @@ int GargoylePscandHandler::packet_handler_pcap(unsigned char *data, size_t len, 
 
                             if (added_host_ix > 0) {
                                 // _this->add_block_rule(s_src, 9);
-                                std::cout << "Blocking rule for source IP " << inet_ntoa(dst_addr) << std::endl;
+                                std::cout << "Blocking rule for source IP " << inet_ntoa(src_addr) << std::endl;
                                 std::cout << "Destination port " << ntohs(tcp_info->dest) << std::endl;
                                 if(_this->ENFORCE){
-                                    std::cout << IPTABLES << " -w -A " << _this->CHAIN_NAME << " -s " << inet_ntoa(dst_addr) << " -j DROP" << std::endl << std::endl;
+                                    std::cout << IPTABLES << " -w -A " << _this->CHAIN_NAME << " -s " << inet_ntoa(src_addr) << " -j DROP" << std::endl << std::endl;
+                                    if(_this->DEBUG){
+                                        syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Added IP: ", s_src.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
+                                    }
                                 }else{
-                                    std::cout << IPTABLES << " -A " << _this->CHAIN_NAME << " -s " << inet_ntoa(dst_addr) << " -j DROP" << std::endl << std::endl;
+                                    std::cout << IPTABLES << " -A " << _this->CHAIN_NAME << " -s " << s_src.c_str() << " -j DROP" << std::endl << std::endl;
                                 }
                                 _this->add_to_scanned_ports_dict(s_src.c_str(), dst_port);
                             }
