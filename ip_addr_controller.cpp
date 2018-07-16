@@ -60,11 +60,11 @@ int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, 
 		 * ip addr in question, so try to get its ix
 		 * value via get_host
 		 */
-		added_host_ix = add_host(the_ip.c_str(), db_loc.c_str());
+		added_host_ix = sqlite_add_host(the_ip.c_str(), db_loc.c_str());
 		// already exists
 		if (added_host_ix == -1) {
 			// get existing index
-			added_host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
+			added_host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
 		}
 	}
 	return added_host_ix;
@@ -84,7 +84,7 @@ int do_block_actions(const std::string &the_ip,
 	int host_ix;
 	host_ix = 0;
 
-	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
+	host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug);
 
@@ -214,7 +214,7 @@ int add_to_hosts_port_table(const std::string &the_ip,
 	int host_ix;
 	host_ix = 0;
 
-	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
+	host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug);
 

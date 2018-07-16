@@ -1,6 +1,6 @@
 CPPFLAGS=-I. -Ilib -Wreturn-type
 
-include_HEADERS = lib/config_variables.h lib/gargoyle_config_vals.h lib/iptables_wrapper_api.h lib/singleton.h lib/sqlite_wrapper_api.h packet_handler.h ip_addr_controller.h
+include_HEADERS = lib/config_variables.h lib/gargoyle_config_vals.h lib/iptables_wrapper_api.h lib/singleton.h lib/sqlite_wrapper_api.h lib/shared_memory_table.h packet_handler.h ip_addr_controller.h
 
 lib_GARGOYLE_PSCAND = lib
 
@@ -18,7 +18,7 @@ bin_PROGRAMS = gargoyle_pscand \
 				gargoyle_view_shared_mem \
 				gargoyle_regex_tester
 				
-gargoyle_pscand_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp packet_handler.cpp lib/shared_config.cpp lib/shared_mem.cpp main_daemon.cpp
+gargoyle_pscand_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp packet_handler.cpp lib/shared_config.cpp lib/shared_mem.cpp lib/data_base.cpp main_daemon.cpp
 
 gargoyle_pscand_analysis_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp main_iptables_analysis.cpp
 

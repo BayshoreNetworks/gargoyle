@@ -47,6 +47,7 @@ extern "C" {
 #endif
 
 #include "shared_config.h"
+#include "data_base.h"
 
 
 /*
@@ -75,6 +76,10 @@ class GargoylePscandHandler
 	void set_iptables_supports_xlock(size_t);
 	void set_db_location(const char *);
 	void set_debug(bool);
+	void set_type_data_base(std::string);
+	std::string get_type_data_base();
+	void sqlite_to_shared_memory();
+	void cleanTables(const std::string &);
 
 	protected:
 
@@ -114,6 +119,10 @@ class GargoylePscandHandler
 	bool get_enforce_mode();
 
 	private:
+	static const int NUMBER_DATA_BASE_SUPPORTED = 2;
+	enum {SQLITE, SHARED_MEMORY};
+	const string DATA_BASES[NUMBER_DATA_BASE_SUPPORTED]= {"sqlite", "shared_memory"};
+
 
 	bool IGNORE_WHITE_LISTED_IP_ADDRS;
 	bool ENFORCE;
@@ -124,6 +133,7 @@ class GargoylePscandHandler
 
 	std::string DB_LOCATION;
 	std::string CHAIN_NAME;
+	std::string DATA_BASE_TYPE;
 
 	size_t PH_SINGLE_IP_SCAN_THRESHOLD;
 	size_t PH_SINGLE_PORT_SCAN_THRESHOLD;
@@ -147,9 +157,12 @@ class GargoylePscandHandler
 
 	SharedIpConfig *gargoyle_whitelist_shm = NULL;
 	SharedIpConfig *gargoyle_blacklist_shm = NULL;
+	DataBase *gargoyle_data_base_shared_memory;
 
+	int add_host(const char *source_ip, const char *db_location);
+	int get_host_ix(const char *source_ip, const char *db_location);
+	int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc);
+	size_t get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_loc);
 };
-
-
 
 #endif // _PACKETHANDLERS_H__

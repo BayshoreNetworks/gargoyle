@@ -52,7 +52,6 @@
 #include "gargoyle_config_vals.h"
 #include "ip_addr_controller.h"
 
-
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
 int FLAGS_LIST[] = {128, 64, 32, 16, 8, 4, 2, 1};
@@ -151,9 +150,11 @@ GargoylePscandHandler::GargoylePscandHandler() {
 	EPHEMERAL_HIGH = 65535;
 	IPTABLES_SUPPORTS_XLOCK = 0;
 	DEBUG = false;
+	DATA_BASE_TYPE = "sqlite";
 
 	gargoyle_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
+	gargoyle_data_base_shared_memory = nullptr;
 }
 
 
@@ -169,6 +170,9 @@ GargoylePscandHandler::~GargoylePscandHandler() {
         //gargoyle_blacklist_shm;
     }
 
+    if(gargoyle_data_base_shared_memory != nullptr){
+    	delete gargoyle_data_base_shared_memory;
+    }
 }
 
 
@@ -298,11 +302,11 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 							 */
 
 							// get ix for ip_addr
-							int added_host_ix = add_host(s_src.c_str(), _this->DB_LOCATION.c_str());
+							int added_host_ix = _this->add_host(s_src.c_str(), _this->DB_LOCATION.c_str());
 
 							if (added_host_ix == -1) {
 								// get existing index
-								added_host_ix = get_host_ix(s_src.c_str(), _this->DB_LOCATION.c_str());
+								added_host_ix = _this->get_host_ix(s_src.c_str(), _this->DB_LOCATION.c_str());
 							}
 
 							//std:cout << added_host_ix << std::endl;
@@ -410,7 +414,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 			 * this is what flushes data from memory and blocks stuff
 			 * if appropriate
 			 */
-			if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
+			//if (((int)time(NULL) - BASE_TIME) >= PROCESS_TIME_CHECK) {
 
 				// are there any new white list entries in the DB?
 				_this->process_ignore_ip_list();
@@ -418,7 +422,7 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 
 				_this->add_block_rules();
 				BASE_TIME = (int)time(NULL);
-			}
+			//}
 			///////////////////////////////////////////////////////////////////////////////
 		}
 	}
@@ -1557,7 +1561,108 @@ void GargoylePscandHandler::set_debug (bool b_val) {
 	if (b_val || !b_val)
 		DEBUG = b_val;
 }
+void GargoylePscandHandler::set_type_data_base(string type){
+	DATA_BASE_TYPE = type;
+	if(DATA_BASE_TYPE == DATA_BASES[SHARED_MEMORY]){
+		gargoyle_data_base_shared_memory = DataBase::create();
+	}
+}
 
+string GargoylePscandHandler::get_type_data_base(){
+	return DATA_BASE_TYPE;
+}
+
+void GargoylePscandHandler::cleanTables(const string &tables){
+	if(DATA_BASE_TYPE == DATA_BASES[SHARED_MEMORY]){
+		gargoyle_data_base_shared_memory->cleanTables(tables);
+	}
+}
+
+// Copy initial data from SQLite to shared memory
+void GargoylePscandHandler::sqlite_to_shared_memory(){
+	const char black_ip_list_table[] = "black_ip_list";
+	const char ignore_ip_list_table[] = "ignore_ip_list";
+	char *buffer = new char[MEDIUM_DEST_BUF];
+	const char *tok1 = ">", *tok2 = ":";
+	char *token1, *token1_save, *token2, *token2_save;
+	int iter_cnt;
+
+	// hosts_table
+	Hosts_Record host_record;
+	int status = sqlite_get_hosts_all(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str());
+	if(status == 0) {
+		token1 = strtok_r(buffer, tok1, &token1_save);
+		while (token1 != NULL) {
+			iter_cnt = 0;
+			token2 = strtok_r(token1, tok2, &token2_save);
+			while (token2 != NULL) {
+				if (iter_cnt == 0) {
+					host_record.ix = atoll(token2);
+				} else if (iter_cnt == 1) {
+					snprintf(host_record.host, LENGTH_IPV4, "%s", token2);
+				} else if (iter_cnt == 2) {
+					host_record.first_seen = atoll(token2);
+				} else if (iter_cnt == 3) {
+					host_record.last_seen = atoll(token2);
+				}
+				iter_cnt++;
+				token2 = strtok_r(NULL, tok2, &token2_save);
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+			gargoyle_data_base_shared_memory->hosts->INSERT(host_record);
+		}
+	}
+
+	// black_ip_list
+	Black_IP_List_Record black_ip_list_record;
+	status = sqlite_get_all_igonre_or_black_ip_list(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str(), black_ip_list_table);
+	if(status == 0) {
+		token1 = strtok_r(buffer, tok1, &token1_save);
+		while (token1 != NULL) {
+			iter_cnt = 0;
+			token2 = strtok_r(token1, tok2, &token2_save);
+			while (token2 != NULL) {
+				if (iter_cnt == 0) {
+					black_ip_list_record.ix = atoll(token2);
+				} else if (iter_cnt == 1) {
+					black_ip_list_record.host_ix = atoll(token2);
+				} else if (iter_cnt == 2) {
+					black_ip_list_record.timestamp = atoll(token2);
+				}
+				iter_cnt++;
+				token2 = strtok_r(NULL, tok2, &token2_save);
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+			gargoyle_data_base_shared_memory->black_ip_list->INSERT(black_ip_list_record);
+		}
+	}
+
+	// ignore_ip_list
+	Ignore_IP_List_Record ignore_ip_list_record;
+	status = sqlite_get_all_igonre_or_black_ip_list(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str(), ignore_ip_list_table);
+	if(status == 0) {
+		token1 = strtok_r(buffer, tok1, &token1_save);
+		while (token1 != NULL) {
+			iter_cnt = 0;
+			token2 = strtok_r(token1, tok2, &token2_save);
+			while (token2 != NULL) {
+				if (iter_cnt == 0) {
+					ignore_ip_list_record.ix = atoll(token2);
+				} else if (iter_cnt == 1) {
+					ignore_ip_list_record.host_ix = atoll(token2);
+				} else if (iter_cnt == 2) {
+					ignore_ip_list_record.timestamp = atoll(token2);
+				}
+				iter_cnt++;
+				token2 = strtok_r(NULL, tok2, &token2_save);
+			}
+			token1 = strtok_r(NULL, tok1, &token1_save);
+			gargoyle_data_base_shared_memory->ignore_ip_list->INSERT(ignore_ip_list_record);
+		}
+	}
+
+	delete buffer;
+}
 
 bool GargoylePscandHandler::get_debug () {
 	return DEBUG;
@@ -1567,4 +1672,57 @@ bool GargoylePscandHandler::get_debug () {
 bool GargoylePscandHandler::get_enforce_mode() {
 	return ENFORCE;
 }
+
+int GargoylePscandHandler::add_host(const char *source_ip, const char *db_location){
+	int status;
+	if(DATA_BASE_TYPE == DATA_BASES[SQLITE]){
+		status = sqlite_add_host(source_ip, db_location);
+	}else{
+		Hosts_Record record;
+		record.ix = 0;
+		strcpy(record.host, source_ip);
+		time_t now = time(nullptr);
+		record.first_seen = now;
+		record.last_seen = now;
+		status = gargoyle_data_base_shared_memory->hosts->INSERT(record);
+	}
+	return status;
+
+}
+
+int GargoylePscandHandler::get_host_ix(const char *source_ip, const char *db_location){
+	int status = -1;
+	if(DATA_BASE_TYPE == DATA_BASES[SQLITE]){
+		status = sqlite_get_host_ix(source_ip, db_location);
+	}else{
+		char result[SMALL_DEST_BUF];
+		string query = "SELECT ix FROM hosts_table WHERE host=" + string(source_ip);
+		if((status = gargoyle_data_base_shared_memory->hosts->SELECT(result, query)) != -1){
+			status = atoi(result);
+		}
+	}
+	return status;
+}
+
+int GargoylePscandHandler::get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc){
+	int status = -1;
+	if(DATA_BASE_TYPE == DATA_BASES[SQLITE]){
+		status = sqlite_get_host_by_ix(the_ix, dst, sz_dst, DB_LOCATION.c_str());
+	}else{
+		string query = "SELECT host FROM hosts_table WHERE ix=" + the_ix;
+		status = gargoyle_data_base_shared_memory->hosts->SELECT(dst, query);
+	}
+	return status;
+}
+
+size_t GargoylePscandHandler::get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_loc){
+	int status = -1;
+	if(DATA_BASE_TYPE == DATA_BASES[SQLITE]){
+		status = sqlite_get_hosts_blacklist_all(dst, sz_dst, DB_LOCATION.c_str());
+	}else{
+		char result[SMALL_DEST_BUF];
+	}
+	return status;
+}
+
 /////////////////////////////////////////////////////////////////////////////////

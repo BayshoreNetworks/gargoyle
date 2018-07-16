@@ -155,10 +155,16 @@ void graceful_exit(int signum) {
 	remove_detected_hosts_all(DB_LOCATION);
 	// 5
 	reset_autoincrement(DETECTED_HOSTS_TABLE, DB_LOCATION);
+	if(gargoyleHandler.get_type_data_base() == "shared_memory"){
+		gargoyleHandler.cleanTables("detected_host_table");
+	}
 	///////////////////////////////////////////////////
 	// 6
 	iptables_delete_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	///////////////////////////////////////////////////
+	//if(gargoyleHandler.get_type_data_base() == "shared_memory"){
+	//	gargoyleHandler.cleanTables();
+	//}
 
 	exit(0);
 }
@@ -461,7 +467,7 @@ void get_white_list_addrs() {
 
 			if (atoi(token1) > 0) {
 
-				get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
+				sqlite_get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
 
 				if (strcmp(host_ip, "") != 0) {
 					add_to_ip_entries(host_ip);
@@ -488,7 +494,7 @@ void get_blacklist_ip_addrs(int enforce_state) {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	size_t resp = get_hosts_blacklist_all(l_hosts, dst_buf_sz, DB_LOCATION);
+	size_t resp = sqlite_get_hosts_blacklist_all(l_hosts, dst_buf_sz, DB_LOCATION);
 
 	if (resp == 0) {
 
@@ -498,7 +504,7 @@ void get_blacklist_ip_addrs(int enforce_state) {
 			int host_ix = atoi(token1);
 			if (host_ix > 0) {
 
-				get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION);
+				sqlite_get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION);
 
 				if (strcmp(host_ip, "") != 0) {
 
@@ -542,6 +548,7 @@ int main(int argc, char *argv[])
     if (argc > 2 || argc < 1) {
 
     	std::cerr << std::endl << GARGOYLE_PSCAND << " - Argument errors, exiting ..." << std::endl << std::endl;
+    	std::cerr << std::endl << "Usage ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {
@@ -552,7 +559,10 @@ int main(int argc, char *argv[])
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
-    	} else {
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+    		gargoyleHandler.set_type_data_base("shared_memory");
+    	}
+    	else {
     		return 0;
     	}
     }
@@ -644,6 +654,10 @@ int main(int argc, char *argv[])
 	// does iptables support xlock
 	// 1 = true, 0 = false
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
+
+	gargoyleHandler.set_iptables_supports_xlock(IPTABLES_SUPPORTS_XLOCK);
+	gargoyleHandler.set_db_location(DB_LOCATION);
+	gargoyleHandler.set_debug(DEBUG);
 
 	handle_chain();
 
@@ -767,6 +781,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if(gargoyleHandler.get_type_data_base() == "shared_memory"){
+		gargoyleHandler.sqlite_to_shared_memory();
+	}
+
 	get_blacklist_ip_addrs(enforce_mode);
 
 	LOCAL_IP_ADDRS.push_back("0.0.0.0");
@@ -807,9 +825,6 @@ int main(int argc, char *argv[])
 	for (std::vector<int>::const_iterator i = IGNORE_PORTS.begin(); i != IGNORE_PORTS.end(); ++i) {
 		gargoyleHandler.add_to_ports_entries(*i);
 	}
-	gargoyleHandler.set_iptables_supports_xlock(IPTABLES_SUPPORTS_XLOCK);
-	gargoyleHandler.set_db_location(DB_LOCATION);
-	gargoyleHandler.set_debug(DEBUG);
 
 	int rv, fd;
 	char buf[4096] __attribute__ ((aligned));

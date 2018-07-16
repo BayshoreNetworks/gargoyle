@@ -64,13 +64,13 @@ size_t remove_detected_hosts_all(const char *);
 int is_host_detected(int, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_table table
-int get_hosts_all(char *, size_t, const char *);
-int get_host_by_ix(int, char *, size_t, const char *);
-int get_host_all_by_ix(int, char *, size_t, const char *);
-int add_host(const char *, const char *);
-int get_host_ix(const char *, const char *);
+int sqlite_get_hosts_all(char *, size_t, const char *);
+int sqlite_get_host_by_ix(int, char *, size_t, const char *);
+int sqlite_get_host_all_by_ix(int, char *, size_t, const char *);
+int sqlite_add_host(const char *, const char *);
+int sqlite_get_host_ix(const char *, const char *);
 size_t update_host_last_seen(size_t, const char *);
-size_t remove_host(size_t, const char *);
+size_t sqlite_remove_host(size_t, const char *);
 ///////////////////////////////////////////////////////////////////////
 // hosts_ports_hits table
 int get_unique_list_of_ports(char *, size_t, const char *);
@@ -92,12 +92,13 @@ int remove_host_to_ignore(int, const char *);
 ///////////////////////////////////////////////////////////////////////
 // black_ip_list table
 size_t add_host_to_blacklist(size_t, size_t, const char *);
-size_t get_hosts_blacklist_all(char *, size_t, const char *);
+size_t sqlite_get_hosts_blacklist_all(char *, size_t, const char *);
 int is_host_blacklisted(int, const char *);
 int remove_host_from_blacklist(int, const char *);
 ///////////////////////////////////////////////////////////////////////
+int sqlite_get_all_igonre_or_black_ip_list(char *, size_t, const char *, const char *);
+///////////////////////////////////////////////////////////////////////
 void reset_autoincrement(const char *, const char *);
-
 
 #ifdef __cplusplus
 }
