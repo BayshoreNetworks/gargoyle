@@ -63,7 +63,7 @@
 #include "string_functions.h"
 #include "singleton.h"
 #include "shared_config.h"
-
+#include "data_base.h"
 
 int BASE_TIME;
 int BASE_TIME2;
@@ -81,6 +81,7 @@ std::map<std::string, int[2]> IP_HITMAP;
 size_t IPTABLES_SUPPORTS_XLOCK;
 size_t ITER_CNT_MAX = 50;
 SharedIpConfig *gargoyle_sshbf_whitelist_shm = NULL;
+DataBase *data_base_shared_memory_analysis = nullptr;
 
 size_t get_regexes(const char *);
 void signal_handler(int);
@@ -112,6 +113,10 @@ size_t get_regexes(const char *fname) {
 void signal_handler(int signum) {
 
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
+
+	if(data_base_shared_memory_analysis != nullptr){
+		delete data_base_shared_memory_analysis;
+	}
 
 	// terminate program
 	exit(0);
@@ -187,7 +192,8 @@ int handle_log_line(const std::string &line) {
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
 					DEBUG,
-					""
+					"",
+					data_base_shared_memory_analysis
 				);
 
 			}
@@ -302,7 +308,8 @@ void process_iteration(int num_seconds, int num_hits) {
 				ENFORCE,
 				(void *)gargoyle_sshbf_whitelist_shm,
 				DEBUG,
-				""
+				"",
+				data_base_shared_memory_analysis
 			);
 
 			IP_HITMAP.erase(ip_addr);
@@ -318,7 +325,8 @@ void process_iteration(int num_seconds, int num_hits) {
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
 					DEBUG,
-					""
+					"",
+					data_base_shared_memory_analysis
 				);
 
 			}
@@ -336,7 +344,8 @@ void process_iteration(int num_seconds, int num_hits) {
 					ENFORCE,
 					(void *)gargoyle_sshbf_whitelist_shm,
 					DEBUG,
-					""
+					"",
+					data_base_shared_memory_analysis
 				);
 
 				IP_HITMAP.erase(ip_addr);
@@ -358,7 +367,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 		IP_HITMAP[ip_addr][1] = IP_HITMAP[ip_addr][1] + 1;
 
 		if (ENFORCE) {
-			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION, DEBUG);
+			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION, DEBUG, data_base_shared_memory_analysis);
 		}
 		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL), ENFORCE);
 
@@ -369,7 +378,7 @@ void handle_ip_addr(const std::string &ip_addr) {
 		IP_HITMAP[ip_addr][1] = 1;
 
 		if (ENFORCE) {
-			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION, DEBUG);
+			add_to_hosts_port_table(ip_addr, FAKE_PORT, 1, DB_LOCATION, DEBUG, data_base_shared_memory_analysis);
 		}
 		do_report_action_output(ip_addr, FAKE_PORT, 1, (int) time(NULL), ENFORCE);
 	}
@@ -393,6 +402,7 @@ int main(int argc, char *argv[])
     if (argc > 2 || argc < 1) {
 
     	std::cerr << std::endl << "Argument errors, exiting ..." << std::endl << std::endl;
+		std::cerr << std::endl << "Usage: ./gargoyle_lscand_ssh_bruteforce [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {
@@ -402,8 +412,12 @@ int main(int argc, char *argv[])
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
-    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
+		}else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+			data_base_shared_memory_analysis = DataBase::create();
+	 	}else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
+
     	else {
+			std::cerr << std::endl << "Usage: ./gargoyle_lscand_ssh_bruteforce [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     		return 0;
     	}
     }

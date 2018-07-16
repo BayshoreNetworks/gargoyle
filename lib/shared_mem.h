@@ -27,6 +27,9 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+#ifndef SHARED_MEM_REGION_H
+#define SHARED_MEM_REGION_H
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -60,3 +63,4 @@ public:
     int32_t Resize(size_t size);
     size_t Size() const { return my_size; }
 };
+#endif

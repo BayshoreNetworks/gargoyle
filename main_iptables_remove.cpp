@@ -51,6 +51,8 @@
 #include "ip_addr_controller.h"
 #include "shared_config.h"
 #include "system_functions.h"
+#include "data_base.h"
+#include "string_functions.h"
 
 bool DEBUG = false;
 bool ENFORCE = true;
@@ -58,6 +60,7 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 SharedIpConfig *gargoyle_monitor_blacklist_shm = NULL;
+DataBase *data_base_shared_memory_analysis = nullptr;
 
 bool validate_ip_addr(std::string ip_addr)
 {
@@ -110,90 +113,147 @@ int main(int argc, char *argv[])
     if (DEBUG)
     	std::cout << "ARGC " << argc << std::endl;
 
-    if (argc == 2) {
-
-    	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
-
-		if (validate_ip_addr(argv[1])) {
-
+	switch(argc){
+		case 2:
 			strncpy(ip, argv[1], 15);
 			ip[strlen(argv[1])] = '\0';
+			break;
+		case 3:
+			if((case_insensitive_compare(argv[1], "-s")) || (case_insensitive_compare(argv[1], "--shared_memory"))){
+				data_base_shared_memory_analysis = DataBase::create();
+				strncpy(ip, argv[2], 15);
+				ip[strlen(argv[2])] = '\0';
+				break;
+			}
+		default:
+			std::cout << std::endl << "Usage: ./gargoyle_pscand_unblockip [-s | --shared_memory ] <ip_addr>" << std::endl << std::endl;
+			exit(1);
+	}
 
-			/*
-			 * if this ip is blacklisted leave it alone
-			 */
-			if (!is_black_listed(ip, (void *)gargoyle_monitor_blacklist_shm)) {
+	if (validate_ip_addr(ip)) {
+
+		/*
+		 * if this ip is blacklisted leave it alone
+		 */
+		if (!is_black_listed(ip, (void *)gargoyle_monitor_blacklist_shm)) {
 
 
-				if (DEBUG)
-					std::cout << "IP addr: " << ip << std::endl;
+			if (DEBUG)
+				std::cout << "IP addr: " << ip << std::endl;
 
-				size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip, IPTABLES_SUPPORTS_XLOCK);
+			size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip, IPTABLES_SUPPORTS_XLOCK);
 
-				if (DEBUG)
-					std::cout << "RuleIX: " << rule_ix << std::endl;
+			if (DEBUG)
+				std::cout << "RuleIX: " << rule_ix << std::endl;
 
-				if (rule_ix > 0 && strcmp(ip, "") != 0) {
+			if (rule_ix > 0 && strcmp(ip, "") != 0) {
 
-					// find the host ix for the ip
-					int host_ix = get_host_ix(ip, DB_LOCATION);
+				// find the host ix for the ip
+				int host_ix;
+				if(data_base_shared_memory_analysis != nullptr){
+					char result[SMALL_DEST_BUF];
+					memset(result, 0, SMALL_DEST_BUF);
+					string query = "SELECT ix FROM hosts_table WHERE host=" + string(ip);
+					if((host_ix = data_base_shared_memory_analysis->hosts->SELECT(result, query)) != -1){
+						host_ix = atol(result);
+					}
+				}else{
+					host_ix = sqlite_get_host_ix(ip, DB_LOCATION);
+				}
 
-					if (host_ix > 0) {
+				if (host_ix > 0) {
 
-						// find the row ix for this host (in detected_hosts table)
-						size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
-						if (row_ix > 0) {
+					// find the row ix for this host (in detected_hosts table)
+					size_t row_ix;
+					if(data_base_shared_memory_analysis != nullptr){
+						string query = "SELECT ix FROM detected_hosts WHERE host_ix=" + host_ix;
+						char result[SMALL_DEST_BUF];
+						memset(result, 0, SMALL_DEST_BUF);
+						if((row_ix = data_base_shared_memory_analysis->detected_hosts->SELECT(result, query)) != -1){
+							row_ix = atol(result);
+						}
 
-							if (DEBUG)
-								std::cout << "Host ix: " << host_ix << std::endl;
-							// delete all records for this host_ix from hosts_ports_hits table
-							size_t rhpa = remove_host_ports_all(host_ix, DB_LOCATION);
-                            if (rhpa == 2) {
+					}else{
+						row_ix = sqlite_get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
+					}
 
-                                int rhpa_i;
-                                for (rhpa_i = 0; rhpa_i < SQL_FAIL_RETRY; rhpa_i++) {
-                                    rhpa = remove_host_ports_all(host_ix, DB_LOCATION);
-                                    if (rhpa == 2) {
-                                        continue;
-                                    }
-                                    if (rhpa == 0) {
-                                        break;
-                                    }
-                                }
-                            }
+					if (row_ix > 0) {
 
-							if (DEBUG)
-								std::cout << "Row ix: " << row_ix << std::endl;
-							// delete row from detected_hosts
-							remove_detected_host(row_ix, DB_LOCATION);
+						if (DEBUG)
+							std::cout << "Host ix: " << host_ix << std::endl;
+						// delete all records for this host_ix from hosts_ports_hits table
+						size_t rhpa;
+						if(data_base_shared_memory_analysis != nullptr){
+							string query ="DELETE FROM hosts_ports_hits WHERE host_ix=" + host_ix;
+							rhpa = data_base_shared_memory_analysis->hosts_ports_hits->DELETE(query);
+						}else{
+							rhpa = sqlite_remove_host_ports_all(host_ix, DB_LOCATION);
+						}
 
-							//int tstamp = (int) time(NULL);
-							time_t t_now = time(NULL);
+						if (rhpa == 2) {
 
-							if (t_now > 0) {
-
-								size_t tstamp = t_now;
-
-								// add to ignore ip table
-								add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
-
-								// reset last_seen to 1972
-								update_host_last_seen(host_ix, DB_LOCATION);
-
-								iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-
-								do_unblock_action_output(ip, (int) tstamp, ENFORCE);
-
+							int rhpa_i;
+							for (rhpa_i = 0; rhpa_i < SQL_FAIL_RETRY; rhpa_i++) {
+								rhpa = sqlite_remove_host_ports_all(host_ix, DB_LOCATION);
+								if (rhpa == 2) {
+									continue;
+								}
+								if (rhpa == 0) {
+									break;
+								}
 							}
+						}
+
+						if (DEBUG)
+							std::cout << "Row ix: " << row_ix << std::endl;
+						// delete row from detected_hosts
+						if(data_base_shared_memory_analysis != nullptr){
+							string query = "DELETE FROM detected_hosts WHERE ix=" + row_ix;
+							data_base_shared_memory_analysis->detected_hosts->DELETE(query);
+						}else{
+							sqlite_remove_detected_host(row_ix, DB_LOCATION);
+						}
+
+						//int tstamp = (int) time(NULL);
+						time_t t_now = time(NULL);
+
+						if (t_now > 0) {
+
+							size_t tstamp = t_now;
+
+							// add to ignore ip table
+							if(data_base_shared_memory_analysis != nullptr){
+								Ignore_IP_List_Record record;
+								record.host_ix = host_ix;
+								record.timestamp = tstamp;
+								data_base_shared_memory_analysis->ignore_ip_list->INSERT(record);
+							}else{
+								sqlite_add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
+							}
+
+							// reset last_seen to 1972
+							if(data_base_shared_memory_analysis != nullptr){
+								Hosts_Record record;
+								record.ix = host_ix;
+								// 01/01/1972 00:00:00 UTC
+								record.last_seen = 63072000;
+								data_base_shared_memory_analysis->hosts->UPDATE(record);
+							}else{
+								sqlite_update_host_last_seen(host_ix, DB_LOCATION);
+							}
+
+							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
+
+							do_unblock_action_output(ip, (int) tstamp, ENFORCE);
+
 						}
 					}
 				}
-
 			}
+
 		}
-    } else {
-    	std::cout << std::endl << "Usage: ./gargoyle_pscand_unblockip ip_addr" << std::endl << std::endl;
-    }
+	}
+
 
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
