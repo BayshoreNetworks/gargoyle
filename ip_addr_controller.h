@@ -35,7 +35,7 @@
 
 
 int add_ip_to_hosts_table(const std::string &, const std::string &, bool);
-int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
+int ip_controller_add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
 
 int do_block_actions(const std::string &,
                     int,

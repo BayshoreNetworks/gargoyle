@@ -35,6 +35,7 @@
 #include <string>
 #include <iostream>
 #include <cstring>
+#include <cstdio>
 #include <algorithm>
 
 using namespace std;
@@ -134,12 +135,30 @@ int32_t Black_IP_List_Table::INSERT(Black_IP_List_Record &entry){
 	return status;
 }
 
-int32_t Black_IP_List_Table::DELETE(Black_IP_List_Record &entry){
+int32_t Black_IP_List_Table::DELETE(const std::string &query){
 	cout << "DELETE" << endl;
 	return 0;
 }
 
-uint32_t Black_IP_List_Table::SELECT(char *result, const string &query){
+int32_t Black_IP_List_Table::SELECT(char *result, const string &query){
+	int32_t status = 0;
+	if(query.find("SELECT host_ix FROM black_ip_list") != std::string::npos){
+		Black_IP_List_Record record;
+		if(lock() == 0){
+			for(int i=0; i<size(); i++){
+				status = getRecordByPos(record, i);
+				sprintf(result, "%s%u>", result, record.host_ix);
+				if(status == -1){
+					break;
+				}
+			}
+			unlock();
+		}
+	}
+	return status;
+}
+
+int32_t Black_IP_List_Table::UPDATE(const Black_IP_List_Record &entry){
 	return 0;
 }
 
@@ -179,11 +198,39 @@ int32_t Detected_Hosts_Table::INSERT(Detected_Hosts_Record &entry){
 	return status;
 }
 
-int32_t Detected_Hosts_Table::DELETE(Detected_Hosts_Record &entry){
+int32_t Detected_Hosts_Table::DELETE(const std::string &query){
+	int32_t status = 0;
+	if(query.find("DELETE FROM detected_hosts WHERE ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string value(query, ++pos, query.length() - pos);
+		uint32_t ix = atol(value.c_str());
+		if(lock() != 0){
+			status = deleteRecordByPos(ix);
+			unlock();
+		}
+	}
 	return 0;
 }
 
-uint32_t Detected_Hosts_Table::SELECT(char *result, const string &query){
+int32_t Detected_Hosts_Table::SELECT(char *result, const string &query){
+	int32_t status = -1;
+	if(query.find("SELECT ix FROM detected_hosts WHERE host_ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string host_ix_str(query, ++pos, query.length() - pos);
+		int host_ix = atol(host_ix_str.c_str());
+		if(lock() == 0){
+			Detected_Hosts_Record *match = find_if(begin(), end(), [host_ix](Detected_Hosts_Record record){return record.host_ix == host_ix;});
+			if(isIn(match)){
+				sprintf(result, "%u", match->ix);
+				status = 0;
+			}
+			unlock();
+		}
+	}
+	return status;
+}
+
+int32_t Detected_Hosts_Table::UPDATE(const Detected_Hosts_Record &entry){
 	return 0;
 }
 
@@ -218,14 +265,69 @@ int32_t Hosts_Ports_Hits_Table::INSERT(Hosts_Ports_Hits_Record &entry){
 	return status;
 }
 
-int32_t Hosts_Ports_Hits_Table::DELETE(Hosts_Ports_Hits_Record &entry){
+int32_t Hosts_Ports_Hits_Table::DELETE(const std::string &query){
+	int32_t status = 0;
+	if(query.find("DELETE FROM hosts_ports_hits WHERE host_ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string value(query, ++pos, query.length() - pos);
+		uint32_t host_ix = atol(value.c_str());
+		if(lock() != 0){
+			uint32_t i = 0;
+			Hosts_Ports_Hits_Record record;
+			while(i != size()){
+				if((status = getRecordByPos(record, i)) == -1){
+					break;
+				}
+				if(record.host_ix == host_ix){
+					if((status = deleteRecordByPos(record.ix)) != 0){
+						break;
+					}
+				}else{
+					i++;
+				}
+			}
+			unlock();
+		}
+	}
 	return 0;
 }
 
-uint32_t Hosts_Ports_Hits_Table::SELECT(char *result, const string &query){
-	return 0;
+int32_t Hosts_Ports_Hits_Table::SELECT(char *result, const string &query){
+	int32_t status = -1;
+	if(query.find("SELECT hit_count FROM hosts_ports_hits WHERE host_ix=") != std::string::npos){
+        size_t posFirst = query.find_first_of("=");
+        size_t posAND = query.find(" AND");
+        size_t posLast = query.find_last_of("=");
+        string host_ix_str(query, ++posFirst, --posAND - posFirst);
+        string port_number_str(query, ++posFirst, query.length() - posFirst - --posAND);
+        uint32_t host_ix = stoul(host_ix_str.c_str());
+		uint32_t the_port = stoul(port_number_str.c_str());
+		if(lock() == 0){
+			Hosts_Ports_Hits_Record *match = find_if(begin(), end(), [host_ix, the_port](const Hosts_Ports_Hits_Record &record)
+					{return (host_ix == record.host_ix) && (the_port == record.port_number);});
+			if(isIn(match)){
+				sprintf(result, "%u", match->hit_count);
+				status = 0;
+			}
+			unlock();
+		}
+	}
+	return status;
 }
 
+int32_t Hosts_Ports_Hits_Table::UPDATE(const Hosts_Ports_Hits_Record &entry){
+	int32_t status = -1;
+	if(lock() == 0){
+		Hosts_Ports_Hits_Record *match = find_if(begin(), end(), [entry](const Hosts_Ports_Hits_Record &record)
+						{return (entry.host_ix == record.host_ix) && (entry.port_number == record.port_number);});
+		if(isIn(match)){
+			match->hit_count = entry.hit_count;
+			insertById(*match, match->ix);
+		}
+		unlock();
+	}
+	return 0;
+}
 
 /*
  * CREATE TABLE hosts_table (ix INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -263,19 +365,22 @@ int32_t Hosts_Table::INSERT(Hosts_Record &entry){
 	return status;
 }
 
-int32_t Hosts_Table::DELETE(Hosts_Record &entry){
+int32_t Hosts_Table::DELETE(const std::string &query){
 	return 0;
 }
 
-uint32_t Hosts_Table::SELECT(char *result, const string &query){
-	uint32_t status = -1;
+int32_t Hosts_Table::SELECT(char *result, const string &query){
+	int32_t status = -1;
 	if(query.find("SELECT ix FROM hosts_table WHERE host=") != std::string::npos){
 		size_t pos = query.find_first_of("=");
 		string ip(query, ++pos, query.length() - pos);
-		Hosts_Record *match = find_if(begin(), end(), [ip](Hosts_Record record){return !strcmp(record.host, ip.c_str());});
-		if(isIn(match)){
-			memcpy(result, &match->ix, sizeof(match->ix));
-			status = 0;
+		if(lock() == 0){
+			Hosts_Record *match = find_if(begin(), end(), [ip](Hosts_Record record){return !strcmp(record.host, ip.c_str());});
+			if(isIn(match)){
+				sprintf(result, "%u", match->ix);
+				status = 0;
+			}
+			unlock();
 		}
 	}
 
@@ -283,10 +388,13 @@ uint32_t Hosts_Table::SELECT(char *result, const string &query){
 		size_t pos = query.find_first_of("=");
 		string value(query, ++pos, query.length() - pos);
 		uint32_t ix = stoul(value);
-		Hosts_Record *match = find_if(begin(), end(), [ix](Hosts_Record record){return record.ix == ix;});
-		if(isIn(match)){
-			memcpy(result, &match->host, strlen(match->host));
-			status = 0;
+		if(lock() == 0){
+			Hosts_Record *match = find_if(begin(), end(), [ix](Hosts_Record record){return record.ix == ix;});
+			if(isIn(match)){
+				memcpy(result, &match->host, strlen(match->host));
+				status = 0;
+			}
+			unlock();
 		}
 	}
 
@@ -294,6 +402,20 @@ uint32_t Hosts_Table::SELECT(char *result, const string &query){
 		int i;
 	}
 
+	return status;
+}
+
+int32_t Hosts_Table::UPDATE(const Hosts_Record &entry){
+	int32_t status = -1;
+	if(lock() == 0){
+		Hosts_Record *match = find_if(begin(), end(), [entry](const Hosts_Record &record)
+						{return entry.ix == record.ix;});
+		if(isIn(match)){
+			match->last_seen = entry.last_seen;
+			insertById(*match, match->ix);
+		}
+		unlock();
+	}
 	return 0;
 }
 
@@ -333,11 +455,29 @@ int32_t Ignore_IP_List_Table::INSERT(Ignore_IP_List_Record &entry){
 	return status;
 }
 
-int32_t Ignore_IP_List_Table::DELETE(Ignore_IP_List_Record &entry){
+int32_t Ignore_IP_List_Table::DELETE(const std::string &query){
 	return 0;
 }
 
-uint32_t Ignore_IP_List_Table::SELECT(char *result, const string &query){
+int32_t Ignore_IP_List_Table::SELECT(char *result, const string &query){
+	int32_t status = 0;
+	if(query.find("SELECT host_ix FROM ignore_ip_list") != std::string::npos){
+		Ignore_IP_List_Record record;
+		if(lock() == 0){
+			for(int i=0; i<size(); i++){
+				status = getRecordByPos(record, i);
+				sprintf(result, "%s%u>", result, record.host_ix);
+				if(status == -1){
+					break;
+				}
+			}
+			unlock();
+		}
+	}
+	return status;
+}
+
+int32_t Ignore_IP_List_Table::UPDATE(const Ignore_IP_List_Record &entry){
 	return 0;
 }
 

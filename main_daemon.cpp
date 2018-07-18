@@ -458,7 +458,7 @@ void get_white_list_addrs() {
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	size_t resp = get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION);
+	size_t resp = sqlite_get_hosts_to_ignore_all(l_hosts, dst_buf_sz, DB_LOCATION);
 
 	if (resp == 0) {
 

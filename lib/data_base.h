@@ -32,16 +32,10 @@
 #define DATA_BASE_H
 
 #include "shared_memory_table.h"
-
 #include <string>
-
 #include <time.h>
 
 #define LENGTH_IPV4	16
-
-
-// const int MAX_TRIES = 100;
-// const int TIMEOUT_MS = 100;
 
 struct Black_IP_List_Record{
 	uint32_t ix;
@@ -59,7 +53,7 @@ struct Hosts_Ports_Hits_Record{
 	uint32_t ix;
 	uint32_t host_ix;
 	uint32_t port_number;
-	time_t timestamp;
+	time_t hit_count;
 }__attribute__((packed));
 
 struct Hosts_Record{
@@ -81,8 +75,9 @@ class Black_IP_List_Table : public SharedMemoryTable<Black_IP_List_Record>{
 		Black_IP_List_Table(std::string name, size_t size);
 		static Black_IP_List_Table *CREATE(std::string name, size_t size);
 		int32_t INSERT(Black_IP_List_Record &entry);
-		int32_t DELETE(Black_IP_List_Record &entry);
-		uint32_t SELECT(char * result, const std::string &query);
+		int32_t DELETE(const std::string &query);
+		int32_t SELECT(char * result, const std::string &query);
+        int32_t UPDATE(const Black_IP_List_Record &entry);
 };
 
 class Detected_Hosts_Table : public SharedMemoryTable<Detected_Hosts_Record>{
@@ -90,8 +85,9 @@ class Detected_Hosts_Table : public SharedMemoryTable<Detected_Hosts_Record>{
 		Detected_Hosts_Table(std::string name, size_t size);
 		static Detected_Hosts_Table *CREATE(std::string name, size_t size);
 		int32_t INSERT(Detected_Hosts_Record &entry);
-		int32_t DELETE(Detected_Hosts_Record &entry);
-		uint32_t SELECT(char * result, const std::string &query);
+		int32_t DELETE(const std::string &query);
+		int32_t SELECT(char * result, const std::string &query);
+        int32_t UPDATE(const Detected_Hosts_Record &entry);
 };
 
 class Hosts_Ports_Hits_Table : public SharedMemoryTable<Hosts_Ports_Hits_Record>{
@@ -99,8 +95,9 @@ class Hosts_Ports_Hits_Table : public SharedMemoryTable<Hosts_Ports_Hits_Record>
 		Hosts_Ports_Hits_Table(std::string name, size_t size);
 		static Hosts_Ports_Hits_Table *CREATE(std::string name, size_t size);
 		int32_t INSERT(Hosts_Ports_Hits_Record &entry);
-		int32_t DELETE(Hosts_Ports_Hits_Record &entry);
-		uint32_t SELECT(char * result, const std::string &query);
+		int32_t DELETE(const std::string &query);
+		int32_t SELECT(char * result, const std::string &query);
+        int32_t UPDATE(const Hosts_Ports_Hits_Record &entry);
 };
 
 class Hosts_Table : public SharedMemoryTable<Hosts_Record>{
@@ -112,8 +109,9 @@ class Hosts_Table : public SharedMemoryTable<Hosts_Record>{
 		Hosts_Table(std::string name, size_t size);
 		static Hosts_Table *CREATE(std::string name, size_t size);
 		int32_t INSERT(Hosts_Record &entry);
-		int32_t DELETE(Hosts_Record &entry);
-		uint32_t SELECT(char * result, const std::string &query);
+		int32_t DELETE(const std::string &query);
+		int32_t SELECT(char * result, const std::string &query);
+        int32_t UPDATE(const Hosts_Record &entry);
 };
 
 class Ignore_IP_List_Table : public SharedMemoryTable<Ignore_IP_List_Record>{
@@ -121,10 +119,10 @@ class Ignore_IP_List_Table : public SharedMemoryTable<Ignore_IP_List_Record>{
 		Ignore_IP_List_Table(std::string name, size_t size);
 		static Ignore_IP_List_Table *CREATE(std::string name, size_t size);
 		int32_t INSERT(Ignore_IP_List_Record &entry);
-		int32_t DELETE(Ignore_IP_List_Record &entry);
-		uint32_t SELECT(char * result, const std::string &query);
+		int32_t DELETE(const std::string &query);
+		int32_t SELECT(char * result, const std::string &query);
+        int32_t UPDATE(const Ignore_IP_List_Record &entry);
 };
-
 
 struct DataBase{
 	enum {black_ip_list_table, detected_host_table, hosts_ports_hits_table,

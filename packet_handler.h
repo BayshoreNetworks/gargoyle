@@ -162,7 +162,14 @@ class GargoylePscandHandler
 	int add_host(const char *source_ip, const char *db_location);
 	int get_host_ix(const char *source_ip, const char *db_location);
 	int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc);
-	size_t get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_loc);
+	int get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_loc);
+	int get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc);
+	int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
+	int get_host_port_hit(int ip_addr_ix, int the_port);
+	int get_detected_hosts_row_ix_by_host_ix(size_t, const char *);
+	int remove_host_ports_all(size_t, const char *);
+	int remove_detected_host(size_t row_ix, const char *db_loc);
+	int update_host_last_seen(size_t ip_addr_ix, const char *db_loc);
 };
 
 #endif // _PACKETHANDLERS_H__

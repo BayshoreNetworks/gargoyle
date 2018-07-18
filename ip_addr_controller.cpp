@@ -205,7 +205,7 @@ int do_block_actions(const std::string &the_ip,
 }
 
 
-int add_to_hosts_port_table(const std::string &the_ip,
+int ip_controller_add_to_hosts_port_table(const std::string &the_ip,
 	int the_port,
 	int the_cnt,
 	const std::string &db_loc,
@@ -229,14 +229,14 @@ int add_to_hosts_port_table(const std::string &the_ip,
 
 		int resp;
 		//number of hits registered in the DB
-		resp = get_host_port_hit(host_ix, the_port, db_loc.c_str());
+		resp = sqlite_get_host_port_hit(host_ix, the_port, db_loc.c_str());
 
 		// new record
 		if (resp == 0) {
 			add_host_port_hit(host_ix, the_port, the_cnt, db_loc.c_str());
 		} else if (resp >= 1) {
 			int u_cnt = resp + the_cnt;
-			update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
+			sqlite_update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
 		}
 	}
 
@@ -320,7 +320,7 @@ int do_host_remove_actions(const std::string &the_ip,
 		int last_seen) {
 
 	// delete all records for this host_ix from hosts_ports_hits table
-	remove_host_ports_all(host_ix, db_loc.c_str());
+	sqlite_remove_host_ports_all(host_ix, db_loc.c_str());
 
 	/*
 	 * is_host_detected = 0 means it is not actively blocked

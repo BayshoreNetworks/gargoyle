@@ -73,13 +73,17 @@ class SharedMemoryTable{
         void unlock();
         int32_t init();
         int32_t pushBack(const TypeRecord &);
+        void insertById(const TypeRecord &, const uint32_t);
+        int32_t getRecordByPos(TypeRecord &, uint32_t);
+        int32_t deleteRecordByPos(const uint32_t);
 
     public:
         SharedMemoryTable(std::string name, size_t starting_num);
         virtual ~SharedMemoryTable();
         virtual int32_t INSERT(TypeRecord &entry) = 0;
-        virtual int32_t DELETE(TypeRecord &entry) = 0;
-        virtual uint32_t SELECT(char * result, const std::string &squery) = 0;
+        virtual int32_t DELETE(const std::string &query) = 0;
+        virtual int32_t SELECT(char *result, const std::string &query) = 0;
+        virtual int32_t UPDATE(const TypeRecord &entry) = 0;
         void TRUNCATE();
 };
 
@@ -218,9 +222,10 @@ size_t SharedMemoryTable<TypeRecord>::size() const{
 
 template <typename TypeRecord>
 void SharedMemoryTable<TypeRecord>::TRUNCATE(){
-	int32_t status = lock();
-    hdr->next_ix = 0;
-    unlock();
+	if(lock() == 0){
+	    hdr->next_ix = 0;
+	    unlock();
+	}
 }
 
 template <typename TypeRecord>
@@ -232,7 +237,6 @@ TypeRecord *SharedMemoryTable<TypeRecord>::begin() const{
 template <typename TypeRecord>
 TypeRecord *SharedMemoryTable<TypeRecord>::end() const{
     assert(region);
-
     return reinterpret_cast<TypeRecord *>((unsigned char *)region->BaseAddr() + sizeof(Header) + size()*sizeof(TypeRecord));
 }
 
@@ -252,10 +256,39 @@ int32_t SharedMemoryTable<TypeRecord>::pushBack(const TypeRecord &record){
 			loadHeader();
 		}
 	}
-    memcpy(end(), &record, sizeof(TypeRecord));
+	memcpy(end(), &record, sizeof(TypeRecord));
 	hdr->next_ix++;
 	return 0;
 }
+
+template <typename TypeRecord>
+void SharedMemoryTable<TypeRecord>::insertById(const TypeRecord &record, const uint32_t pos){
+	memcpy(begin() + pos -1, &record, sizeof(TypeRecord));
+}
+
+template <typename TypeRecord>
+int32_t SharedMemoryTable<TypeRecord>::getRecordByPos(TypeRecord &record, uint32_t index){
+	int32_t status = 0;
+	if(index < size()){
+		memcpy(&record, begin() + index, sizeof(TypeRecord));
+	}else{
+		status = -1;
+	}
+	return status;
+}
+
+template <typename TypeRecord>
+int32_t SharedMemoryTable<TypeRecord>::deleteRecordByPos(uint32_t index){
+	int32_t status = 0;
+	if(index < size()){
+		memmove(begin() + index, begin()+ index + 1, sizeof(TypeRecord)*(size() - index - 1));
+		hdr->next_ix--;
+	}else{
+		status = -1;
+	}
+	return status;
+}
+
 
 #endif
 

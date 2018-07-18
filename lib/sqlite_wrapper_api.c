@@ -303,7 +303,7 @@ int sqlite_get_host_ix(const char *the_ip, const char *db_loc) {
 }
 
 
-int get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
+int sqlite_get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
 
 	int ret;
 	ret = 0;
@@ -499,7 +499,7 @@ size_t add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 }
 
 
-size_t remove_detected_host(size_t row_ix, const char *db_loc) {
+size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -592,7 +592,7 @@ size_t remove_detected_hosts_all(const char *db_loc) {
 
 
 
-size_t remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
+size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -734,7 +734,7 @@ size_t sqlite_remove_host(size_t ip_addr_ix, const char *db_loc) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *db_loc) {
+int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -784,7 +784,7 @@ int update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const char *
 
 
 
-size_t update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
+size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1195,7 +1195,7 @@ size_t get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 }
 
 
-size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char *db_loc) {
+size_t sqlite_get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1243,7 +1243,7 @@ size_t get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char *db_lo
 }
 
 
-size_t get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc) {
+size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
