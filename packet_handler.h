@@ -76,7 +76,7 @@ class GargoylePscandHandler
 	void set_iptables_supports_xlock(size_t);
 	void set_db_location(const char *);
 	void set_debug(bool);
-	void set_type_data_base(std::string);
+	void set_data_base_shared_memory(DataBase *data_base);
 	std::string get_type_data_base();
 	void sqlite_to_shared_memory();
 	void cleanTables(const std::string &);
@@ -164,12 +164,13 @@ class GargoylePscandHandler
 	int get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_loc);
 	int get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_loc);
 	int get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_loc);
-	int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
+	//int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
 	int get_host_port_hit(int ip_addr_ix, int the_port);
 	int get_detected_hosts_row_ix_by_host_ix(size_t, const char *);
 	int remove_host_ports_all(size_t, const char *);
 	int remove_detected_host(size_t row_ix, const char *db_loc);
 	int update_host_last_seen(size_t ip_addr_ix, const char *db_loc);
+	int add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db_loc);
 };
 
 #endif // _PACKETHANDLERS_H__

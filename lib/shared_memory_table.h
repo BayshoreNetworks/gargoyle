@@ -41,8 +41,8 @@
 
 #include "shared_mem.h"
 
-#define MAX_TRIES    100
-#define TIMEOUT_MS   100
+#define MAXIMUM_TRIES    100
+#define TIMEOUT_MILISECONDS   100
 
 template <typename TypeRecord>
 class SharedMemoryTable{
@@ -76,6 +76,7 @@ class SharedMemoryTable{
         void insertById(const TypeRecord &, const uint32_t);
         int32_t getRecordByPos(TypeRecord &, uint32_t);
         int32_t deleteRecordByPos(const uint32_t);
+        void deleteAll();
 
     public:
         SharedMemoryTable(std::string name, size_t starting_num);
@@ -176,7 +177,7 @@ int32_t SharedMemoryTable<TypeRecord>::lock(){
      * We may not be the creator, so wait for the mutex lock to be initialized
      * which signals for us to start working.
      *
-     * This loop should run for no more than TIMEOUT_MS * MAX_TRIES milliseconds
+     * This loop should run for no more than TIMEOUT_MILISECONDS * MAXIMUM_TRIES milliseconds
      */
     do {
         result = pthread_mutex_trylock(&hdr->mutex);
@@ -184,15 +185,15 @@ int32_t SharedMemoryTable<TypeRecord>::lock(){
             break;
         }
         if(count){
-            usleep(TIMEOUT_MS * 1000);
+            usleep(TIMEOUT_MILISECONDS * 1000);
         }
         if(result != EBUSY){
             count++;
         }
-    } while(count < MAX_TRIES);
+    } while(count < MAXIMUM_TRIES);
 
 
-    if(count == MAX_TRIES) {
+    if(count == MAXIMUM_TRIES) {
         loocked = -1;
     }
     return loocked;
@@ -289,6 +290,10 @@ int32_t SharedMemoryTable<TypeRecord>::deleteRecordByPos(uint32_t index){
 	return status;
 }
 
+template <typename TypeRecord>
+void SharedMemoryTable<TypeRecord>::deleteAll(){
+	hdr->next_ix = 0;
+}
 
 #endif
 

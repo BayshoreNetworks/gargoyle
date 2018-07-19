@@ -54,6 +54,7 @@
 #include "string_functions.h"
 #include "ip_addr_controller.h"
 #include "system_functions.h"
+#include "data_base.h"
 
 
 #ifdef __cplusplus
@@ -83,6 +84,7 @@ struct nflog_handle *nfl_handle;
 struct nflog_g_handle *qh;
 
 GargoylePscandHandler gargoyleHandler;
+DataBase *gargoyle_pscand_data_base_shared_memory = nullptr;
 
 int NFLOG_BIND_GROUP = 5;
 SharedIpConfig *gargoyle_blacklist_shm = NULL;
@@ -152,11 +154,17 @@ void graceful_exit(int signum) {
 	iptables_flush_chain(GARGOYLE_CHAIN_NAME, IPTABLES_SUPPORTS_XLOCK);
 	///////////////////////////////////////////////////
 	// 4
-	remove_detected_hosts_all(DB_LOCATION);
+	if(gargoyle_pscand_data_base_shared_memory != nullptr){
+		string query = "DELETE FROM detected_hosts";
+		gargoyle_pscand_data_base_shared_memory->detected_host->DELETE(query);
+	}else{
+		sqlite_remove_detected_hosts_all(DB_LOCATION);
+	}
 	// 5
-	reset_autoincrement(DETECTED_HOSTS_TABLE, DB_LOCATION);
-	if(gargoyleHandler.get_type_data_base() == "shared_memory"){
+	if(gargoyle_pscand_data_base_shared_memory != nullptr){
 		gargoyleHandler.cleanTables("detected_host_table");
+	}else{
+		sqlite_reset_autoincrement(DETECTED_HOSTS_TABLE, DB_LOCATION);
 	}
 	///////////////////////////////////////////////////
 	// 6
@@ -165,6 +173,10 @@ void graceful_exit(int signum) {
 	//if(gargoyleHandler.get_type_data_base() == "shared_memory"){
 	//	gargoyleHandler.cleanTables();
 	//}
+
+    if(gargoyle_pscand_data_base_shared_memory != nullptr){
+    	delete gargoyle_pscand_data_base_shared_memory;
+    }
 
 	exit(0);
 }
@@ -560,7 +572,8 @@ int main(int argc, char *argv[])
     		return 0;
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
-    		gargoyleHandler.set_type_data_base("shared_memory");
+    		gargoyle_pscand_data_base_shared_memory = DataBase::create();
+    		gargoyleHandler.set_data_base_shared_memory(gargoyle_pscand_data_base_shared_memory);
     	}
     	else {
     		return 0;

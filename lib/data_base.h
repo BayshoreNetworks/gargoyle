@@ -53,7 +53,7 @@ struct Hosts_Ports_Hits_Record{
 	uint32_t ix;
 	uint32_t host_ix;
 	uint32_t port_number;
-	time_t hit_count;
+	uint32_t hit_count;
 }__attribute__((packed));
 
 struct Hosts_Record{
