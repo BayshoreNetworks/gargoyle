@@ -34,7 +34,7 @@ gargoyle_shared_config_test_SOURCES = lib/shared_config.cpp lib/shared_mem.cpp m
 
 gargoyle_pscand_remove_from_whitelist_SOURCES = lib/sqlite_wrapper_api.c lib/shared_config.cpp lib/shared_mem.cpp main_iptables_remove_from_whitelist.cpp
 
-gargoyle_pscand_remove_from_blacklist_SOURCES = lib/iptables_wrapper_api.c ip_addr_controller.cpp lib/sqlite_wrapper_api.c lib/shared_config.cpp lib/shared_mem.cpp main_iptables_remove_from_blacklist.cpp
+gargoyle_pscand_remove_from_blacklist_SOURCES = lib/iptables_wrapper_api.c ip_addr_controller.cpp lib/sqlite_wrapper_api.c lib/shared_config.cpp lib/shared_mem.cpp lib/data_base.cpp main_iptables_remove_from_blacklist.cpp
 
 gargoyle_lscand_bruteforce_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp main_iptables_bruteforce.cpp
 

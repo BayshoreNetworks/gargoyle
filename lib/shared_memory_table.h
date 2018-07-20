@@ -282,6 +282,7 @@ template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::deleteRecordByPos(uint32_t index){
 	int32_t status = 0;
 	if(index < size()){
+		index--;
 		memmove(begin() + index, begin()+ index + 1, sizeof(TypeRecord)*(size() - index - 1));
 		hdr->next_ix--;
 	}else{

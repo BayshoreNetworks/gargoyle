@@ -137,13 +137,27 @@ int32_t Black_IP_List_Table::INSERT(Black_IP_List_Record &entry){
 }
 
 int32_t Black_IP_List_Table::DELETE(const std::string &query){
-	cout << "DELETE" << endl;
-	return 0;
+	int32_t status = 0;
+
+	if(query.find("DELETE FROM black_ip_list WHERE host_ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string value(query, ++pos, query.length() - pos);
+		uint32_t host_ix = atol(value.c_str());
+		if(lock() != 0){
+			Black_IP_List_Record *match = std::find_if(begin(), end(), [host_ix](Black_IP_List_Record record){return record.host_ix == host_ix;});
+			if(isIn(match)){
+				status = deleteRecordByPos(match->ix);
+			}
+			unlock();
+		}
+	}
+
+	return status;
 }
 
 int32_t Black_IP_List_Table::SELECT(char *result, const string &query){
 	int32_t status = 0;
-	if(query.find("SELECT host_ix FROM black_ip_list") != std::string::npos){
+	if(query == "SELECT host_ix FROM black_ip_list"){
 		Black_IP_List_Record record;
 		if(lock() == 0){
 			for(int i=0; i<size(); i++){
@@ -156,6 +170,21 @@ int32_t Black_IP_List_Table::SELECT(char *result, const string &query){
 			unlock();
 		}
 	}
+
+	if(query.find("SELECT host_ix FROM black_ip_list WHERE host_ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string host_ix_str(query, ++pos, query.length() - pos);
+		int host_ix = atol(host_ix_str.c_str());
+		if(lock() == 0){
+			Black_IP_List_Record *match = std::find_if(begin(), end(), [host_ix](Black_IP_List_Record record){return record.host_ix == host_ix;});
+			if(isIn(match)){
+				sprintf(result, "%u", match->host_ix);
+				status = 0;
+			}
+			unlock();
+		}
+	}
+
 	return status;
 }
 

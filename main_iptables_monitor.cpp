@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
     if (argc > 2 || argc < 1) {
 
     	std::cerr << std::endl << GARG_MONITOR_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
-		std::cerr << std::endl << "./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
+		std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {
