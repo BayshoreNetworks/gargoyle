@@ -51,7 +51,8 @@
 #include "system_functions.h"
 #include "string_functions.h"
 #include "shared_config.h"
-
+#include "data_base.h"
+#include "string_functions.h"
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 bool ENFORCE = true;
@@ -68,6 +69,7 @@ size_t ITER_CNT_MAX = 50;
 static int last_position = 0;
 
 SharedIpConfig *gargoyle_bf_whitelist_shm = NULL;
+DataBase *data_base_shared_memory_analysis = nullptr;
 
 size_t get_regexes(const char *);
 void signal_handler(int);
@@ -104,6 +106,10 @@ void signal_handler(int signum) {
         delete gargoyle_bf_whitelist_shm;
         //gargoyle_bf_whitelist_shm;
     }
+
+	if(data_base_shared_memory_analysis != nullptr){
+		delete data_base_shared_memory_analysis;
+	}
 
 	// terminate program
 	exit(0);
@@ -197,7 +203,8 @@ void process_iteration(int num_seconds, int num_hits, const std::string &config_
 					ENFORCE,
 					(void *) gargoyle_bf_whitelist_shm,
 					DEBUG,
-					config_file
+					config_file,
+					data_base_shared_memory_analysis
 				);
 				IP_HITMAP.erase(ip_addr);
 				continue;
@@ -216,7 +223,8 @@ void process_iteration(int num_seconds, int num_hits, const std::string &config_
 				ENFORCE,
 				(void *) gargoyle_bf_whitelist_shm,
 				DEBUG,
-				config_file
+				config_file,
+				data_base_shared_memory_analysis
 			);
 			IP_HITMAP.erase(ip_addr);
 
@@ -253,8 +261,20 @@ int main(int argc, char *argv[]) {
 	signal(SIGKILL, signal_handler);
 
 	std::string config_file = "";
-	if (argc == 2) {
-		config_file = argv[1];
+
+	switch(argc){
+		case 2:
+			config_file = argv[1];
+			break;
+		case 3:
+			if((case_insensitive_compare(argv[1], "-s")) || (case_insensitive_compare(argv[1], "--shared_memory"))){
+				data_base_shared_memory_analysis = DataBase::create();
+				config_file = argv[2];
+				break;
+			}
+		default:
+			std::cout << std::endl << "Usage: ./gargoyle_lscand_bruteforce [-s | --shared_memory] <config_file> " << std::endl << std::endl;
+			exit(1);
 	}
 
 	// default = 6

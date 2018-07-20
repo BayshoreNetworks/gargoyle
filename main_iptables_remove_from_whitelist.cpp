@@ -98,81 +98,82 @@ int main(int argc, char *argv[])
     if (DEBUG)
     	std::cout << "ARGC " << argc << std::endl;
 
-	if (argc == 2 || argc == 3) {
-		if(argc == 3){
-			std::string arg_one = argv[1];
-			if((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
-				data_base_shared_memory_analysis = DataBase::create();
-			}
-			strncpy(ip, argv[2], 15);
-			ip[strlen(argv[2])] = '\0';
-		}else{
+	switch(argc){
+		case 2:
 			strncpy(ip, argv[1], 15);
 			ip[strlen(argv[1])] = '\0';
-		}
+			break;
+		case 3:
+			if((case_insensitive_compare(argv[1], "-s")) || (case_insensitive_compare(argv[1], "--shared_memory"))){
+				data_base_shared_memory_analysis = DataBase::create();
+				strncpy(ip, argv[2], 15);
+				ip[strlen(argv[2])] = '\0';
+				break;
+			}
+		default:
+			std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_whitelist [-s | --shared_memory] <ip_addr> " << std::endl << std::endl;
+			exit(1);
+	}
 
-		if (validate_ip_addr(ip)) {
+	if (validate_ip_addr(ip)) {
 
-			if (DEBUG)
-				std::cout << "IP addr: " << ip << std::endl;
+		if (DEBUG)
+			std::cout << "IP addr: " << ip << std::endl;
 
-			if (strcmp(ip, "") != 0) {
+		if (strcmp(ip, "") != 0) {
 
-				// find the host ix for the ip
-				int host_ix;
+			// find the host ix for the ip
+			int host_ix;
+			if(data_base_shared_memory_analysis != nullptr){
+				char result[SMALL_DEST_BUF];
+				memset(result, 0, SMALL_DEST_BUF);
+				string query = "SELECT ix FROM hosts_table WHERE host=" + string(ip);
+				if((host_ix = data_base_shared_memory_analysis->hosts->SELECT(result, query)) != -1){
+					host_ix = atol(result);
+				}
+			}else{
+				host_ix = sqlite_get_host_ix(ip, DB_LOCATION);
+			}
+
+			if (host_ix > 0) {
+				int result;
+				char buffer[SMALL_DEST_BUF];
+				memset(buffer, 0, SMALL_DEST_BUF);
 				if(data_base_shared_memory_analysis != nullptr){
-					char result[SMALL_DEST_BUF];
-					memset(result, 0, SMALL_DEST_BUF);
-					string query = "SELECT ix FROM hosts_table WHERE host=" + string(ip);
-					if((host_ix = data_base_shared_memory_analysis->hosts->SELECT(result, query)) != -1){
-						host_ix = atol(result);
+					string query = "SELECT host_ix FROM ignore_ip_list WHERE host_ix=" + host_ix;
+					if((result = data_base_shared_memory_analysis->ignore_ip_list->SELECT(buffer, query)) != -1){
+						result = atoi(buffer);
 					}
 				}else{
-					host_ix = sqlite_get_host_ix(ip, DB_LOCATION);
+					result = sqlite_is_host_ignored(host_ix, DB_LOCATION);
 				}
 
-				if (host_ix > 0) {
-					int result;
-					char buffer[SMALL_DEST_BUF];
-					memset(buffer, 0, SMALL_DEST_BUF);
+				if (result > 0) {
+
+					// remove from DB
+					// remove from DB
 					if(data_base_shared_memory_analysis != nullptr){
-						string query = "SELECT host_ix FROM ignore_ip_list WHERE host_ix=" + host_ix;
-						if((result = data_base_shared_memory_analysis->ignore_ip_list->SELECT(buffer, query)) != -1){
-							result = atoi(buffer);
-						}
+						string query = "DELETE FROM ignore_ip_list WHERE host_ix=" + host_ix;
+						data_base_shared_memory_analysis->ignore_ip_list->DELETE(query);
 					}else{
-						result = sqlite_is_host_ignored(host_ix, DB_LOCATION);
+						sqlite_remove_host_to_ignore(host_ix, DB_LOCATION);
 					}
 
-					if (result > 0) {
+					// remove from shared mem region
+					gargoyle_whitelist_removal_shm->Remove(string(ip));
 
-						// remove from DB
-						// remove from DB
-						if(data_base_shared_memory_analysis != nullptr){
-							string query = "DELETE FROM ignore_ip_list WHERE host_ix=" + host_ix;
-							data_base_shared_memory_analysis->ignore_ip_list->DELETE(query);
-						}else{
-							sqlite_remove_host_to_ignore(host_ix, DB_LOCATION);
-						}
-
-						// remove from shared mem region
-						gargoyle_whitelist_removal_shm->Remove(string(ip));
-
-					}
 				}
 			}
 		}
-    } else {
-		std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_whitelist [-s | --shared_memory] <ip_addr> " << std::endl << std::endl;
-    }
+	}
+
+	if(data_base_shared_memory_analysis != nullptr){
+		delete data_base_shared_memory_analysis;
+	}
 
     if(gargoyle_whitelist_removal_shm) {
         delete gargoyle_whitelist_removal_shm;
         //gargoyle_whitelist_removal_shm;
-    }
-
-    if(data_base_shared_memory_analysis != nullptr){
-        delete data_base_shared_memory_analysis;
     }
 
 	return 0;
