@@ -136,9 +136,8 @@ int32_t Black_IP_List_Table::INSERT(Black_IP_List_Record &entry){
 	return status;
 }
 
-int32_t Black_IP_List_Table::DELETE(const std::string &query){
+int32_t Black_IP_List_Table::DELETE(const string &query){
 	int32_t status = 0;
-
 	if(query.find("DELETE FROM black_ip_list WHERE host_ix=") != std::string::npos){
 		size_t pos = query.find_first_of("=");
 		string value(query, ++pos, query.length() - pos);
@@ -151,7 +150,6 @@ int32_t Black_IP_List_Table::DELETE(const std::string &query){
 			unlock();
 		}
 	}
-
 	return status;
 }
 
@@ -229,7 +227,7 @@ int32_t Detected_Hosts_Table::INSERT(Detected_Hosts_Record &entry){
 	return status;
 }
 
-int32_t Detected_Hosts_Table::DELETE(const std::string &query){
+int32_t Detected_Hosts_Table::DELETE(const string &query){
 	int32_t status = 0;
 	if(query.find("DELETE FROM detected_hosts WHERE ix=") != std::string::npos){
 		size_t pos = query.find_first_of("=");
@@ -320,7 +318,7 @@ int32_t Hosts_Ports_Hits_Table::INSERT(Hosts_Ports_Hits_Record &entry){
 	return status;
 }
 
-int32_t Hosts_Ports_Hits_Table::DELETE(const std::string &query){
+int32_t Hosts_Ports_Hits_Table::DELETE(const string &query){
 	int32_t status = 0;
 	if(query.find("DELETE FROM hosts_ports_hits WHERE host_ix=") != std::string::npos){
 		size_t pos = query.find_first_of("=");
@@ -537,7 +535,7 @@ int32_t Hosts_Table::INSERT(Hosts_Record &entry){
 	return status;
 }
 
-int32_t Hosts_Table::DELETE(const std::string &query){
+int32_t Hosts_Table::DELETE(const string &query){
 	return 0;
 }
 
@@ -656,13 +654,26 @@ int32_t Ignore_IP_List_Table::INSERT(Ignore_IP_List_Record &entry){
 	return status;
 }
 
-int32_t Ignore_IP_List_Table::DELETE(const std::string &query){
+int32_t Ignore_IP_List_Table::DELETE(const string &query){
+	int32_t status = 0;
+	if(query.find("DELETE FROM ignore_ip_list WHERE host_ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string value(query, ++pos, query.length() - pos);
+		uint32_t host_ix = atol(value.c_str());
+		if(lock() != 0){
+			Ignore_IP_List_Record *match = std::find_if(begin(), end(), [host_ix](Ignore_IP_List_Record record){return record.host_ix == host_ix;});
+			if(isIn(match)){
+				status = deleteRecordByPos(match->ix);
+			}
+			unlock();
+		}
+	}
 	return 0;
 }
 
 int32_t Ignore_IP_List_Table::SELECT(char *result, const string &query){
 	int32_t status = 0;
-	if(query.find("SELECT host_ix FROM ignore_ip_list") != std::string::npos){
+	if(query == "SELECT host_ix FROM ignore_ip_list"){
 		Ignore_IP_List_Record record;
 		if(lock() == 0){
 			for(int i=0; i<size(); i++){
@@ -675,6 +686,21 @@ int32_t Ignore_IP_List_Table::SELECT(char *result, const string &query){
 			unlock();
 		}
 	}
+
+	if(query.find("SELECT host_ix FROM ignore_ip_list WHERE host_ix=") != std::string::npos){
+		size_t pos = query.find_first_of("=");
+		string host_ix_str(query, ++pos, query.length() - pos);
+		int host_ix = atol(host_ix_str.c_str());
+		if(lock() == 0){
+			Ignore_IP_List_Record *match = std::find_if(begin(), end(), [host_ix](Ignore_IP_List_Record record){return record.host_ix == host_ix;});
+			if(isIn(match)){
+				sprintf(result, "%u", match->host_ix);
+				status = 0;
+			}
+			unlock();
+		}
+	}
+
 	return status;
 }
 
