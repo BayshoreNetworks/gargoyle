@@ -156,13 +156,13 @@ void graceful_exit(int signum) {
 	// 4
 	if(gargoyle_pscand_data_base_shared_memory != nullptr){
 		string query = "DELETE FROM detected_hosts";
-		gargoyle_pscand_data_base_shared_memory->detected_host->DELETE(query);
+		gargoyle_pscand_data_base_shared_memory->detected_hosts->DELETE(query);
 	}else{
 		sqlite_remove_detected_hosts_all(DB_LOCATION);
 	}
 	// 5
 	if(gargoyle_pscand_data_base_shared_memory != nullptr){
-		gargoyleHandler.cleanTables("detected_host_table");
+		gargoyleHandler.cleanTables("detected_hosts_table");
 	}else{
 		sqlite_reset_autoincrement(DETECTED_HOSTS_TABLE, DB_LOCATION);
 	}
@@ -560,7 +560,7 @@ int main(int argc, char *argv[])
     if (argc > 2 || argc < 1) {
 
     	std::cerr << std::endl << GARGOYLE_PSCAND << " - Argument errors, exiting ..." << std::endl << std::endl;
-    	std::cerr << std::endl << "Usage ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
+		std::cerr << std::endl << "./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {

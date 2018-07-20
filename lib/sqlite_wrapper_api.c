@@ -1130,7 +1130,7 @@ int sqlite_get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc
 }
 
 
-size_t get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
+size_t sqlite_get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1534,7 +1534,7 @@ int sqlite_is_host_detected(int ip_addr_ix, const char *db_loc) {
 }
 
 
-int remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
+int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 
 	char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1580,7 +1580,7 @@ int remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 }
 
 
-size_t add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
+size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1692,7 +1692,7 @@ size_t sqlite_get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_l
 }
 
 
-int is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
+int sqlite_is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 
 	int ret;
 	ret = 0;
@@ -1735,7 +1735,7 @@ int is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 }
 
 
-int remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
+int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 
 	char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];

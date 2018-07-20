@@ -171,7 +171,7 @@ int do_block_actions(const std::string &the_ip,
 						char result[SMALL_DEST_BUF];
 						memset(result, 0, SMALL_DEST_BUF);
 						string query = "SELECT ix FROM detected_hosts WHERE host_ix=" + host_ix;
-						if((ix = data_base_shared_memory->detected_host->SELECT(result, query)) != -1){
+						if((ix = data_base_shared_memory->detected_hosts->SELECT(result, query)) != -1){
 							ix = atol(result);
 						}
 					}else{
@@ -218,7 +218,7 @@ int do_block_actions(const std::string &the_ip,
 							Detected_Hosts_Record record;
 							record.host_ix = host_ix;
 							record.timestamp = tstamp;
-							adh = data_base_shared_memory->detected_host->INSERT(record);
+							adh = data_base_shared_memory->detected_hosts->INSERT(record);
 						}else{
 							adh = sqlite_add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
 						}

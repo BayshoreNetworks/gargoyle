@@ -1799,7 +1799,7 @@ int GargoylePscandHandler::get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_i
 		char result[SMALL_DEST_BUF];
 		memset(result, 0, SMALL_DEST_BUF);
 		string query = "SELECT ix FROM detected_hosts WHERE host_ix=" + ip_addr_ix;
-		if((status = gargoyle_data_base_shared_memory->detected_host->SELECT(result, query)) != -1){
+		if((status = gargoyle_data_base_shared_memory->detected_hosts->SELECT(result, query)) != -1){
 			status = atol(result);
 		}
 	}
@@ -1823,7 +1823,7 @@ int GargoylePscandHandler::remove_detected_host(size_t row_ix, const char *db_lo
 		status = sqlite_remove_detected_host(row_ix, db_loc);
 	}else{
 		string query = "DELETE FROM detected_hosts WHERE ix="+row_ix;
-		status = gargoyle_data_base_shared_memory->detected_host->DELETE(query);
+		status = gargoyle_data_base_shared_memory->detected_hosts->DELETE(query);
 	}
 	return status;
 }
@@ -1850,7 +1850,7 @@ int GargoylePscandHandler::add_detected_host(size_t ip_addr_ix, size_t tstamp, c
 		Detected_Hosts_Record record;
 		record.host_ix = ip_addr_ix;
 		record.timestamp = tstamp;
-		status = gargoyle_data_base_shared_memory->detected_host->INSERT(record);
+		status = gargoyle_data_base_shared_memory->detected_hosts->INSERT(record);
 	}
 	return status;
 }

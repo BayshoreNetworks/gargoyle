@@ -22,7 +22,7 @@ gargoyle_pscand_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip
 
 gargoyle_pscand_analysis_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp lib/data_base.cpp main_iptables_analysis.cpp 
 
-gargoyle_pscand_monitor_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp main_iptables_monitor.cpp
+gargoyle_pscand_monitor_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp lib/data_base.cpp main_iptables_monitor.cpp
 
 gargoyle_config_SOURCES = gargoyle_config.cpp
 

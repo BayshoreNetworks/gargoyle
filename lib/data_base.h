@@ -125,15 +125,15 @@ class Ignore_IP_List_Table : public SharedMemoryTable<Ignore_IP_List_Record>{
 };
 
 struct DataBase{
-	enum {black_ip_list_table, detected_host_table, hosts_ports_hits_table,
+	enum {black_ip_list_table, detected_hosts_table, hosts_ports_hits_table,
 		hosts_table, ignore_ip_list_table};
 	static const int TABLES_NUMBER = 5;
-	const std::string TABLES_NAME[TABLES_NUMBER] = {"black_ip_list_table", "detected_host_table",
+	const std::string TABLES_NAME[TABLES_NUMBER] = {"black_ip_list_table", "detected_hosts_table",
 			"hosts_ports_hits_table", "hosts_table", "ignore_ip_list_table"};
 	DataBase();
 	~DataBase();
 	Black_IP_List_Table *black_ip_list;
-	Detected_Hosts_Table *detected_host;
+	Detected_Hosts_Table *detected_hosts;
 	Hosts_Ports_Hits_Table *hosts_ports_hits;
 	Hosts_Table *hosts;
 	Ignore_IP_List_Table *ignore_ip_list;

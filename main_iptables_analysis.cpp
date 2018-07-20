@@ -223,7 +223,7 @@ void query_for_single_port_hits_last_seen() {
 					size_t get_all_dst_sz = LOCAL_BUF_SZ;
 					char *h_all = (char*) malloc(get_all_dst_sz+1);
 					if(data_base_shared_memory_analysis != nullptr){
-						string query = "SELECT * FROM host_table WHERE ix="+host_ix;
+						string query = "SELECT * FROM hosts_table WHERE ix="+host_ix;
 						data_base_shared_memory_analysis->hosts->SELECT(h_all, query.c_str());
 					}else{
 						sqlite_get_host_all_by_ix(host_ix, h_all, get_all_dst_sz, DB_LOCATION);
@@ -317,7 +317,7 @@ void query_for_multiple_ports_hits_last_seen() {
 	memset(hosts_all_buf, 0, dst_buf_sz+1);
 
 	if(data_base_shared_memory_analysis != nullptr){
-		string query = "SELECT * FROM host_table";
+		string query = "SELECT * FROM hosts_table";
 		data_base_shared_memory_analysis->hosts->SELECT(hosts_all_buf, query.c_str());
 	}else{
 		ret = sqlite_get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
@@ -547,7 +547,7 @@ void clean_up_stale_data() {
 	char *host_ip = (char*) malloc(60);
 
 	if(data_base_shared_memory_analysis != nullptr){
-		string query = "SELECT * FROM host_table";
+		string query = "SELECT * FROM hosts_table";
 		data_base_shared_memory_analysis->hosts->SELECT(hosts_all_buf, query.c_str());
 	}else{
 		ret = sqlite_get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
@@ -754,7 +754,7 @@ int main(int argc, char *argv[]) {
      */
     if (argc > 2 || argc < 1) {
     	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
-    	std::cerr << std::endl << "Usage ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
+		std::cerr << std::endl << "./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {

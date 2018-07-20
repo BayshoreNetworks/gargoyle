@@ -44,7 +44,7 @@ using namespace std;
 
 DataBase::DataBase(){
 	black_ip_list = Black_IP_List_Table::CREATE(GARGOYLE_BLACK_IP_LIST_TABLE_NAME, GARGOYLE_BLACK_IP_LIST_TABLE_SIZE);
- 	detected_host = Detected_Hosts_Table::CREATE(GARGOYLE_DETECTED_HOSTS_TABLE_NAME, GARGOYLE_DETECTED_HOSTS_TABLE_SIZE);
+	detected_hosts = Detected_Hosts_Table::CREATE(GARGOYLE_DETECTED_HOSTS_TABLE_NAME, GARGOYLE_DETECTED_HOSTS_TABLE_SIZE);
 	hosts_ports_hits = Hosts_Ports_Hits_Table::CREATE(GARGOYLE_HOSTS_PORTS_HITS_TABLE_NAME, GARGOYLE_HOSTS_PORTS_HITS_TABLE_SIZE);
 	hosts = Hosts_Table::CREATE(GARGOYLE_HOSTS_TABLE_NAME, GARGOYLE_HOSTS_TABLE_SIZE);
 	ignore_ip_list = Ignore_IP_List_Table::CREATE(GARGOYLE_IGNORE_IP_LIST_TABLE_NAME, GARGOYLE_IGNORE_IP_LIST_TABLE_SIZE);
@@ -55,8 +55,8 @@ DataBase::~DataBase(){
 		delete black_ip_list;
 	}
 
-	if(detected_host != nullptr){
-		delete detected_host;
+	if(detected_hosts != nullptr){
+		delete detected_hosts;
 	}
 
 	if(hosts_ports_hits != nullptr){
@@ -82,8 +82,8 @@ void DataBase::cleanTables(const string &tables){
 		black_ip_list->TRUNCATE();
 	}
 
-	if(tables == "all" || tables == TABLES_NAME[detected_host_table]){
-		detected_host->TRUNCATE();
+	if(tables == "all" || tables == TABLES_NAME[detected_hosts_table]){
+		detected_hosts->TRUNCATE();
 	}
 
 	if(tables == "all" || tables == TABLES_NAME[hosts_ports_hits_table]){
@@ -236,6 +236,23 @@ int32_t Detected_Hosts_Table::SELECT(char *result, const string &query){
 			unlock();
 		}
 	}
+
+	if(query == "SELECT * FROM detected_hosts"){
+		Detected_Hosts_Record record;
+		if(lock() == 0){
+			for(int i=0; i<size(); i++){
+				status = getRecordByPos(record, i);
+				if(status != -1){
+					break;
+				}else{
+					sprintf(result, "%s%u:%u:%lu>", record.ix, record.host_ix, record.timestamp);
+				}
+			}
+			unlock();
+		}
+	}
+
+
 	return status;
 }
 
@@ -414,6 +431,29 @@ int32_t Hosts_Ports_Hits_Table::SELECT(char *result, const string &query){
 			unlock();
 		}
 	}
+
+	if(query == "SELECT DISTINCT host_ix FROM hosts_ports_hits"){
+		if(lock() == 0){
+			status = 0;
+			Hosts_Ports_Hits_Record record;
+			list<uint32_t> listPorts;
+			for(int i=0; i<size(); i++){
+				if((status = getRecordByPos(record, i)) != -1){
+					listPorts.push_back(record.host_ix);
+				}else{
+					status = -1;
+					break;
+				}
+			}
+			listPorts.sort();
+			listPorts.unique();
+			for(auto it=listPorts.begin(); it!=listPorts.end(); it++){
+				sprintf(result, "%s%u>", result, *it);
+			}
+			unlock();
+		}
+	}
+
 	return status;
 }
 
@@ -501,14 +541,14 @@ int32_t Hosts_Table::SELECT(char *result, const string &query){
 		}
 	}
 
-	if(query.find("SELECT * FROM host_table WHERE ix=") != std::string::npos){
+	if(query.find("SELECT * FROM hosts_table WHERE ix=") != std::string::npos){
 		size_t pos = query.find_first_of("=");
 		string value(query, ++pos, query.length() - pos);
 		uint32_t ix = stoul(value);
 		if(lock() == 0){
 			Hosts_Record record;
 			if((status = getRecordByPos(record, ix)) != -1){
-				sprintf(result, "%u:%s:%u:%u", record.ix, record.host, record.first_seen, record.last_seen);
+				sprintf(result, "%u:%s:%lu:%lu", record.ix, record.host, record.first_seen, record.last_seen);
 				status = 0;
 			}
  			unlock();
@@ -521,7 +561,7 @@ int32_t Hosts_Table::SELECT(char *result, const string &query){
 			status = 0;
 			for(int i=0; i<size(); i++){
 				if((status = getRecordByPos(record, ix)) != -1){
-					sprintf(result, "%s%u:%s:%u:%u>", result, record.ix, record.host, record.first_seen, record.last_seen);
+					sprintf(result, "%s%u:%s:%lu:%lu>", result, record.ix, record.host, record.first_seen, record.last_seen);
 				}else{
 					status = -1;
 					break;
