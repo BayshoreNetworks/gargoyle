@@ -52,7 +52,6 @@
 #include "string_functions.h"
 #include "shared_config.h"
 #include "data_base.h"
-#include "string_functions.h"
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 bool ENFORCE = true;

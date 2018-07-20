@@ -576,6 +576,7 @@ int main(int argc, char *argv[])
     		gargoyleHandler.set_data_base_shared_memory(gargoyle_pscand_data_base_shared_memory);
     	}
     	else {
+			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     		return 0;
     	}
     }

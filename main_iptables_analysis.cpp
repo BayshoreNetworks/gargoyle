@@ -768,6 +768,7 @@ int main(int argc, char *argv[]) {
     	else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
     	    data_base_shared_memory_analysis = DataBase::create();
     	}else {
+			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     		return 0;
     	}
     }
