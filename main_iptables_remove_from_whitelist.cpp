@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 			}
 		}
     } else {
-    	std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_whitelist ip_addr" << std::endl << std::endl;
+		std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_whitelist [-s | --shared_memory] <ip_addr> " << std::endl << std::endl;
     }
 
     if(gargoyle_whitelist_removal_shm) {

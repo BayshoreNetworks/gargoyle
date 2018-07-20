@@ -26,7 +26,7 @@ gargoyle_pscand_monitor_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_
 
 gargoyle_config_SOURCES = gargoyle_config.cpp
 
-gargoyle_pscand_unblockip_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp main_iptables_remove.cpp
+gargoyle_pscand_unblockip_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp lib/data_base.cpp main_iptables_remove.cpp
 
 gargoyle_lscand_ssh_bruteforce_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp lib/shared_config.cpp lib/shared_mem.cpp main_iptables_ssh_bruteforce.cpp
 

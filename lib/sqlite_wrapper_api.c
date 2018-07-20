@@ -639,7 +639,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 
 
 
-size_t add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
+size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
