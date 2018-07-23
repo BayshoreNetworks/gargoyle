@@ -14,44 +14,37 @@ This Yocto recipe was tested on a Debian 8 system. Please, assure that you
 use a Yocto 2.5 compatible Linux version. Check that following packages are 
 installed on your system:
 
-	1. wget
-	2. git-core
-	3. unzip
-	4. make
-	5. gcc
-	6. g++
-	7. build-essential
-	8. subversion
-	9. sed
-	10. autoconf
-	11. automake
-	12. texi2html
-	13. texinfo
-	14. coreutils
-	15. diffstat
-	16. python-pysqlite2
-	17. docbook-utils
-	18. libsdl1.2-dev
-	19. libxml-parser-perl
-	20. libgl1-mesa-dev
-	21. libglu1-mesa-dev
-	22. xsltproc
-	23. desktop-file-utils
-	24. chrpath
-	25. groff
-	26. libtool
-	27. xterm
-	28. gawk
-	29. fop
+	1. build-dep
+	2. qemu
+	3. remove
+	4. oss4-dev
+	5. gawk
+	6. wget
+	7. git-core
+	8. diffstat
+	9. unzip
+	10. texinfo
+	11. gcc-multilib
+	12. build-essential
+	13. chrpath
+	14. socat
+	15. cpio
+	16. python
+	17. python3
+	18. python3-pip
+	19. python3-pexpect
+	20. xz-utils
+	21. debianutils
+	22. iputils-ping
 
 Let us assume that SRCDIR environment variable contains the absolute path to where 
 the Yocto distribution is going to be generated.
 
 Move to SRCDIR and clone the following GIT repositories:
 
-	1. Poky: _git clone -b sumo git://git.yoctoproject.org/poky_
-	2. Open Embedded: _git clone -b sumo git://git.openembedded.org/meta-openembedded_
-	3. Bayshore Networks layer: _git clone git://github.com/BayshoreNetworks/gargoyle.git_
+	1. Poky: git clone -b sumo git://git.yoctoproject.org/poky
+	2. Open Embedded: git clone -b sumo git://git.openembedded.org/meta-openembedded
+	3. Bayshore Networks layer: git clone git://github.com/BayshoreNetworks/gargoyle.git
 
 Create the _build_ directory and run the Poky configuration script:
 
