@@ -5,37 +5,18 @@ Please see the corresponding sections below for details.
 Dependencies
 ============
 
-  URI: <first dependency>
-  branch: <branch name>
+  URI: git://git.yoctoproject.org/poky
+  branch: sumo
 
-  URI: <second dependency>
-  branch: <branch name>
-
-  .
-  .
-  .
-
-Patches
-=======
-
-Please submit any patches against the meta-bayshorenetworks layer to the xxxx mailing list (xxxx@zzzz.org)
-and cc: the maintainer:
-
-Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
+  URI: git://git.openembedded.org/meta-openembedded
+  branch: sumo
 
 Table of Contents
 =================
 
   I. Adding the meta-bayshorenetworks layer to your build
- II. Misc
-
 
 I. Adding the meta-bayshorenetworks layer to your build
 =================================================
 
-Run 'bitbake-layers add-layer meta-bayshorenetworks'
-
-II. Misc
-========
-
---- replace with specific information about the meta-bayshorenetworks layer ---
+Please, refer to the README.md file

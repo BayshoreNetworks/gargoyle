@@ -49,13 +49,13 @@ the Yocto distribution is going to be generated.
 
 Move to SRCDIR and clone the following GIT repositories:
 
-	1. Poky: ```git clone -b sumo git://git.yoctoproject.org/poky```
-	2. Open Embedded: ```git clone -b sumo git://git.openembedded.org/meta-openembedded```
-	3. Bayshore Networks layer: ```git clone git://github.com/BayshoreNetworks/gargoyle.git```
+	1. Poky: _git clone -b sumo git://git.yoctoproject.org/poky_
+	2. Open Embedded: _git clone -b sumo git://git.openembedded.org/meta-openembedded_
+	3. Bayshore Networks layer: _git clone git://github.com/BayshoreNetworks/gargoyle.git_
 
 Create the _build_ directory and run the Poky configuration script:
 
-	```mkdir build; source poky/oe-init-build-env build```
+```mkdir build; source poky/oe-init-build-env build```
 
 Copy following configuration files provided in this repository to _build/conf_ folder:
 
@@ -71,7 +71,7 @@ Once we have generated the distribution, we can test it with the QEMU software:
 
 ```runqemu qemux86-64``` (user root, empty password)
 
-The Gargoyle Protection for Linux installed as the following folder structure:
+The Gargoyle Protection for Linux is installed as the following folder structure:
 
 	- /usr/bin: binaries
 	- /var/gargoyle: databases
