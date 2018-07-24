@@ -53,6 +53,7 @@
 #include "ip_addr_controller.h"
 #include "shared_config.h"
 #include "system_functions.h"
+#include "data_base.h"
 
 struct greater_val
 {
@@ -77,6 +78,8 @@ char DB_LOCATION[SQL_CMD_MAX+1];
 const char *GARG_ANALYSIS_PROGNAME = "Gargoyle Pscand Analysis";
 SharedIpConfig *gargoyle_analysis_whitelist_shm = NULL;
 
+DataBase *data_base_shared_memory_analysis = nullptr;
+
 volatile sig_atomic_t stop;
 
 void handle_signal (int);
@@ -98,6 +101,9 @@ void handle_signal (int signum) {
         //gargoyle_analysis_whitelist_shm;
     }
 
+    if(data_base_shared_memory_analysis != nullptr){
+    	delete data_base_shared_memory_analysis;
+    }
 	exit(0);
 }
 
@@ -153,17 +159,33 @@ void query_for_single_port_hits_last_seen() {
 	//char list_of_ports[(size_t)SMALL_DEST_BUF];
 	size_t list_ports_dst_sz = SMALL_DEST_BUF;
 	char *list_of_ports = (char*) malloc(list_ports_dst_sz+1);
-	ret = get_unique_list_of_ports(list_of_ports, list_ports_dst_sz, DB_LOCATION);
+	memset(list_of_ports, 0, list_ports_dst_sz + 1);
+
+	if(data_base_shared_memory_analysis != nullptr){
+		string query = "SELECT DISTINCT port_number FROM hosts_ports_hits";
+		ret = data_base_shared_memory_analysis->hosts_ports_hits->SELECT(list_of_ports, query.c_str());
+	}else{
+		ret = sqlite_get_unique_list_of_ports(list_of_ports, list_ports_dst_sz, DB_LOCATION);
+	}
 
 	size_t list_hosts_dst_sz = SMALL_DEST_BUF;
 	char *l_hosts = (char*) malloc(list_hosts_dst_sz+1);
+	memset(l_hosts, 0, list_hosts_dst_sz+1);
 	last_seen = (int) time(NULL);
 
 	token1 = strtok_r(list_of_ports, tok1, &token1_save);
 	while (token1 != NULL) {
 
 		*l_hosts = 0;
-		get_all_host_one_port_threshold(atoi(token1), PORT_SCAN_THRESHOLD, l_hosts, list_hosts_dst_sz, DB_LOCATION);
+		if(data_base_shared_memory_analysis != nullptr){
+			char query[SQL_CMD_MAX];
+			memset(l_hosts, 0, SMALL_DEST_BUF);
+			sprintf(query, "SELECT * FROM hosts_ports_hits WHERE port_number=%d AND hit_count>=%d", atoi(token1), PORT_SCAN_THRESHOLD);
+			data_base_shared_memory_analysis->hosts_ports_hits->SELECT(l_hosts, query);
+		}else{
+			sqlite_get_all_host_one_port_threshold(atoi(token1), PORT_SCAN_THRESHOLD, l_hosts, list_hosts_dst_sz, DB_LOCATION);
+		}
+
 		if (strlen(l_hosts) > 0) {
 			/*
 			 std::cout << std::endl << token1 << std::endl;
@@ -200,7 +222,13 @@ void query_for_single_port_hits_last_seen() {
 
 					size_t get_all_dst_sz = LOCAL_BUF_SZ;
 					char *h_all = (char*) malloc(get_all_dst_sz+1);
-					get_host_all_by_ix(host_ix, h_all, get_all_dst_sz, DB_LOCATION);
+					if(data_base_shared_memory_analysis != nullptr){
+						string query = "SELECT * FROM hosts_table WHERE ix="+host_ix;
+						data_base_shared_memory_analysis->hosts->SELECT(h_all, query.c_str());
+					}else{
+						sqlite_get_host_all_by_ix(host_ix, h_all, get_all_dst_sz, DB_LOCATION);
+					}
+
 					//std::cout << h_all << std::endl;
 
 					char *host_ip = (char*) malloc(60);
@@ -244,7 +272,8 @@ void query_for_single_port_hits_last_seen() {
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
                             DEBUG,
-                            ""
+                            "",
+							data_base_shared_memory_analysis
                         );
 						add_to_iptables_entries(host_ix);
 
@@ -285,8 +314,15 @@ void query_for_multiple_ports_hits_last_seen() {
 	size_t dst_buf_sz = MEDIUM_DEST_BUF;
 	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
 	char *host_ip = (char*) malloc(60);
+	memset(hosts_all_buf, 0, dst_buf_sz+1);
 
-	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
+	if(data_base_shared_memory_analysis != nullptr){
+		string query = "SELECT * FROM hosts_table";
+		data_base_shared_memory_analysis->hosts->SELECT(hosts_all_buf, query.c_str());
+	}else{
+		ret = sqlite_get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
+	}
+
 	/*
 	std::cout << hosts_all_buf << std::endl;
 	std::cout << strlen(hosts_all_buf) << std::endl;
@@ -324,7 +360,16 @@ void query_for_multiple_ports_hits_last_seen() {
 				if ((now - last_seen) <= LAST_SEEN_DELTA) {
 
 					hit_cnt_resp = 0;
-					hit_cnt_resp = get_total_hit_count_one_host_by_ix(host_ix, DB_LOCATION);
+					if(data_base_shared_memory_analysis != nullptr){
+						char result[SMALL_DEST_BUF];
+						memset(result, 0, SMALL_DEST_BUF);
+						string query = "SELECT COUNT(*) FROM hosts_ports_hits WHERE host_ix=" + host_ix;
+						if(data_base_shared_memory_analysis->hosts_ports_hits->SELECT(result, query) != -1){
+							hit_cnt_resp = atol(result);
+						}
+					}else{
+						hit_cnt_resp = sqlite_get_total_hit_count_one_host_by_ix(host_ix, DB_LOCATION);
+					}
 					if (hit_cnt_resp >= SINGLE_IP_SCAN_THRESHOLD) {
 						/*
 						 * !! ENFORCE - if more than SINGLE_IP_SCAN_THRESHOLD ports
@@ -339,7 +384,8 @@ void query_for_multiple_ports_hits_last_seen() {
                             ENFORCE,
                             (void *)gargoyle_analysis_whitelist_shm,
                             DEBUG,
-                            ""
+                            "",
+							data_base_shared_memory_analysis
                         );
 						add_to_iptables_entries(host_ix);
 
@@ -352,7 +398,18 @@ void query_for_multiple_ports_hits_last_seen() {
 						 * get a total count of port hits for this host
 						 */
 						l_count = 0;
-						l_count = get_one_host_hit_count_all_ports(host_ix, DB_LOCATION);
+						if(data_base_shared_memory_analysis != nullptr){
+							char result[SMALL_DEST_BUF];
+							memset(result, 0, SMALL_DEST_BUF);
+							string query = "SELECT SUM(hit_count) FROM hosts_ports_hits WHERE host_ix=" + host_ix;
+							if((l_count = data_base_shared_memory_analysis->hosts_ports_hits->SELECT(hosts_all_buf, query.c_str())) != -1){
+								l_count = atol(result);
+							}
+						}else{
+							l_count = sqlite_get_one_host_hit_count_all_ports(host_ix, DB_LOCATION);
+						}
+
+
 						if (l_count >= OVERALL_PORT_SCAN_THRESHOLD) {
 
 							do_block_actions(host_ip,
@@ -362,7 +419,8 @@ void query_for_multiple_ports_hits_last_seen() {
                                 ENFORCE,
                                 (void *)gargoyle_analysis_whitelist_shm,
                                 DEBUG,
-                                ""
+                                "",
+								data_base_shared_memory_analysis
                             );
 							add_to_iptables_entries(host_ix);
 
@@ -430,8 +488,18 @@ void run_analysis() {
 				added_host_ix = 0;
 
 				if (bayshoresubstring(position1 + dash_dash_len, position2, token1, host_ip, 16)) {
+					if(data_base_shared_memory_analysis != nullptr){
+						char result[SMALL_DEST_BUF];
+						memset(result, 0, SMALL_DEST_BUF);
+						string query = "SELECT ix FROM hosts_table WHERE host=" + string(host_ip);
+						if((added_host_ix = data_base_shared_memory_analysis->hosts->SELECT(result, query)) != -1){
+							added_host_ix = atol(result);
+						}
+					}else{
+						added_host_ix = sqlite_get_host_ix(host_ip, DB_LOCATION);
+					}
 
-					added_host_ix = get_host_ix(host_ip, DB_LOCATION);
+
 					if (added_host_ix > 0) {
 						add_to_iptables_entries(added_host_ix);
 					}
@@ -478,7 +546,13 @@ void clean_up_stale_data() {
 	char *hosts_all_buf = (char*) malloc(dst_buf_sz+1);
 	char *host_ip = (char*) malloc(60);
 
-	ret = get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
+	if(data_base_shared_memory_analysis != nullptr){
+		string query = "SELECT * FROM hosts_table";
+		data_base_shared_memory_analysis->hosts->SELECT(hosts_all_buf, query.c_str());
+	}else{
+		ret = sqlite_get_hosts_all(hosts_all_buf, dst_buf_sz, DB_LOCATION);
+	}
+
 	/*
 	std::cout << hosts_all_buf << std::endl;
 	std::cout << strlen(hosts_all_buf) << std::endl;
@@ -536,7 +610,7 @@ void clean_up_stale_data() {
 					syslog(LOG_INFO | LOG_LOCAL6, "%s-%s=\"%s\" %s=\"%d\" %s=\"%d\"", "removing record",
 							VIOLATOR_SYSLOG, host_ip, "first_seen", first_seen, "last_seen", last_seen);
 					*/
-					do_host_remove_actions(host_ip, host_ix, DB_LOCATION, first_seen, last_seen);
+					do_host_remove_actions(host_ip, host_ix, DB_LOCATION, first_seen, last_seen, data_base_shared_memory_analysis);
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
@@ -679,8 +753,8 @@ int main(int argc, char *argv[]) {
      * maybe we replace this in the future ...
      */
     if (argc > 2 || argc < 1) {
-
     	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
+		std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {
@@ -691,7 +765,10 @@ int main(int argc, char *argv[]) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
-    	else {
+    	else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+    	    data_base_shared_memory_analysis = DataBase::create();
+    	}else {
+			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     		return 0;
     	}
     }
