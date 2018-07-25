@@ -81,10 +81,11 @@ class SharedMemoryTable{
     public:
         SharedMemoryTable(std::string name, size_t starting_num);
         virtual ~SharedMemoryTable();
-        virtual int32_t INSERT(TypeRecord &entry) = 0;
+        virtual int32_t INSERT(TypeRecord entry) = 0;
         virtual int32_t DELETE(const std::string &query) = 0;
         virtual int32_t SELECT(char *result, const std::string &query) = 0;
         virtual int32_t UPDATE(const TypeRecord &entry) = 0;
+        virtual uint32_t getPositionByKey(const uint32_t) = 0;
         void TRUNCATE();
 };
 
@@ -100,6 +101,11 @@ SharedMemoryTable<TypeRecord>::~SharedMemoryTable(){
      */
 	if(islocked){
 		pthread_mutex_trylock(&hdr->mutex);
+		/*
+		 * In this point the mutex will always be locked. is_looked is set to false after unlocking
+		 * so it can happen that the mutex is unlock and is_locked is still true. This is the reason
+		 * why pthread_mutex_trylock is called here
+		 */
 		pthread_mutex_unlock(&hdr->mutex);
 	}
 
@@ -187,7 +193,7 @@ int32_t SharedMemoryTable<TypeRecord>::lock(){
         if(count){
             usleep(TIMEOUT_MILISECONDS * 1000);
         }
-        if(result != EBUSY){
+        if(result == EBUSY){
             count++;
         }
     } while(count < MAXIMUM_TRIES);
@@ -263,15 +269,15 @@ int32_t SharedMemoryTable<TypeRecord>::pushBack(const TypeRecord &record){
 }
 
 template <typename TypeRecord>
-void SharedMemoryTable<TypeRecord>::insertById(const TypeRecord &record, const uint32_t pos){
-	memcpy(begin() + pos -1, &record, sizeof(TypeRecord));
+void SharedMemoryTable<TypeRecord>::insertById(const TypeRecord &record, const uint32_t index){
+	memcpy(begin() + index -1, &record, sizeof(TypeRecord));
 }
 
 template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::getRecordByPos(TypeRecord &record, uint32_t index){
 	int32_t status = 0;
-	if(index < size()){
-		memcpy(&record, begin() + index, sizeof(TypeRecord));
+	if(index <= size()){
+		memcpy(&record, begin() + index - 1, sizeof(TypeRecord));
 	}else{
 		status = -1;
 	}
@@ -281,9 +287,8 @@ int32_t SharedMemoryTable<TypeRecord>::getRecordByPos(TypeRecord &record, uint32
 template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::deleteRecordByPos(uint32_t index){
 	int32_t status = 0;
-	if(index < size()){
-		index--;
-		memmove(begin() + index, begin()+ index + 1, sizeof(TypeRecord)*(size() - index - 1));
+	if(index <= size()){
+		memmove(begin() + index - 1, begin() + index, sizeof(TypeRecord)*(size() - index));
 		hdr->next_ix--;
 	}else{
 		status = -1;

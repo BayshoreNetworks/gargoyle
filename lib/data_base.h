@@ -74,30 +74,33 @@ class Black_IP_List_Table : public SharedMemoryTable<Black_IP_List_Record>{
 	public:
 		Black_IP_List_Table(std::string name, size_t size);
 		static Black_IP_List_Table *CREATE(std::string name, size_t size);
-		int32_t INSERT(Black_IP_List_Record &entry);
+		int32_t INSERT(Black_IP_List_Record entry);
 		int32_t DELETE(const std::string &query);
 		int32_t SELECT(char * result, const std::string &query);
         int32_t UPDATE(const Black_IP_List_Record &entry);
+        uint32_t getPositionByKey(const uint32_t key);
 };
 
 class Detected_Hosts_Table : public SharedMemoryTable<Detected_Hosts_Record>{
 	public:
 		Detected_Hosts_Table(std::string name, size_t size);
 		static Detected_Hosts_Table *CREATE(std::string name, size_t size);
-		int32_t INSERT(Detected_Hosts_Record &entry);
+		int32_t INSERT(Detected_Hosts_Record entry);
 		int32_t DELETE(const std::string &query);
 		int32_t SELECT(char * result, const std::string &query);
         int32_t UPDATE(const Detected_Hosts_Record &entry);
+        uint32_t getPositionByKey(const uint32_t key);
 };
 
 class Hosts_Ports_Hits_Table : public SharedMemoryTable<Hosts_Ports_Hits_Record>{
 	public:
 		Hosts_Ports_Hits_Table(std::string name, size_t size);
 		static Hosts_Ports_Hits_Table *CREATE(std::string name, size_t size);
-		int32_t INSERT(Hosts_Ports_Hits_Record &entry);
+		int32_t INSERT(Hosts_Ports_Hits_Record entry);
 		int32_t DELETE(const std::string &query);
 		int32_t SELECT(char * result, const std::string &query);
         int32_t UPDATE(const Hosts_Ports_Hits_Record &entry);
+        uint32_t getPositionByKey(const uint32_t key);
 };
 
 class Hosts_Table : public SharedMemoryTable<Hosts_Record>{
@@ -108,20 +111,22 @@ class Hosts_Table : public SharedMemoryTable<Hosts_Record>{
 	public:
 		Hosts_Table(std::string name, size_t size);
 		static Hosts_Table *CREATE(std::string name, size_t size);
-		int32_t INSERT(Hosts_Record &entry);
+		int32_t INSERT(Hosts_Record entry);
 		int32_t DELETE(const std::string &query);
 		int32_t SELECT(char * result, const std::string &query);
         int32_t UPDATE(const Hosts_Record &entry);
+        uint32_t getPositionByKey(const uint32_t key);
 };
 
 class Ignore_IP_List_Table : public SharedMemoryTable<Ignore_IP_List_Record>{
 	public:
 		Ignore_IP_List_Table(std::string name, size_t size);
 		static Ignore_IP_List_Table *CREATE(std::string name, size_t size);
-		int32_t INSERT(Ignore_IP_List_Record &entry);
+		int32_t INSERT(Ignore_IP_List_Record entry);
 		int32_t DELETE(const std::string &query);
 		int32_t SELECT(char * result, const std::string &query);
         int32_t UPDATE(const Ignore_IP_List_Record &entry);
+        uint32_t getPositionByKey(const uint32_t key);
 };
 
 struct DataBase{
