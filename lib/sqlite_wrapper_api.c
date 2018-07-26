@@ -198,7 +198,7 @@ int sqlite_get_total_hit_count_one_host_by_ix(int the_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_total_hit_count_one_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_total_hit_count_one_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -241,7 +241,7 @@ int sqlite_get_one_host_hit_count_all_ports(int ip_addr_ix, const char *db_loc) 
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_one_host_hit_count_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_one_host_hit_count_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -327,7 +327,7 @@ int sqlite_get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -368,7 +368,7 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -380,7 +380,7 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [sqlite_add_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -394,6 +394,54 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 	return 0;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+int sqlite_add_host_port_hit_all(int ix, int ip_addr_ix, int the_port, int add_cnt, const char *db_loc) {
+
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host_ix,port_number,hit_count) VALUES (?1,?2,?3,?4)", HOSTS_PORTS_HITS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ix);
+	sqlite3_bind_int(stmt, 2, ip_addr_ix);
+	sqlite3_bind_int(stmt, 3, the_port);
+	sqlite3_bind_int(stmt, 4, add_cnt);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [sqlite_add_host_port_hit] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+
+		return -1;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+}
 
 int sqlite_add_host(const char *the_ip, const char *db_loc) {
 
@@ -451,6 +499,57 @@ int sqlite_add_host(const char *the_ip, const char *db_loc) {
 	return ret;
 }
 
+int sqlite_add_host_all(uint32_t ix, const char *the_ip, time_t first_seen, time_t last_seen, const char *db_loc){
+
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	int ret = 0;
+	int now;
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host,first_seen,last_seen) VALUES (?1,?2,?3,?4)", HOSTS_TABLE);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ix);
+	sqlite3_bind_text(stmt, 2, the_ip, -1, 0);
+	sqlite3_bind_int(stmt, 3, first_seen);
+	sqlite3_bind_int(stmt, 4, last_seen);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		//printf("ERROR inserting data from function [add_host]: %s\n", sqlite3_errmsg(db));
+		//syslog(LOG_INFO | LOG_LOCAL6, "ERROR inserting data from function [add_host]: %s", sqlite3_errmsg(db));
+
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+
+		return -1;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return ret;
+}
+
 
 size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db_loc) {
 
@@ -473,7 +572,7 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -498,6 +597,7 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 	return 0;
 }
 
+size_t sqlite_add_detected_hosts_all(size_t ix, size_t host_ix, time_t, char *);
 
 size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
@@ -520,7 +620,7 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -530,7 +630,7 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_detected_host] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [sqlite_remove_detected_host] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -567,7 +667,7 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_detected_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_detected_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -576,7 +676,7 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_detected_hosts_all] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [sqlite_remove_detected_hosts_all] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -613,7 +713,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_ports_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host_ports_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -623,7 +723,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_ports_all] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [sqlite_remove_host_ports_all] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -671,7 +771,7 @@ size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *d
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [sqlite_add_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -756,7 +856,7 @@ int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [update_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_update_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -809,7 +909,7 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 	*/
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [update_host_last_seen]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_update_host_last_seen]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -821,7 +921,7 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s updating data from function [update_host_last_seen] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s updating data from function [sqlite_update_host_last_seen] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -869,7 +969,7 @@ int sqlite_get_all_host_one_port_threshold(int the_port, int threshold, char *ds
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_all_host_one_port_threshold]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_all_host_one_port_threshold]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -943,7 +1043,7 @@ int sqlite_get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, cons
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_one_host_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_one_host_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1089,7 +1189,7 @@ int sqlite_get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_unique_list_of_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_unique_list_of_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1154,7 +1254,7 @@ size_t sqlite_get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_lo
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_detected_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1218,7 +1318,7 @@ size_t sqlite_get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_detected_hosts_row_ix_by_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_detected_hosts_row_ix_by_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(sql);
 
@@ -1267,7 +1367,7 @@ size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_l
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_hosts_to_ignore_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_hosts_to_ignore_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1401,7 +1501,7 @@ size_t sqlite_get_unique_list_of_hosts_ix(char *dst, size_t sz_dst, const char *
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_unique_list_of_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_unique_list_of_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1472,7 +1572,7 @@ int sqlite_is_host_ignored(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [is_host_ignored]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_is_host_ignored]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -1515,7 +1615,7 @@ int sqlite_is_host_detected(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [is_host_detected]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_is_host_detected]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -1555,7 +1655,7 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -1565,7 +1665,7 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [sqlite_remove_host_to_ignore] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -1601,7 +1701,7 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host_to_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_to_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
@@ -1612,7 +1712,7 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [add_host_to_blacklist] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s inserting data from function [sqlite_add_host_to_blacklist] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -1651,7 +1751,7 @@ size_t sqlite_get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_l
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [get_hosts_blacklist_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_hosts_blacklist_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
@@ -1716,7 +1816,7 @@ int sqlite_is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [is_host_blacklisted]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_is_host_blacklisted]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -1756,7 +1856,7 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [remove_host_from_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host_from_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
@@ -1766,7 +1866,7 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [remove_host_from_blacklist] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [sqlite_remove_host_from_blacklist] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -1868,7 +1968,7 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [reset_autoincrement]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_reset_autoincrement]: %s", DB_LOCATION, sqlite3_errmsg(db));
 	}
 
 	// UPDATE SQLITE_SEQUENCE SET SEQ= 'value' WHERE NAME='table_name';
@@ -1878,7 +1978,7 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s reset auto-increment from function [reset_autoincrement] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "%s reset auto-increment from function [sqlite_reset_autoincrement] failed with this msg: %s", INFO_SYSLOG, sqlite3_errmsg(db));
 
 		sqlite3_finalize(stmt);
 		sqlite3_close(db);
@@ -1886,5 +1986,96 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 
 	sqlite3_finalize(stmt);
 	sqlite3_close(db);
+}
+
+
+size_t sqlite_remove_all(const char *db_loc, const char *table) {
+
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_all]: %s with the table %s", DB_LOCATION, sqlite3_errmsg(db), table);
+		return 1;
+	}
+
+	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s", table);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		syslog(LOG_INFO | LOG_LOCAL6, "%s deleting data from function [sqlite_remove_all] failed with this msg: %s for the table %s", INFO_SYSLOG, sqlite3_errmsg(db), table);
+
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+
+		return 2;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return 0;
+}
+
+size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, const char *db_loc, const char *table){
+    char cwd[SQL_CMD_MAX/2];
+    char DB_LOCATION[SQL_CMD_MAX+1];
+    if (db_loc) {
+    	snprintf (DB_LOCATION, SQL_CMD_MAX, "%s", db_loc);
+    } else {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			return 1;
+		} else {
+			snprintf (DB_LOCATION, SQL_CMD_MAX, "%s%s", cwd, DB_PATH);
+		}
+    }
+
+	int ret = 0;
+	int now;
+
+	sqlite3 *db;
+	sqlite3_stmt *stmt;
+	int rc;
+	char sql[SQL_CMD_MAX];
+
+	rc = sqlite3_open(DB_LOCATION, &db);
+	if (rc != SQLITE_OK) {
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_all_by_table]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		return 1;
+	}
+	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host_ix, timestamp) VALUES (?1,?2,?3)", table);
+	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
+	sqlite3_bind_int(stmt, 1, ix);
+	sqlite3_bind_int(stmt, 2, host_ix);
+	sqlite3_bind_int(stmt, 3, timestamp);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		return -1;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return ret;
+
 }
 

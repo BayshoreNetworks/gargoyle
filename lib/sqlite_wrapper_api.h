@@ -68,6 +68,7 @@ int sqlite_get_hosts_all(char *, size_t, const char *);
 int sqlite_get_host_by_ix(int, char *, size_t, const char *);
 int sqlite_get_host_all_by_ix(int, char *, size_t, const char *);
 int sqlite_add_host(const char *, const char *);
+int sqlite_add_host_all(uint32_t, const char *, time_t, time_t, const char *);
 int sqlite_get_host_ix(const char *, const char *);
 size_t sqlite_update_host_last_seen(size_t, const char *);
 size_t sqlite_remove_host(size_t, const char *);
@@ -80,6 +81,7 @@ int sqlite_get_total_hit_count_one_host_by_ix(int, const char *);
 int sqlite_get_all_host_one_port_threshold(int, int, char *, size_t, const char *);
 int sqlite_get_host_port_hit(int, int, const char *);
 int sqlite_add_host_port_hit(int, int, int, const char *);
+int sqlite_add_host_port_hit_all(int, int, int, int, const char *);
 int sqlite_update_host_port_hit(int, int, int, const char *);
 size_t sqlite_remove_host_ports_all(size_t, const char *);
 size_t sqlite_get_unique_list_of_hosts_ix(char *, size_t, const char *);
@@ -99,6 +101,8 @@ int sqlite_remove_host_from_blacklist(int, const char *);
 int sqlite_get_all_igonre_or_black_ip_list(char *, size_t, const char *, const char *);
 ///////////////////////////////////////////////////////////////////////
 void sqlite_reset_autoincrement(const char *, const char *);
+size_t sqlite_remove_all(const char *db_loc, const char *table);
+size_t sqlite_add_all_by_table(uint32_t, uint32_t, time_t, const char *, const char *);
 
 #ifdef __cplusplus
 }
