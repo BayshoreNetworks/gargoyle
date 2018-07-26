@@ -82,6 +82,17 @@ extern "C" {
 #define GARGOYLE_WHITELIST_SHM_SZ 250
 #define GARGOYLE_BLACKLIST_SHM_NAME "/gargoyle_blacklist_shm"
 #define GARGOYLE_BLACKLIST_SHM_SZ 250
+#define GARGOYLE_BLACK_IP_LIST_TABLE_NAME "/gargoyle_black_ip_table_shm"
+#define GARGOYLE_BLACK_IP_LIST_TABLE_SIZE 250
+#define GARGOYLE_DETECTED_HOSTS_TABLE_NAME "/gargoyle_detected_hosts_table_shm"
+#define GARGOYLE_DETECTED_HOSTS_TABLE_SIZE 250
+#define GARGOYLE_HOSTS_PORTS_HITS_TABLE_NAME "/gargoyle_hosts_ports_hits_table_shm"
+#define GARGOYLE_HOSTS_PORTS_HITS_TABLE_SIZE 250
+#define GARGOYLE_HOSTS_TABLE_NAME "/gargoyle_hosts_table_shm"
+#define GARGOYLE_HOSTS_TABLE_SIZE 250
+#define GARGOYLE_IGNORE_IP_LIST_TABLE_NAME "/gargoyle_ignore_ip_list_table_shm"
+#define GARGOYLE_IGNORE_IP_LIST_TABLE_SIZE 250
+
 
 #ifdef __cplusplus
 }

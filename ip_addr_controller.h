@@ -32,10 +32,11 @@
 
 
 #include <string>
+#include "data_base.h"
 
 
-int add_ip_to_hosts_table(const std::string &, const std::string &, bool);
-int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool);
+int add_ip_to_hosts_table(const std::string &, const std::string &, bool, DataBase *);
+int add_to_hosts_port_table(const std::string &, int, int, const std::string &, bool, DataBase *);
 
 int do_block_actions(const std::string &,
                     int,
@@ -44,9 +45,10 @@ int do_block_actions(const std::string &,
                     bool,
                     void *,
                     bool,
-                    const std::string &
+                    const std::string &,
+					DataBase *
                     );
-int do_host_remove_actions(const std::string &, int, const std::string &, int, int);
+int do_host_remove_actions(const std::string &, int, const std::string &, int, int, DataBase *);
 
 void do_report_action_output(const std::string &, int, int, int, int);
 void do_block_action_output(const std::string &, int, int, const std::string &, int);

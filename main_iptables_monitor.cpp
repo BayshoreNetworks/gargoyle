@@ -51,6 +51,7 @@
 #include "ip_addr_controller.h"
 #include "shared_config.h"
 #include "system_functions.h"
+#include "data_base.h"
 
 // 9 hours
 size_t LOCKOUT_TIME = 32400;
@@ -63,6 +64,8 @@ SharedIpConfig *gargoyle_monitor_blacklist_shm = NULL;
 
 volatile sig_atomic_t stop;
 
+DataBase *data_base_shared_memory_analysis = nullptr;
+
 
 void handle_signal (int signum) {
 	stop = 1;
@@ -70,6 +73,10 @@ void handle_signal (int signum) {
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
         //gargoyle_monitor_blacklist_shm;
+    }
+
+    if(data_base_shared_memory_analysis != nullptr){
+		delete data_base_shared_memory_analysis;
     }
 
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
@@ -100,10 +107,17 @@ void run_monitor() {
 
 	size_t dst_buf_sz = SMALL_DEST_BUF + 1;
 	char *l_hosts3 = (char*) malloc(dst_buf_sz);
+	memset(l_hosts3, 0, dst_buf_sz);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
 
-	resp3 = get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
+	if(data_base_shared_memory_analysis != nullptr){
+		string query = "SELECT * FROM detected_hosts";
+		resp3 == data_base_shared_memory_analysis->detected_hosts->SELECT(l_hosts3, query);
+	}else{
+		resp3 = sqlite_get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
+	}
+
 
 	if (resp3 == 0) {
 
@@ -159,7 +173,15 @@ void run_monitor() {
 				if ((now - timestamp) >= LOCKOUT_TIME) {
 
 					// we have the host ix so get the ip addr from the DB
-					if (get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION) == 0) {
+					int status;
+					if(data_base_shared_memory_analysis != nullptr){
+						string query = "SELECT * FROM hosts_table WHERE ix=" + host_ix;
+						status = data_base_shared_memory_analysis->hosts->SELECT(host_ip, query);
+					}else{
+						status = sqlite_get_host_by_ix(host_ix, host_ip, dst_buf_sz1, DB_LOCATION);
+					}
+
+					if (status == 0) {
 						//std::cout << "HOST IP: " << host_ip << std::endl;
 
 						// we have the ip addr so get the rule ix from iptables
@@ -167,16 +189,32 @@ void run_monitor() {
 						//std::cout << "RULE IX: " << rule_ix << std::endl;
 						//if (rule_ix > 0 && strcmp(host_ip, "") != 0) {
 						if (strcmp(host_ip, "") != 0) {
-
+							size_t row_ix;
 							// if the ip is blaclisted leave it alone
 							if (!is_black_listed(host_ip, (void *)gargoyle_monitor_blacklist_shm)) {
-
 								// find the row ix for this host (in detected_hosts table)
-								size_t row_ix = get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
-								if (row_ix > 0) {
+								if(data_base_shared_memory_analysis != nullptr){
+									char result[SMALL_DEST_BUF];
+									memset(result, 0, SMALL_DEST_BUF);
+									string query = "SELECT ix FROM detected_hosts WHERE host_ix=" + host_ix;
+									if((row_ix = data_base_shared_memory_analysis->detected_hosts->SELECT(result, query)) != -1){
+										row_ix = atol(result);
+									}
+								}else{
+									row_ix = sqlite_get_detected_hosts_row_ix_by_host_ix(host_ix, DB_LOCATION);
+								}
 
+								if (row_ix > 0) {
+									int status;
 									// remove DB row from when we blocked this host
-									if (remove_detected_host(row_ix, DB_LOCATION) == 0) {
+									if(data_base_shared_memory_analysis	!= nullptr){
+										string query = "DELETE FROM detected_hosts WHERE ix=" + row_ix;
+										data_base_shared_memory_analysis->detected_hosts->DELETE(query);
+									}else{
+										status = sqlite_remove_detected_host(row_ix, DB_LOCATION);
+									}
+
+									if(status == 0){
 
 										size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, host_ip, IPTABLES_SUPPORTS_XLOCK);
 										// delete rule from chain
@@ -218,16 +256,30 @@ void run_orphan_cleanup() {
 	char *l_hosts = (char*) malloc(dst_buf_sz);
 	size_t dst_buf_sz1 = LOCAL_BUF_SZ;
 	char *host_ip = (char*) malloc(dst_buf_sz1 + 1);
+	memset(host_ip, 0, dst_buf_sz1 + 1);
+	if(data_base_shared_memory_analysis != nullptr){
+		string query = "SELECT DISTINCT host_ix FROM hosts_ports_hits";
+		data_base_shared_memory_analysis->hosts_ports_hits->SELECT(l_hosts, query);
+	}else{
+		resp = sqlite_get_unique_list_of_hosts_ix(l_hosts, dst_buf_sz, DB_LOCATION);
+	}
 
-	resp = get_unique_list_of_hosts_ix(l_hosts, dst_buf_sz, DB_LOCATION);
 	if (resp == 0) {
 
 		token1 = strtok_r(l_hosts, tok1, &token1_save);
 		while (token1 != NULL) {
 
 			//std::cout << token1 << std::endl;
+			int rep;
 
-			int rep = get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
+			if(data_base_shared_memory_analysis != nullptr){
+				string query = "SELECT host FROM hosts_table WHERE ix=" + atoi(token1);
+
+				rep = data_base_shared_memory_analysis->hosts->SELECT(host_ip, query);
+
+			}else{
+				rep = sqlite_get_host_by_ix(atoi(token1), host_ip, dst_buf_sz1, DB_LOCATION);
+			}
 
 			if (rep == 0) {
 				if (strlen(host_ip) == 0) {
@@ -236,7 +288,12 @@ void run_orphan_cleanup() {
 					 * orphan rows detected in hosts_ports_hits table
 					 * by host_ix, delete the orphaned rows
 					 */
-					remove_host_ports_all(atoi(token1), DB_LOCATION);
+					if(data_base_shared_memory_analysis != nullptr){
+						string query = "DELETE FROM hosts_ports_hits WHERE host_ix="+atoi(token1);
+						data_base_shared_memory_analysis->hosts_ports_hits->DELETE(query);
+					}else{
+						sqlite_remove_host_ports_all(atoi(token1), DB_LOCATION);
+					}
 				}
 			}
 			token1 = strtok_r(NULL, tok1, &token1_save);
@@ -265,6 +322,7 @@ int main(int argc, char *argv[]) {
     if (argc > 2 || argc < 1) {
 
     	std::cerr << std::endl << GARG_MONITOR_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
+		std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     	return 1;
 
     } else if (argc == 2) {
@@ -275,7 +333,10 @@ int main(int argc, char *argv[]) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
-    	else {
+		else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+			data_base_shared_memory_analysis = DataBase::create();
+		}else {
+			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
     		return 0;
     	}
     }

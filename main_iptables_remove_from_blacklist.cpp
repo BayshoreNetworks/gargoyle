@@ -51,6 +51,8 @@
 #include "ip_addr_controller.h"
 #include "shared_config.h"
 #include "system_functions.h"
+#include "data_base.h"
+#include "string_functions.h"
 
 bool DEBUG = false;
 bool ENFORCE = true;
@@ -58,6 +60,7 @@ bool ENFORCE = true;
 char DB_LOCATION[SQL_CMD_MAX+1];
 SharedIpConfig *gargoyle_blacklist_removal_shm = NULL;
 size_t IPTABLES_SUPPORTS_XLOCK;
+DataBase *data_base_shared_memory_analysis = nullptr;
 
 bool validate_ip_addr(std::string ip_addr)
 {
@@ -112,52 +115,91 @@ int main(int argc, char *argv[])
     if (DEBUG)
     	std::cout << "ARGC " << argc << std::endl;
 
-    if (argc == 2) {
-
-		if (validate_ip_addr(argv[1])) {
-
+	switch(argc){
+		case 2:
 			strncpy(ip, argv[1], 15);
 			ip[strlen(argv[1])] = '\0';
+			break;
+		case 3:
+			if((case_insensitive_compare(argv[1], "-s")) || (case_insensitive_compare(argv[1], "--shared_memory"))){
+				data_base_shared_memory_analysis = DataBase::create();
+				strncpy(ip, argv[2], 15);
+				ip[strlen(argv[2])] = '\0';
+				break;
+			}
+		default:
+			std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_whitelist [-s | --shared_memory] <ip_addr> " << std::endl << std::endl;
+			exit(1);
+	}
 
-			if (DEBUG)
-				std::cout << "IP addr: " << ip << std::endl;
+	if (validate_ip_addr(ip)) {
 
-			if (strcmp(ip, "") != 0) {
+		if (DEBUG)
+			std::cout << "IP addr: " << ip << std::endl;
 
-				// find the host ix for the ip
-				int host_ix = get_host_ix(ip, DB_LOCATION);
+		if (strcmp(ip, "") != 0) {
 
-				if (host_ix > 0) {
+			// find the host ix for the ip
+			int host_ix;
+			if(data_base_shared_memory_analysis != nullptr){
+				char result[SMALL_DEST_BUF];
+				memset(result, 0, SMALL_DEST_BUF);
+				string query = "SELECT ix FROM hosts_table WHERE host=" + string(ip);
+				if((host_ix = data_base_shared_memory_analysis->hosts->SELECT(result, query)) != -1){
+					host_ix = atol(result);
+				}
+			}else{
+				host_ix = sqlite_get_host_ix(ip, DB_LOCATION);
+			}
 
-					if (is_host_blacklisted(host_ix, DB_LOCATION) > 0) {
-
-						// remove from iptables
-						size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip, IPTABLES_SUPPORTS_XLOCK);
-						if(rule_ix > 0) {
-
-							// delete rule from chain
-							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
-
-							do_unblock_action_output(ip, (int) time(NULL), ENFORCE);
-						}
-
-						// remove from DB
-						remove_host_from_blacklist(host_ix, DB_LOCATION);
-
-						// remove from shared mem region
-						gargoyle_blacklist_removal_shm->Remove(string(ip));
-
+			if (host_ix > 0) {
+				int result;
+				char buffer[SMALL_DEST_BUF];
+				memset(buffer, 0, SMALL_DEST_BUF);
+				if(data_base_shared_memory_analysis != nullptr){
+					string query = "SELECT host_ix FROM black_ip_list WHERE host_ix=" + host_ix;
+					if((result = data_base_shared_memory_analysis->black_ip_list->SELECT(buffer, query)) != -1){
+						result = atoi(buffer);
 					}
+				}else{
+					result = sqlite_is_host_blacklisted(host_ix, DB_LOCATION);
+				}
+
+				if (result > 0) {
+
+					// remove from iptables
+					size_t rule_ix = iptables_find_rule_in_chain(GARGOYLE_CHAIN_NAME, ip, IPTABLES_SUPPORTS_XLOCK);
+					if(rule_ix > 0) {
+
+						// delete rule from chain
+						iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
+
+						do_unblock_action_output(ip, (int) time(NULL), ENFORCE);
+					}
+
+					// remove from DB
+					if(data_base_shared_memory_analysis != nullptr){
+						string query = "DELETE FROM black_ip_list WHERE host_ix=" + host_ix;
+						data_base_shared_memory_analysis->black_ip_list->DELETE(query);
+					}else{
+						sqlite_remove_host_from_blacklist(host_ix, DB_LOCATION);
+					}
+
+					// remove from shared mem region
+					gargoyle_blacklist_removal_shm->Remove(string(ip));
+
 				}
 			}
 		}
-    } else {
-    	std::cout << std::endl << "Usage: ./gargoyle_pscand_remove_from_blacklist ip_addr" << std::endl << std::endl;
-    }
+	}
 
     if(gargoyle_blacklist_removal_shm) {
         delete gargoyle_blacklist_removal_shm;
         //gargoyle_blacklist_removal_shm;
+    }
+
+    if(data_base_shared_memory_analysis != nullptr){
+		delete data_base_shared_memory_analysis;
     }
 
 	return 0;
