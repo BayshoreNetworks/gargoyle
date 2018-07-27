@@ -597,8 +597,6 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 	return 0;
 }
 
-size_t sqlite_add_detected_hosts_all(size_t ix, size_t host_ix, time_t, char *);
-
 size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
     char cwd[SQL_CMD_MAX/2];
@@ -2076,6 +2074,4 @@ size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, 
 	sqlite3_close(db);
 
 	return ret;
-
 }
-

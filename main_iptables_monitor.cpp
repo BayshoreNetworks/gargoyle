@@ -113,7 +113,7 @@ void run_monitor() {
 
 	if(data_base_shared_memory_analysis != nullptr){
 		string query = "SELECT * FROM detected_hosts";
-		resp3 == data_base_shared_memory_analysis->detected_hosts->SELECT(l_hosts3, query);
+		resp3 = data_base_shared_memory_analysis->detected_hosts->SELECT(l_hosts3, query);
 	}else{
 		resp3 = sqlite_get_detected_hosts_all(l_hosts3, dst_buf_sz, DB_LOCATION);
 	}
