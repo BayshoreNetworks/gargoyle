@@ -74,11 +74,11 @@ Required libs
 
 	Debian variant:
 
-		sudo apt-get install sqlite3 libsqlite3-dev autoconf lsb-base libnetfilter-log-dev libpcap-dev
+		sudo apt-get install sqlite3 libsqlite3-dev autoconf lsb-base libnetfilter-log-dev libpcap-dev libpcre++-dev
 
 	Fedora:
 
-		sudo dnf install sqlite3 libsqlite3x-devel autoconf redhat-lsb-core libnetfilter_log-devel libpcap-dev
+		sudo dnf install sqlite3 libsqlite3x-devel autoconf redhat-lsb-core libnetfilter_log-devel libpcap-dev pcre-devel
 
 
 Database:
