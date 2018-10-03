@@ -37,9 +37,17 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([strchr strstr malloc free atoi snprintf strncat strtok_r])
 
+AC_ARG_WITH([libpcre],
+	    	[  --with-libpcre	Use libpcrecpp for regular expressions],
+		[AC_DEFINE([USE_LIBPCRECPP],[1],[Use libpcrecpp])],
+		[enable_pcrecpp=yes])
+
+AM_CONDITIONAL([ENABLE_LIBPCRECPP], [test "$enable_pcrecpp"="yes"])
+
 GARG_CPPFLAGS="-std=c++11 -Ilib"
 
 AC_SUBST([AM_CXXFLAGS], [-std=c++11])
+AC_SUBST([ENABLE_LIBPCRECPP])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
