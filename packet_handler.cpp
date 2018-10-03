@@ -1686,7 +1686,9 @@ int GargoylePscandHandler::add_host(const char *source_ip, const char *db_locati
 		time_t now = time(nullptr);
 		record.first_seen = now;
 		record.last_seen = now;
-		status = gargoyle_data_base_shared_memory->hosts->INSERT(record);
+		if((status = gargoyle_data_base_shared_memory->hosts->INSERT(record)) == 0){
+			status = get_host_ix(record.host, db_location);
+		}
 	}
 	return status;
 

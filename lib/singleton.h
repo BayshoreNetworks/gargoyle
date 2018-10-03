@@ -29,6 +29,7 @@
  *****************************************************************************/
 
 #include <cstring>
+#include <sstream>
 
 class SingletonProcess {
 public:

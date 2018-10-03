@@ -44,7 +44,6 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
-#include <regex>
 #include <vector>
 #include <csignal>
 #include <map>
@@ -53,6 +52,14 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+
+#include "config.h"
+
+#ifdef USE_LIBPCRECPP
+#include <pcrecpp.h>
+#else
+#include <regex>
+#endif
 
 #include "ip_addr_controller.h"
 #include "sqlite_wrapper_api.h"
@@ -155,7 +162,7 @@ std::string hunt_for_ip_addr(const std::string &line, const char& c) {
 }
 
 
-
+#ifndef USE_LIBPCRECPP
 int handle_log_line(const std::string &line) {
 
 	//std::cout << "LINE: " << line << std::endl;
@@ -280,7 +287,114 @@ int handle_log_line(const std::string &line) {
 
 	return 0;
 }
+#else
+int handle_log_line(const std::string &line) {
 
+	//std::cout << "LINE: " << line << std::endl;
+
+	std::string ip_addr;
+	/*
+	 * handle instant block regexes first
+	 */
+	pcrecpp::RE invalid_user("Failed keyboard-interactive/pam for invalid user .* from (.*)\\\\s*");
+	pcrecpp::RE max_exceeded("error: maximum authentication attempts exceeded for .* from (.*) port");
+	// fatal: Unable to negotiate with 103.207.39.148 port 56169: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1 [preauth]
+	pcrecpp::RE bad_algo("Unable to negotiate with (.*) port");
+
+	if (max_exceeded.PartialMatch(line, &ip_addr)) {
+
+		// if we are here then do an instant block because sshd already did
+		// the work for us of detecting too many login attempts
+
+		//std::cout << "TESTING MAX EXCEEDED" << std::endl;
+		//std::cout << "INSTANT BLOCK HERE - " << ip_addr << std::endl;
+
+		if (validate_ip_address(ip_addr)) {
+
+				do_block_actions(ip_addr,
+					50,
+					DB_LOCATION,
+					IPTABLES_SUPPORTS_XLOCK,
+					ENFORCE,
+					(void *)gargoyle_sshbf_whitelist_shm,
+					DEBUG,
+					"",
+					data_base_shared_memory_analysis
+				);
+
+		}
+
+		return 0;
+
+	} else if (invalid_user.PartialMatch(line, &ip_addr)) {
+
+		//std::cout << "TESTING INVALID USER: " << ip_addr << std::endl;
+
+		if (validate_ip_address(ip_addr)) {
+
+			handle_ip_addr(ip_addr);
+
+		} else {
+
+			std::string hip = hunt_for_ip_addr(ip_addr, ' ');
+			/*
+			 * this is a hackjob because when reading output
+			 * from journalctl the regex doesnt seem to work
+			 * as expected (but when tailing a standard log
+			 * file it does work)
+			 */
+			// the hack found an ip addr
+			if (hip.size()) {
+
+				handle_ip_addr(hip);
+
+			}
+		}
+
+		return 0;
+
+	} else if (bad_algo.PartialMatch(line, &ip_addr)) {
+
+		//std::cout << "TESTING BAD ALGO: " << ip_addr << std::endl;
+
+		if (validate_ip_address(ip_addr)) {
+
+			handle_ip_addr(ip_addr);
+
+		}
+
+		return 0;
+
+	} else {
+
+		if (sshd_regexes.size() > 0) {
+
+			for(std::vector<std::string>::iterator it = sshd_regexes.begin(); it != sshd_regexes.end(); ++it) {
+
+				//std::cout << *it << std::endl; //; ... */
+
+				pcrecpp::RE testreg(*it);
+
+				//std::cout << "SZ: " << match.size() << std::endl;
+
+				//std::cout << "Line: " << line << " @ " << *it << std::endl;
+				if (testreg.PartialMatch(line, &ip_addr)) {
+
+					//std::cout << "TESTING PROVIDED REGEXEs: " << ip_addr << std::endl;
+					if (validate_ip_address(ip_addr)) {
+
+						handle_ip_addr(ip_addr);
+
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+#endif
 
 
 void process_iteration(int num_seconds, int num_hits) {

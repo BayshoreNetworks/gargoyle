@@ -112,7 +112,17 @@ int do_block_actions(const std::string &the_ip,
 	int host_ix;
 	host_ix = 0;
 
-	host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
+	if(data_base_shared_memory != nullptr){
+		char result[SMALL_DEST_BUF];
+		memset(result, 0, SMALL_DEST_BUF);
+		string query = "SELECT ix FROM hosts_table WHERE host=" + the_ip;
+		if((host_ix = data_base_shared_memory->hosts->SELECT(result, query)) != -1){
+			host_ix = atol(result);
+		}
+	}else{
+		host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
+	}
+
 	if (host_ix == 0)
 		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug, data_base_shared_memory);
 
