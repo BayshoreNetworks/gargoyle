@@ -63,6 +63,7 @@
 #include "string_functions.h"
 #include "ip_addr_controller.h"
 #include "system_functions.h"
+#include "pcap/pcap_processing.h"
 
 #define IP_MAX_LENGTH    0xFFFF
 
@@ -563,7 +564,7 @@ int main(int argc, char *argv[]){
         pDir = opendir(argv[1]);
 
         if(pDir == nullptr && fdPcap == nullptr){
-            std::cerr << "main, opendir, " << argv[1];
+            std::cerr << "gargoyle_pscand_pcap:main, opendir, " << argv[1];
             perror("");
             std::cerr << "pcap file -> " << errbuf << endl;
             exit(1);
@@ -720,7 +721,7 @@ int main(int argc, char *argv[]){
          * get ports to ignore from
          * system
          */
-        get_ports_to_ignore();
+        // get_ports_to_ignore();
 
         std::stringstream ss;
         int l_cnt = 1;
@@ -824,34 +825,9 @@ int main(int argc, char *argv[]){
     gargoyleHandler.set_db_location(DB_LOCATION);
     gargoyleHandler.set_debug(DEBUG);
 
-    int numPacketInPcap;
-    const unsigned char *packet;
-    struct pcap_pkthdr *header;
-    struct tm *time;
-    struct timeval previousTimeStamp{0, 0}, packetTimeStamp, timeBetweenPackets;
-
     if(pDir == nullptr){
-         while(pcap_next_ex(fdPcap, &header, &packet) >= 0){
-             packetTimeStamp.tv_sec = header->ts.tv_sec;
-             packetTimeStamp.tv_usec = header->ts.tv_usec;
-             time = localtime(&packetTimeStamp.tv_sec);
-             if(DEBUG){
-                 std::cout << "Extract packet " << ++numPacketInPcap << " " << setfill('0') << setw(2) << time->tm_hour << ":" << setw(2) << time->tm_min << ":" <<
-                     setw(2) << time->tm_sec << ":" << setw(3) <<  (packetTimeStamp.tv_usec/1000) << std::endl;
-             }
-             if(previousTimeStamp.tv_sec == 0 && previousTimeStamp.tv_usec == 0){
-                 timeBetweenPackets.tv_sec = 0;
-                 timeBetweenPackets.tv_usec = 0;
-             }else{
-                 timersub(&packetTimeStamp, &previousTimeStamp, &timeBetweenPackets);
-             }
-             // we sleep between package and package
-             usleep(timeBetweenPackets.tv_sec*1000000 + timeBetweenPackets.tv_usec);
-             GargoylePscandHandler::packet_handler_pcap(const_cast<unsigned char *>(packet), header->caplen, &gargoyleHandler);
-             previousTimeStamp.tv_sec = packetTimeStamp.tv_sec;
-             previousTimeStamp.tv_usec = packetTimeStamp.tv_usec;
-         }
-         pcap_close(fdPcap);
+		pcap_processing::process_messages_in_pcap(fdPcap, gargoyleHandler, DEBUG);
+		pcap_close(fdPcap);
     }else{
         struct dirent *directoryEntry;
         const unsigned char *packet;
@@ -860,6 +836,7 @@ int main(int argc, char *argv[]){
         while((directoryEntry = readdir(pDir)) != NULL){
             pathPcap = string(argv[1]) + "/" + string(directoryEntry->d_name);
             fdPcap = pcap_open_offline(pathPcap.c_str(), errbuf);
+            // Only pcap files will be processed (cap, pcap, pcapng, etc.)
             if(fdPcap != NULL){
                 mapNamefilePcapt.insert(pair<string, pcap_t *>(directoryEntry->d_name, fdPcap));
             }
@@ -868,31 +845,7 @@ int main(int argc, char *argv[]){
         if(mapNamefilePcapt.size() > 0){
             for(auto i : mapNamefilePcapt){
                 std::cout << std::endl << std::endl << "Processing " << i.first << std::endl;
-                numPacketInPcap = 0;
-                previousTimeStamp.tv_sec = 0;
-                previousTimeStamp.tv_usec = 0;
-
-                while (pcap_next_ex(i.second, &header, &packet) >= 0){
-                    packetTimeStamp.tv_sec = header->ts.tv_sec;
-                    packetTimeStamp.tv_usec = header->ts.tv_usec;
-                     time = localtime(&packetTimeStamp.tv_sec);
-                     if(DEBUG){
-                         std::cout << "Extract packet " << ++numPacketInPcap << " " << setfill('0') << setw(2) << time->tm_hour << ":" << setw(2) << time->tm_min << ":" <<
-                                 setw(2) << time->tm_sec << ":" << setw(3) <<  (packetTimeStamp.tv_usec/1000) << std::endl;
-                    }
-                    if(previousTimeStamp.tv_sec == 0 && previousTimeStamp.tv_usec == 0){
-                        timeBetweenPackets.tv_sec = 0;
-                        timeBetweenPackets.tv_usec = 0;
-                    }else{
-                        timersub(&packetTimeStamp, &previousTimeStamp, &timeBetweenPackets);
-                    }
-
-                    usleep(timeBetweenPackets.tv_sec*1000000 + timeBetweenPackets.tv_usec);
-                    GargoylePscandHandler::packet_handler_pcap(const_cast<unsigned char *>(packet), header->caplen, &gargoyleHandler);
-
-                    previousTimeStamp.tv_sec = packetTimeStamp.tv_sec;
-                    previousTimeStamp.tv_usec = packetTimeStamp.tv_usec;
-                }
+            	pcap_processing::process_messages_in_pcap(i.second, gargoyleHandler, DEBUG);
                 pcap_close(i.second);
             }
         }else{

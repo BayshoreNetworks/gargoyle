@@ -138,8 +138,14 @@ int do_block_actions(const std::string &the_ip,
 					 * this check is necessary in order to not have duplicates
 					 * in our iptables chain
 					 */
-					if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0) {
-						ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+					if(is_host_detected(host_ix, db_loc.c_str()) == 0){
+						if(do_enforce){
+							ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
+						}else{
+							if(debug){
+								syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %s", GARGOYLE_DEBUG, "Added IP: ", the_ip.c_str(), "to Chain: ", GARGOYLE_CHAIN_NAME);
+							}
+						}
 
 						if (debug) {
 							if (ret == 0) {
