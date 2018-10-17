@@ -75,7 +75,8 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 size_t LAST_SEEN_THRESHOLD = 432000;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
-const char *GARG_ANALYSIS_PROGNAME = "Gargoyle Pscand Analysis";
+const char *GARG_ANALYSIS_PROGNAME_META = "Gargoyle Pscand Analysis";
+const char *GARG_ANALYSIS_PROGNAME = "gargoyle_pscand_analysis";
 SharedIpConfig *gargoyle_analysis_whitelist_shm = NULL;
 
 DataBase *data_base_shared_memory_analysis = nullptr;
@@ -90,6 +91,11 @@ void query_for_multiple_ports_hits_last_seen();
 void run_analysis();
 void clean_up_stale_data();
 void clean_up_iptables_dupe_data();
+
+
+void usage() {
+    std::cerr << std::endl << "Usage: ./" <<  GARG_ANALYSIS_PROGNAME << " [-v | --version] [-s | --shared_memory]" << std::endl << std::endl << std::endl;
+}
 
 
 void handle_signal (int signum) {
@@ -753,9 +759,9 @@ int main(int argc, char *argv[]) {
      * maybe we replace this in the future ...
      */
     if (argc > 2 || argc < 1) {
-    	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
-		std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
-    	return 1;
+    	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME_META << " - Argument errors, exiting ..." << std::endl << std::endl;
+		usage();
+        return 1;
 
     } else if (argc == 2) {
 
@@ -764,12 +770,12 @@ int main(int argc, char *argv[]) {
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
-    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
-    	else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
+        } else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))) {
     	    data_base_shared_memory_analysis = DataBase::create();
-    	}else {
-			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
-    		return 0;
+    	} else {
+			usage();
+            return 0;
     	}
     }
 
@@ -794,11 +800,11 @@ int main(int argc, char *argv[]) {
 	SingletonProcess singleton(analysis_port);
 	try {
 		if (!singleton()) {
-			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+			syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", GARG_ANALYSIS_PROGNAME, ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 			return 1;
 		}
 	} catch (std::runtime_error& e) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", "gargoyle_pscand_analysis", ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
+		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s", GARG_ANALYSIS_PROGNAME, ALREADY_RUNNING, (singleton.GetLockFileName()).c_str());
 		return 1;
 	}
 
