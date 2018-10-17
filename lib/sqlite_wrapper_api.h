@@ -98,7 +98,7 @@ size_t sqlite_get_hosts_blacklist_all(char *, size_t, const char *);
 int sqlite_is_host_blacklisted(int, const char *);
 int sqlite_remove_host_from_blacklist(int, const char *);
 ///////////////////////////////////////////////////////////////////////
-int sqlite_get_all_igonre_or_black_ip_list(char *, size_t, const char *, const char *);
+int sqlite_get_all_ignore_or_black_ip_list(char *, size_t, const char *, const char *);
 ///////////////////////////////////////////////////////////////////////
 void sqlite_reset_autoincrement(const char *, const char *);
 size_t sqlite_remove_all(const char *db_loc, const char *table);

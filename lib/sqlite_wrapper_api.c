@@ -1406,7 +1406,7 @@ size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_l
 }
 
 
-int sqlite_get_all_igonre_or_black_ip_list(char *dst, size_t sz_dst, const char *db_loc, const char *table){
+int sqlite_get_all_ignore_or_black_ip_list(char *dst, size_t sz_dst, const char *db_loc, const char *table) {
 
     char cwd[SQL_CMD_MAX/2];
     char DB_LOCATION[SQL_CMD_MAX+1];
@@ -1433,7 +1433,7 @@ int sqlite_get_all_igonre_or_black_ip_list(char *dst, size_t sz_dst, const char 
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_all_igonre_or_black_ip_list]: %s", DB_LOCATION, sqlite3_errmsg(db));
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_all_ignore_or_black_ip_list]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
