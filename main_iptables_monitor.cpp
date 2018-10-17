@@ -59,12 +59,18 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 bool ENFORCE = true;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
-const char *GARG_MONITOR_PROGNAME = "Gargoyle Pscand Monitor";
+const char *GARG_MONITOR_PROGNAME_META = "Gargoyle Pscand Monitor";
+const char *GARG_MONITOR_PROGNAME = "gargoyle_pscand_monitor";
 SharedIpConfig *gargoyle_monitor_blacklist_shm = NULL;
 
 volatile sig_atomic_t stop;
 
 DataBase *data_base_shared_memory_analysis = nullptr;
+
+
+void usage() {
+    std::cerr << std::endl << "Usage: ./" <<  GARG_MONITOR_PROGNAME << " [-v | --version] [-s | --shared_memory]" << std::endl << std::endl << std::endl;
+}
 
 
 void handle_signal (int signum) {
@@ -321,9 +327,9 @@ int main(int argc, char *argv[]) {
      */
     if (argc > 2 || argc < 1) {
 
-    	std::cerr << std::endl << GARG_MONITOR_PROGNAME << " - Argument errors, exiting ..." << std::endl << std::endl;
-		std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
-    	return 1;
+    	std::cerr << std::endl << GARG_MONITOR_PROGNAME_META << " - Argument errors, exiting ..." << std::endl << std::endl;
+		usage();
+		return 1;
 
     } else if (argc == 2) {
 
@@ -332,12 +338,12 @@ int main(int argc, char *argv[]) {
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
     		return 0;
-    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) { }
-		else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
+		} else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))) {
 			data_base_shared_memory_analysis = DataBase::create();
-		}else {
-			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
-    		return 0;
+		} else {
+			usage();
+			return 0;
     	}
     }
 
