@@ -374,7 +374,7 @@ void do_block_action_output(const std::string &the_ip,
 
 	syslog_line << " " << ENFORCE_STATE_SYSLOG << "=\"" << enforce_state << "\"";
 
-	syslog(LOG_INFO | LOG_LOCAL6, syslog_line.str().c_str());
+	syslog(LOG_INFO | LOG_LOCAL6, "%s", syslog_line.str().c_str());
 
 }
 
