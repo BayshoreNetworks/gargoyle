@@ -186,7 +186,7 @@ void query_for_single_port_hits_last_seen() {
 		if(data_base_shared_memory_analysis != nullptr){
 			char query[SQL_CMD_MAX];
 			memset(l_hosts, 0, SMALL_DEST_BUF);
-			sprintf(query, "SELECT * FROM hosts_ports_hits WHERE port_number=%d AND hit_count>=%d", atoi(token1), PORT_SCAN_THRESHOLD);
+			sprintf(query, "SELECT * FROM hosts_ports_hits WHERE port_number=%d AND hit_count>=%zu", atoi(token1), PORT_SCAN_THRESHOLD);
 			data_base_shared_memory_analysis->hosts_ports_hits->SELECT(l_hosts, query);
 		}else{
 			sqlite_get_all_host_one_port_threshold(atoi(token1), PORT_SCAN_THRESHOLD, l_hosts, list_hosts_dst_sz, DB_LOCATION);
