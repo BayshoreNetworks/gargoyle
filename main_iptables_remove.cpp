@@ -60,6 +60,7 @@ size_t IPTABLES_SUPPORTS_XLOCK;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
 SharedIpConfig *gargoyle_monitor_blacklist_shm = NULL;
+SharedIpConfig *gargoyle_whitelist_shm = nullptr;
 DataBase *data_base_shared_memory_analysis = nullptr;
 
 bool validate_ip_addr(std::string ip_addr)
@@ -69,7 +70,7 @@ bool validate_ip_addr(std::string ip_addr)
     return result != 0;
 }
 
-void insert_ignore_ip_table(int host_ix, size_t tstamp){
+void insert_ignore_ip_table(int host_ix, size_t tstamp, char *ip){
 	if(data_base_shared_memory_analysis != nullptr){
 		Ignore_IP_List_Record record;
 		record.host_ix = host_ix;
@@ -78,6 +79,7 @@ void insert_ignore_ip_table(int host_ix, size_t tstamp){
 	}else{
 		sqlite_add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
 	}
+	gargoyle_whitelist_shm->Add(string(ip));
 }
 
 void reset_last_seen_host_table(int host_ix, int last_seen){
@@ -151,6 +153,8 @@ int main(int argc, char *argv[])
 			std::cout << std::endl << "Usage: ./gargoyle_pscand_unblockip [-s | --shared_memory ] <ip_addr>" << std::endl << std::endl;
 			exit(1);
 	}
+
+	gargoyle_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 
 	if (validate_ip_addr(ip)) {
 
@@ -240,7 +244,7 @@ int main(int argc, char *argv[])
 						time_t t_now = time(NULL);
 
 						if (t_now > 0) {
-							insert_ignore_ip_table(host_ix, t_now);
+							insert_ignore_ip_table(host_ix, t_now, ip);
 							// reset last_seen to 1972 01/01/1972 00:00:00 UTC -> 63072000
 							reset_last_seen_host_table(host_ix, 63072000);
 
@@ -259,7 +263,7 @@ int main(int argc, char *argv[])
 			int ix_hosts_table = add_ip_to_hosts_table(ip, DB_LOCATION, DEBUG, data_base_shared_memory_analysis);
 			time_t t_now = time(nullptr);
 			if(ix_hosts_table > 0 && t_now > 0){
-				insert_ignore_ip_table(ix_hosts_table, t_now);
+				insert_ignore_ip_table(ix_hosts_table, t_now, ip);
 				// reset last_seen to 1972 01/01/1972 00:00:00 UTC -> 63072000
 				reset_last_seen_host_table(ix_hosts_table, 63072000);
 			}
@@ -269,6 +273,10 @@ int main(int argc, char *argv[])
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
         //gargoyle_monitor_blacklist_shm;
+    }
+
+    if(gargoyle_whitelist_shm != nullptr) {
+        delete gargoyle_whitelist_shm;
     }
 
 	return 0;
