@@ -69,6 +69,28 @@ bool validate_ip_addr(std::string ip_addr)
     return result != 0;
 }
 
+void insert_ignore_ip_table(int host_ix, size_t tstamp){
+	if(data_base_shared_memory_analysis != nullptr){
+		Ignore_IP_List_Record record;
+		record.host_ix = host_ix;
+		record.timestamp = tstamp;
+		data_base_shared_memory_analysis->ignore_ip_list->INSERT(record);
+	}else{
+		sqlite_add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
+	}
+}
+
+void reset_last_seen_host_table(int host_ix, int last_seen){
+	// reset last_seen to 1972
+	if(data_base_shared_memory_analysis != nullptr){
+		Hosts_Record record;
+		record.ix = host_ix;
+		record.last_seen = last_seen;
+		data_base_shared_memory_analysis->hosts->UPDATE(record);
+	}else{
+		sqlite_update_host_last_seen(host_ix, DB_LOCATION);
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -218,42 +240,31 @@ int main(int argc, char *argv[])
 						time_t t_now = time(NULL);
 
 						if (t_now > 0) {
-
-							size_t tstamp = t_now;
-
-							// add to ignore ip table
-							if(data_base_shared_memory_analysis != nullptr){
-								Ignore_IP_List_Record record;
-								record.host_ix = host_ix;
-								record.timestamp = tstamp;
-								data_base_shared_memory_analysis->ignore_ip_list->INSERT(record);
-							}else{
-								sqlite_add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
-							}
-
-							// reset last_seen to 1972
-							if(data_base_shared_memory_analysis != nullptr){
-								Hosts_Record record;
-								record.ix = host_ix;
-								// 01/01/1972 00:00:00 UTC
-								record.last_seen = 63072000;
-								data_base_shared_memory_analysis->hosts->UPDATE(record);
-							}else{
-								sqlite_update_host_last_seen(host_ix, DB_LOCATION);
-							}
+							insert_ignore_ip_table(host_ix, t_now);
+							// reset last_seen to 1972 01/01/1972 00:00:00 UTC -> 63072000
+							reset_last_seen_host_table(host_ix, 63072000);
 
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-							do_unblock_action_output(ip, (int) tstamp, ENFORCE);
+							do_unblock_action_output(ip, (int) t_now, ENFORCE);
 
 						}
 					}
 				}
 			}
-
+			/*
+			 * GARG-82 -> We also want to be able to whitelist an ip address that has not been seen before
+			 * (not only when this IP is blocked (IPTables) and we want to whitelisted)
+			 */
+			int ix_hosts_table = add_ip_to_hosts_table(ip, DB_LOCATION, DEBUG, data_base_shared_memory_analysis);
+			time_t t_now = time(nullptr);
+			if(ix_hosts_table > 0 && t_now > 0){
+				insert_ignore_ip_table(ix_hosts_table, t_now);
+				// reset last_seen to 1972 01/01/1972 00:00:00 UTC -> 63072000
+				reset_last_seen_host_table(ix_hosts_table, 63072000);
+			}
 		}
 	}
-
 
     if(gargoyle_monitor_blacklist_shm) {
         delete gargoyle_monitor_blacklist_shm;
