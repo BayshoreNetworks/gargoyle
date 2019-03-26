@@ -46,3 +46,6 @@ gargoyle_view_shared_mem_SOURCES = lib/shared_config.cpp lib/shared_mem.cpp view
 gargoyle_regex_tester_SOURCES = gargoyle_regex_tester.cpp
 
 gargoyle_shared_memory_data_base_to_sqlite_SOURCES = lib/sqlite_wrapper_api.c lib/data_base.cpp lib/shared_mem.cpp main_shared_memory_data_base_to_sqlite.cpp
+
+gargoyle_shared_memory_data_base_SOURCES = lib/data_base.cpp lib/shared_mem.cpp
+
