@@ -16,7 +16,8 @@ bin_PROGRAMS = gargoyle_pscand \
 				gargoyle_lscand_bruteforce \
 				gargoyle_lscand_bruteforce_detect \
 				gargoyle_view_shared_mem \
-				gargoyle_regex_tester
+				gargoyle_regex_tester \
+				gargoyle_shared_memory_data_base_to_sqlite
 				
 gargoyle_pscand_SOURCES = lib/iptables_wrapper_api.c lib/sqlite_wrapper_api.c ip_addr_controller.cpp packet_handler.cpp lib/shared_config.cpp lib/shared_mem.cpp lib/data_base.cpp main_daemon.cpp
 
@@ -44,5 +45,4 @@ gargoyle_view_shared_mem_SOURCES = lib/shared_config.cpp lib/shared_mem.cpp view
 
 gargoyle_regex_tester_SOURCES = gargoyle_regex_tester.cpp
 
-
-
+gargoyle_shared_memory_data_base_to_sqlite_SOURCES = lib/sqlite_wrapper_api.c lib/data_base.cpp lib/shared_mem.cpp main_shared_memory_data_base_to_sqlite.cpp

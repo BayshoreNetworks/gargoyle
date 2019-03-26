@@ -321,7 +321,15 @@ public:
 		}
 	}
 
+	size_t get_shared_memory_data_base_to_sqlite_time(){
 
+		string shared_memory_data_base_to_sqlite_time = "shared_memory_data_base_to_sqlite_time";
+		if(key_vals.find(shared_memory_data_base_to_sqlite_time) == key_vals.end()){
+			return -1;
+		} else {
+			return atoi(key_vals[shared_memory_data_base_to_sqlite_time].c_str());
+		}
+	}
 private:
 
 	map<string,string> key_vals;

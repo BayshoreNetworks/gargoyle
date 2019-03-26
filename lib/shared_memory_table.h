@@ -30,16 +30,17 @@
 #ifndef SHARED_MEMORY_TABLE_H
 #define SHARED_MEMORY_TABLE_H
 
-#include <string>
-#include <cstdint>
-#include <cstring>
-#include <iostream>
+#include "shared_mem.h"
+
 #include <assert.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
 
-#include "shared_mem.h"
+#include <string>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
 
 #define MAXIMUM_TRIES    100
 #define TIMEOUT_MILISECONDS   100
@@ -81,10 +82,11 @@ class SharedMemoryTable{
     public:
         SharedMemoryTable(std::string name, size_t starting_num);
         virtual ~SharedMemoryTable();
-        virtual int32_t INSERT(TypeRecord &entry) = 0;
+        virtual int32_t INSERT(TypeRecord entry) = 0;
         virtual int32_t DELETE(const std::string &query) = 0;
         virtual int32_t SELECT(char *result, const std::string &query) = 0;
         virtual int32_t UPDATE(const TypeRecord &entry) = 0;
+        virtual uint32_t getPositionByKey(const uint32_t) = 0;
         void TRUNCATE();
 };
 
@@ -98,14 +100,19 @@ SharedMemoryTable<TypeRecord>::~SharedMemoryTable(){
      * If the process has the mutex locked, this should unlocked and permit
      * others process can access to shared memory
      */
-	if(islocked){
-		pthread_mutex_trylock(&hdr->mutex);
-		pthread_mutex_unlock(&hdr->mutex);
-	}
+    if(islocked){
+        pthread_mutex_trylock(&hdr->mutex);
+        /*
+         * In this point the mutex will always be locked. is_looked is set to false after unlocking
+         * so it can happen that the mutex is unlock and is_locked is still true. This is the reason
+         * why pthread_mutex_trylock is called here
+         */
+        pthread_mutex_unlock(&hdr->mutex);
+    }
 
-	if(region != nullptr){
-		delete region;
-	}
+    if(region != nullptr){
+        delete region;
+    }
 }
 
 template <typename TypeRecord>
@@ -126,7 +133,7 @@ int32_t SharedMemoryTable<TypeRecord>::init() {
              * The region is new so update the shared capacity level for other processes
              * to observe
              */
-        	hdr->next_ix = 0;
+            hdr->next_ix = 0;
             hdr->capacity = local_capacity;
             assert(!pthread_mutexattr_init(&attrmutex));
             assert(!pthread_mutexattr_setpshared(&attrmutex, PTHREAD_PROCESS_SHARED));
@@ -157,7 +164,7 @@ int32_t SharedMemoryTable<TypeRecord>::compareAndExpand() {
 
 template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::lock(){
-	islocked = true;
+    islocked = true;
     int32_t loocked = 0;
     int count = 0;
     int result;
@@ -187,7 +194,7 @@ int32_t SharedMemoryTable<TypeRecord>::lock(){
         if(count){
             usleep(TIMEOUT_MILISECONDS * 1000);
         }
-        if(result != EBUSY){
+        if(result == EBUSY){
             count++;
         }
     } while(count < MAXIMUM_TRIES);
@@ -223,10 +230,10 @@ size_t SharedMemoryTable<TypeRecord>::size() const{
 
 template <typename TypeRecord>
 void SharedMemoryTable<TypeRecord>::TRUNCATE(){
-	if(lock() == 0){
-	    hdr->next_ix = 0;
-	    unlock();
-	}
+    if(lock() == 0){
+        hdr->next_ix = 0;
+        unlock();
+    }
 }
 
 template <typename TypeRecord>
@@ -243,59 +250,56 @@ TypeRecord *SharedMemoryTable<TypeRecord>::end() const{
 
 template <typename TypeRecord>
 bool SharedMemoryTable<TypeRecord>::isIn(TypeRecord *record) const{
-	return (record >= begin()) && (record < end());
+    return (record >= begin()) && (record < end());
 }
 
 template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::pushBack(const TypeRecord &record){
-	if(!hasCapacity()) {
-		hdr->capacity += step;
-		local_capacity = hdr->capacity;
-		if(region->Resize(sizeof(Header) + local_capacity * sizeof(TypeRecord)) < 0){
-			return -1;
-		}else{
-			loadHeader();
-		}
-	}
-	memcpy(end(), &record, sizeof(TypeRecord));
-	hdr->next_ix++;
-	return 0;
+    if(!hasCapacity()) {
+        hdr->capacity += step;
+        local_capacity = hdr->capacity;
+        if(region->Resize(sizeof(Header) + local_capacity * sizeof(TypeRecord)) < 0){
+            return -1;
+        }else{
+            loadHeader();
+        }
+    }
+    memcpy(end(), &record, sizeof(TypeRecord));
+    hdr->next_ix++;
+    return 0;
 }
 
 template <typename TypeRecord>
-void SharedMemoryTable<TypeRecord>::insertById(const TypeRecord &record, const uint32_t pos){
-	memcpy(begin() + pos -1, &record, sizeof(TypeRecord));
+void SharedMemoryTable<TypeRecord>::insertById(const TypeRecord &record, const uint32_t index){
+    memcpy(begin() + index -1, &record, sizeof(TypeRecord));
 }
 
 template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::getRecordByPos(TypeRecord &record, uint32_t index){
-	int32_t status = 0;
-	if(index < size()){
-		memcpy(&record, begin() + index, sizeof(TypeRecord));
-	}else{
-		status = -1;
-	}
-	return status;
+    int32_t status = 0;
+    if(index <= size()){
+        memcpy(&record, begin() + index - 1, sizeof(TypeRecord));
+    }else{
+        status = -1;
+    }
+    return status;
 }
 
 template <typename TypeRecord>
 int32_t SharedMemoryTable<TypeRecord>::deleteRecordByPos(uint32_t index){
-	int32_t status = 0;
-	if(index < size()){
-		index--;
-		memmove(begin() + index, begin()+ index + 1, sizeof(TypeRecord)*(size() - index - 1));
-		hdr->next_ix--;
-	}else{
-		status = -1;
-	}
-	return status;
+    int32_t status = 0;
+    if(index <= size()){
+        memmove(begin() + index - 1, begin() + index, sizeof(TypeRecord)*(size() - index));
+        hdr->next_ix--;
+    }else{
+        status = -1;
+    }
+    return status;
 }
 
 template <typename TypeRecord>
 void SharedMemoryTable<TypeRecord>::deleteAll(){
-	hdr->next_ix = 0;
+    hdr->next_ix = 0;
 }
 
 #endif
-
-

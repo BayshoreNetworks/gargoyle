@@ -1617,7 +1617,7 @@ void GargoylePscandHandler::sqlite_to_shared_memory(){
 
 	// black_ip_list
 	Black_IP_List_Record black_ip_list_record;
-	status = sqlite_get_all_igonre_or_black_ip_list(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str(), black_ip_list_table);
+	status = sqlite_get_all_ignore_or_black_ip_list(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str(), black_ip_list_table);
 	if(status == 0) {
 		token1 = strtok_r(buffer, tok1, &token1_save);
 		while (token1 != NULL) {
@@ -1641,7 +1641,7 @@ void GargoylePscandHandler::sqlite_to_shared_memory(){
 
 	// ignore_ip_list
 	Ignore_IP_List_Record ignore_ip_list_record;
-	status = sqlite_get_all_igonre_or_black_ip_list(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str(), ignore_ip_list_table);
+	status = sqlite_get_all_ignore_or_black_ip_list(buffer, MEDIUM_DEST_BUF, DB_LOCATION.c_str(), ignore_ip_list_table);
 	if(status == 0) {
 		token1 = strtok_r(buffer, tok1, &token1_save);
 		while (token1 != NULL) {
@@ -1686,7 +1686,9 @@ int GargoylePscandHandler::add_host(const char *source_ip, const char *db_locati
 		time_t now = time(nullptr);
 		record.first_seen = now;
 		record.last_seen = now;
-		status = gargoyle_data_base_shared_memory->hosts->INSERT(record);
+		if((status = gargoyle_data_base_shared_memory->hosts->INSERT(record)) == 0){
+			status = get_host_ix(record.host, db_location);
+		}
 	}
 	return status;
 

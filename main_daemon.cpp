@@ -88,6 +88,8 @@ DataBase *gargoyle_pscand_data_base_shared_memory = nullptr;
 
 int NFLOG_BIND_GROUP = 5;
 SharedIpConfig *gargoyle_blacklist_shm = NULL;
+
+const char *GARG_PROGNAME = "gargoyle_pscand";
 ///////////////////////////////////////////////////////////////////////////////////
 
 int hex_to_int(const char *);
@@ -104,8 +106,13 @@ void get_local_ip_addrs();
 void get_default_gateway_linux();
 void get_white_list_addrs();
 void get_blacklist_ip_addrs(int);
+void usage();
 
 ///////////////////////////////////////////////////////////////////////////////////
+
+void usage() {
+    std::cerr << std::endl << "Usage: ./" <<  GARG_PROGNAME << " [-v | --version] [-s | --shared_memory]" << std::endl << std::endl << std::endl;
+}
 
 void nfqueue_signal_handler(int signum) {
 	graceful_exit(signum);
@@ -560,8 +567,8 @@ int main(int argc, char *argv[])
     if (argc > 2 || argc < 1) {
 
     	std::cerr << std::endl << GARGOYLE_PSCAND << " - Argument errors, exiting ..." << std::endl << std::endl;
-		std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
-    	return 1;
+		usage();
+		exit(1);
 
     } else if (argc == 2) {
 
@@ -569,15 +576,14 @@ int main(int argc, char *argv[])
 
     	if ((case_insensitive_compare(arg_one.c_str(), "-v")) || (case_insensitive_compare(arg_one.c_str(), "--version"))) {
     		std::cout << std::endl << GARGOYLE_PSCAND << " Version: " << GARGOYLE_VERSION << std::endl << std::endl;
-    		return 0;
+			exit(0);
     	} else if ((case_insensitive_compare(arg_one.c_str(), "-c"))) {
-    	} else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))){
+    	} else if ((case_insensitive_compare(arg_one.c_str(), "-s")) || (case_insensitive_compare(arg_one.c_str(), "--shared_memory"))) {
     		gargoyle_pscand_data_base_shared_memory = DataBase::create();
     		gargoyleHandler.set_data_base_shared_memory(gargoyle_pscand_data_base_shared_memory);
-    	}
-    	else {
-			std::cerr << std::endl << "Usage: ./gargoyle_pscand_pcap [-v | --version] [-s | --shared_memory]" << std::endl << std::endl;
-    		return 0;
+    	} else {
+			usage();
+			exit(1);
     	}
     }
 
