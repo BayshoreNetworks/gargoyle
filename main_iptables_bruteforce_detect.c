@@ -4,7 +4,7 @@
  *
  * Program to spawn off child processes for detection, and blocking, of brute force attack attempts (gargoyle_lscand_bruteforce)
  *
- * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2019, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that

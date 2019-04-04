@@ -4,7 +4,7 @@
  *
  * configuration object for sharing IP addresses between processes
  *
- * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2019, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -36,16 +36,16 @@
 
 /*
  * class LogTail
- * 
+ *
  * Derive from this class in order to perform line-by-line
  * search on a log file. For each line in the log, the
  * OnLine() method is invoked.
- * 
- * Once the whole log file has been processed, 
- * the process waits for meaningful file change and proceeds 
- * where it left off. 
- * If during the lifecycle, logrotate is invoked which allows 
- * the log to be rotated to a new file - this is noted 
+ *
+ * Once the whole log file has been processed,
+ * the process waits for meaningful file change and proceeds
+ * where it left off.
+ * If during the lifecycle, logrotate is invoked which allows
+ * the log to be rotated to a new file - this is noted
  * and the processing starts  * from the beginning of the new file.
  */
 
@@ -59,7 +59,7 @@ public:
 	bool Initialize();
 	bool Initialize(const std::string& name);
 	bool Process(volatile bool & stop);
-	
+
 	virtual void OnLine(const std::string& line) {}
 	virtual void OnFollow() {}
 	virtual void OnRewind() {}
