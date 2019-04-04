@@ -1,0 +1,22 @@
+This README file contains information on the contents of the meta-bayshorenetworks layer.
+
+Please see the corresponding sections below for details.
+
+Dependencies
+============
+
+  URI: git://git.yoctoproject.org/poky
+  branch: sumo
+
+  URI: git://git.openembedded.org/meta-openembedded
+  branch: sumo
+
+Table of Contents
+=================
+
+  I. Adding the meta-bayshorenetworks layer to your build
+
+I. Adding the meta-bayshorenetworks layer to your build
+=================================================
+
+Please, refer to the README.md file

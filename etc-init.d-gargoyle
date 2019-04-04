@@ -67,25 +67,26 @@ case "$1" in
   start)
 #	check_for_upstart 1
 #	check_dev_null
-	log_daemon_msg "Starting Gargoyle Portscan detection daemon" || true
         cd APPDIR
+	VERS=$(./gargoyle_pscand -v |grep Ver |awk {'print $3'})
+	log_daemon_msg "Starting Gargoyle Portscan detection daemon version $VERS" || true
         ./gargoyle_config & 
 	sleep 1
         ./gargoyle_pscand &
 	sleep 4
 
-	log_daemon_msg "Starting Gargoyle Portscan analysis daemon" || true
+	log_daemon_msg "Starting Gargoyle Portscan analysis daemon version $VERS" || true
         ./gargoyle_pscand_analysis &
 
-	log_daemon_msg "Starting Gargoyle Portscan monitoring daemon" || true
+	log_daemon_msg "Starting Gargoyle Portscan monitoring daemon version $VERS" || true
         ./gargoyle_pscand_monitor &
 	
-	log_daemon_msg "Starting Gargoyle Logscan daemon" || true
+	log_daemon_msg "Starting Gargoyle Logscan daemon version $VERS" || true
         ./gargoyle_lscand_bruteforce_detect &
 
         # Only start SSH bruteforce if ssh is running
         if [ "$(ps -ef|grep sshd |grep -v grep)" ];then
-	  log_daemon_msg "Starting Gargoyle Logscan SSH bruteforce daemon" || true
+	  log_daemon_msg "Starting Gargoyle Logscan SSH bruteforce daemon version $VERS" || true
           ./gargoyle_lscand_ssh_bruteforce &
         fi
         

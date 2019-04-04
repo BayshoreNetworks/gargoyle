@@ -30,17 +30,16 @@
 #include <sstream>
 
 #include <syslog.h>
+#include <string>
 
 #include "ip_addr_controller.h"
 #include "sqlite_wrapper_api.h"
 #include "iptables_wrapper_api.h"
 #include "gargoyle_config_vals.h"
 #include "config_variables.h"
-#include "gargoyle_config_vals.h"
 #include "shared_config.h"
 
-
-int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, bool debug) {
+int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, bool debug, DataBase *data_base_shared_memory) {
 
 	int added_host_ix;
 	added_host_ix = 0;
@@ -61,11 +60,39 @@ int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, 
 		 * ip addr in question, so try to get its ix
 		 * value via get_host
 		 */
-		added_host_ix = add_host(the_ip.c_str(), db_loc.c_str());
+		if(data_base_shared_memory != nullptr){
+			Hosts_Record record;
+			record.ix = 0;
+			strcpy(record.host, the_ip.c_str());
+			time_t now = time(nullptr);
+			record.first_seen = now;
+			record.last_seen = now;
+			// Return the state of this operation not the FK of the record if this has been inserted
+			added_host_ix = data_base_shared_memory->hosts->INSERT(record);
+			if(added_host_ix == 0){
+				char result[SMALL_DEST_BUF];
+				memset(result, 0, SMALL_DEST_BUF);
+				string query = "SELECT ix FROM hosts_table WHERE host=" + the_ip;
+				if((added_host_ix = data_base_shared_memory->hosts->SELECT(result, query)) != -1){
+					added_host_ix = atol(result);
+				}
+			}
+		}else{
+			added_host_ix = sqlite_add_host(the_ip.c_str(), db_loc.c_str());
+		}
 		// already exists
 		if (added_host_ix == -1) {
 			// get existing index
-			added_host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
+			if(data_base_shared_memory != nullptr){
+				char result[SMALL_DEST_BUF];
+				memset(result, 0, SMALL_DEST_BUF);
+				string query = "SELECT ix FROM hosts_table WHERE host=" + the_ip;
+				if((added_host_ix = data_base_shared_memory->hosts->SELECT(result, query)) != -1){
+					added_host_ix = atol(result);
+				}
+			}else{
+				added_host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
+			}
 		}
 	}
 	return added_host_ix;
@@ -79,15 +106,26 @@ int do_block_actions(const std::string &the_ip,
 		bool do_enforce,
 		void *g_shared_mem,
 		bool debug,
-		const std::string &config_file_id
+		const std::string &config_file_id,
+		DataBase *data_base_shared_memory
 		) {
 
 	int host_ix;
 	host_ix = 0;
 
-	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
+	if(data_base_shared_memory != nullptr){
+		char result[SMALL_DEST_BUF];
+		memset(result, 0, SMALL_DEST_BUF);
+		string query = "SELECT ix FROM hosts_table WHERE host=" + the_ip;
+		if((host_ix = data_base_shared_memory->hosts->SELECT(result, query)) != -1){
+			host_ix = atol(result);
+		}
+	}else{
+		host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
+	}
+
 	if (host_ix == 0)
-		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug);
+		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug, data_base_shared_memory);
 
 	if (debug) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %s %s %s %d", GARGOYLE_DEBUG, "Attempting to block:", the_ip.c_str(), "Host IX: ", host_ix);
@@ -139,7 +177,18 @@ int do_block_actions(const std::string &the_ip,
 					 * this check is necessary in order to not have duplicates
 					 * in our iptables chain
 					 */
-					if (do_enforce && is_host_detected(host_ix, db_loc.c_str()) == 0) {
+					int ix;
+					if(data_base_shared_memory != nullptr){
+						char result[SMALL_DEST_BUF];
+						memset(result, 0, SMALL_DEST_BUF);
+						string query = "SELECT ix FROM detected_hosts WHERE host_ix=" + host_ix;
+						if((ix = data_base_shared_memory->detected_hosts->SELECT(result, query)) != -1){
+							ix = atol(result);
+						}
+					}else{
+						ix = sqlite_is_host_detected(host_ix, db_loc.c_str());
+					}
+					if (do_enforce && ix == 0) {
 						ret = iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, the_ip.c_str(), iptables_xlock);
 
 						if (debug) {
@@ -156,16 +205,34 @@ int do_block_actions(const std::string &the_ip,
 
 						if (detection_type > 0) {
 
-							do_block_action_output(the_ip, detection_type, tstamp, config_file_id);
+							do_block_action_output(the_ip,
+												detection_type,
+												tstamp,
+												config_file_id,
+												do_enforce
+												);
 
 						} else {
 
-							do_block_action_output(the_ip, 0, tstamp, config_file_id);
+							do_block_action_output(the_ip,
+												0,
+												tstamp,
+												config_file_id,
+												do_enforce
+												);
 
 						}
 
 						// add to DB
-						size_t adh = add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
+						size_t adh;
+						if(data_base_shared_memory != nullptr){
+							Detected_Hosts_Record record;
+							record.host_ix = host_ix;
+							record.timestamp = tstamp;
+							adh = data_base_shared_memory->detected_hosts->INSERT(record);
+						}else{
+							adh = sqlite_add_detected_host(host_ix, (size_t)tstamp, db_loc.c_str());
+						}
 
 						if (debug) {
 							if (adh != 0) {
@@ -200,15 +267,26 @@ int add_to_hosts_port_table(const std::string &the_ip,
 	int the_port,
 	int the_cnt,
 	const std::string &db_loc,
-	bool debug) {
+	bool debug,
+	DataBase *data_base_shared_memory){
 
 	int host_ix;
 	host_ix = 0;
+	if(data_base_shared_memory != nullptr){
+		char result[SMALL_DEST_BUF];
+		memset(result, 0, SMALL_DEST_BUF);
+		string query = "SELECT ix FROM hosts_table WHERE host=" + the_ip;
+		if((host_ix = data_base_shared_memory->hosts->SELECT(result, query)) != -1){
+			host_ix = atol(result);
+		}
+	}else{
+		host_ix = sqlite_get_host_ix(the_ip.c_str(), db_loc.c_str());
+	}
 
-	host_ix = get_host_ix(the_ip.c_str(), db_loc.c_str());
-	if (host_ix == 0)
-		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug);
+	if (host_ix == 0){
+		host_ix = add_ip_to_hosts_table(the_ip, db_loc, debug, data_base_shared_memory);
 
+	}
 	//std::cout << "HOST IX: " << host_ix << std::endl;
 
 	/*
@@ -220,15 +298,40 @@ int add_to_hosts_port_table(const std::string &the_ip,
 
 		int resp;
 		//number of hits registered in the DB
-		resp = get_host_port_hit(host_ix, the_port, db_loc.c_str());
-
-		// new record
-		if (resp == 0) {
-			add_host_port_hit(host_ix, the_port, the_cnt, db_loc.c_str());
-		} else if (resp >= 1) {
-			int u_cnt = resp + the_cnt;
-			update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
+		if(data_base_shared_memory != nullptr){
+			char query[SQL_CMD_MAX];
+			sprintf(query, "SELECT hit_count FROM hosts_ports_hits WHERE host_ix=%d AND port_number=%d", host_ix, the_port);
+			char result[SMALL_DEST_BUF];
+			memset(result, 0, SMALL_DEST_BUF);
+			if((resp = data_base_shared_memory->hosts_ports_hits->SELECT(result, query)) != -1){
+				resp = atol(result);
+			}
+			Hosts_Ports_Hits_Record record;
+			// new record
+			if(resp == -1){
+				record.ix = 0;
+				record.host_ix = host_ix;
+				record.port_number = the_port;
+				record.hit_count = the_cnt;
+				data_base_shared_memory->hosts_ports_hits->INSERT(record);
+			}else if (resp >= 1) {
+				int u_cnt = resp + the_cnt;
+				record.host_ix = host_ix;
+				record.port_number = the_port;
+				record.hit_count = u_cnt;
+				data_base_shared_memory->hosts_ports_hits->UPDATE(record);
+			}
+		}else{
+			resp = sqlite_get_host_port_hit(host_ix, the_port, db_loc.c_str());
+			// new record
+			if (resp == 0) {
+				sqlite_add_host_port_hit(host_ix, the_port, the_cnt, db_loc.c_str());
+			} else if (resp >= 1) {
+				int u_cnt = resp + the_cnt;
+				sqlite_update_host_port_hit(host_ix, the_port, u_cnt, db_loc.c_str());
+			}
 		}
+
 	}
 
 	return 0;
@@ -238,11 +341,14 @@ int add_to_hosts_port_table(const std::string &the_ip,
 void do_report_action_output(const std::string &the_ip,
 		int the_port,
 		int the_hits,
-		int the_timestamp) {
+		int the_timestamp,
+		int enforce_state) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, REPORT_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-			PORT_SYSLOG, the_port, HITS_SYSLOG, the_hits, TIMESTAMP_SYSLOG, the_timestamp);
+			PORT_SYSLOG, the_port, HITS_SYSLOG, the_hits,
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state
+			);
 
 }
 
@@ -250,7 +356,8 @@ void do_report_action_output(const std::string &the_ip,
 void do_block_action_output(const std::string &the_ip,
 		int detection_type,
 		int the_timestamp,
-		const std::string &config_file_id
+		const std::string &config_file_id,
+		int enforce_state
 		) {
 
 	std::stringstream syslog_line;
@@ -266,27 +373,21 @@ void do_block_action_output(const std::string &the_ip,
 		syslog_line << " " << CONFIG_SYSLOG << "=\"" << config_file_id << "\"";
 	}
 
-	syslog(LOG_INFO | LOG_LOCAL6, syslog_line.str().c_str());
+	syslog_line << " " << ENFORCE_STATE_SYSLOG << "=\"" << enforce_state << "\"";
 
-	/*
-	if (detection_type > 0) {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
-				ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-				DETECTION_TYPE_SYSLOG, detection_type, TIMESTAMP_SYSLOG, the_timestamp);
-	} else {
-		syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
-				ACTION_SYSLOG, BLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(), TIMESTAMP_SYSLOG, the_timestamp);
-	}
-	*/
+	syslog(LOG_INFO | LOG_LOCAL6, "%s", syslog_line.str().c_str());
 
 }
 
 
-void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
+void do_unblock_action_output(const std::string &the_ip,
+		int the_timestamp,
+		int enforce_state
+		) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, UNBLOCKED_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
-			TIMESTAMP_SYSLOG, the_timestamp);
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state);
 
 }
 
@@ -294,12 +395,14 @@ void do_unblock_action_output(const std::string &the_ip, int the_timestamp) {
 void do_remove_action_output(const std::string &the_ip,
 		int the_timestamp,
 		int first_seen,
-		int last_seen) {
+		int last_seen,
+		int enforce_state
+		) {
 
-	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
+	syslog(LOG_INFO | LOG_LOCAL6, "%s=\"%s\" %s=\"%s\" %s=\"%d\" %s=\"%d\" %s=\"%d\" %s=\"%d\"",
 			ACTION_SYSLOG, REMOVE_SYSLOG, VIOLATOR_SYSLOG, the_ip.c_str(),
 			FIRST_SEEN_SYSLOG, first_seen, LAST_SEEN_SYSLOG, last_seen,
-			TIMESTAMP_SYSLOG, the_timestamp);
+			TIMESTAMP_SYSLOG, the_timestamp, ENFORCE_STATE_SYSLOG, enforce_state);
 
 }
 
@@ -308,11 +411,16 @@ int do_host_remove_actions(const std::string &the_ip,
 		int host_ix,
 		const std::string &db_loc,
 		int first_seen,
-		int last_seen) {
+		int last_seen,
+		DataBase *data_base_shared_memory){
 
 	// delete all records for this host_ix from hosts_ports_hits table
-	remove_host_ports_all(host_ix, db_loc.c_str());
-
+	if(data_base_shared_memory != nullptr){
+		string query = "DELETE FROM hosts_ports_hits WHERE host_ix=" + host_ix;
+		data_base_shared_memory->hosts_ports_hits->DELETE(query);
+	}else{
+		sqlite_remove_host_ports_all(host_ix, db_loc.c_str());
+	}
 	/*
 	 * is_host_detected = 0 means it is not actively blocked
 	 *
@@ -381,7 +489,11 @@ bool is_black_listed(const std::string &ip_addr, void *g_shared_config) {
 }
 
 
-int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, size_t iptables_xlock) {
+int do_black_list_actions(const std::string &ip_addr,
+						void *g_shared_config,
+						size_t iptables_xlock,
+						int enforce_state
+						) {
 
 	/*
 	 * actions:
@@ -408,7 +520,12 @@ int do_black_list_actions(const std::string &ip_addr, void *g_shared_config, siz
 			// do block action - type 100
 			iptables_add_drop_rule_to_chain(GARGOYLE_CHAIN_NAME, ip_addr.c_str(), iptables_xlock);
 
-			do_block_action_output(ip_addr, 100, (int)time(NULL), "");
+			do_block_action_output(ip_addr,
+								100,
+								(int)time(NULL),
+								"",
+								enforce_state
+								);
 
 		}
 	}

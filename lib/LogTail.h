@@ -2,7 +2,7 @@
  *
  * GARGOYLE_PSCAND: Gargoyle - Protection for Linux
  *
- * shared memory object for sharing memory regions between processes
+ * configuration object for sharing IP addresses between processes
  *
  * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
  * All rights reserved.
@@ -27,40 +27,53 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-#ifndef SHARED_MEM_REGION_H
-#define SHARED_MEM_REGION_H
+#ifndef _LOGTAIL_H_
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#include <stdint.h>
-#include <stddef.h>
+#include <string>
 
-class SharedMemRegion {
+/*
+ * class LogTail
+ * 
+ * Derive from this class in order to perform line-by-line
+ * search on a log file. For each line in the log, the
+ * OnLine() method is invoked.
+ * 
+ * Once the whole log file has been processed, 
+ * the process waits for meaningful file change and proceeds 
+ * where it left off. 
+ * If during the lifecycle, logrotate is invoked which allows 
+ * the log to be rotated to a new file - this is noted 
+ * and the processing starts  * from the beginning of the new file.
+ */
 
-    const char *my_name;
-    size_t my_size;
-    int fd;
-    void *base_addr;
-    bool is_created;
-
-    /*
-     * These are intentionally private. Use Create to get access
-     * to an object instance.
-     */
-    SharedMemRegion(const char *name, size_t initial_size) :
-        my_name(name), my_size(initial_size), fd(-1), base_addr(NULL), is_created(false) {}
-    int32_t Init();
+class LogTail {
 public:
-    ~SharedMemRegion();
+	LogTail();
+	LogTail(const std::string& name);
+	LogTail(const char *name);
+	virtual ~LogTail();
 
+	bool Initialize();
+	bool Initialize(const std::string& name);
+	bool Process(volatile bool & stop);
+	
+	virtual void OnLine(const std::string& line) {}
+	virtual void OnFollow() {}
+	virtual void OnRewind() {}
 
-    bool IsCreator() { return is_created;}
-    /*
-     * Caller is responsible for releasing the SharedMemRegion object
-     */
-    static SharedMemRegion *Create(const char *name, size_t initial_size);
+private:
 
-    void *BaseAddr() const { return base_addr; }
+	void _pre(off_t loc = 0);
+	void _post();
+	bool _consume_file(volatile bool & stop);
+	bool _wait_file(volatile bool & stop);
 
-    int32_t Resize(size_t size);
-    size_t Size() const { return my_size; }
+	std::string _name;
+	FILE *_fin;
 };
+
+#define _LOGTAIL_H_
 #endif

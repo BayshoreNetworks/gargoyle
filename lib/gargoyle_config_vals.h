@@ -4,7 +4,7 @@
  *
  * Config values for use across all gargoyle daemons/progs
  *
- * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2019, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -39,7 +39,7 @@ extern "C" {
 
 //const char *GARGOYLE_VERSION = "1.0";
 #define GARGOYLE_PSCAND "Gargoyle_pscand"
-#define GARGOYLE_VERSION "1.6.4"
+#define GARGOYLE_VERSION "1.6.7"
 #define GARGOYLE_DEBUG "GARGOYLE DEBUG -"
 #define GARGOYLE_ERROR "GARGOYLE ERROR -"
 #define GARGOYLE_DEFAULT_ROOT_PATH "/opt/gargoyle_pscand"
@@ -75,12 +75,24 @@ extern "C" {
 #define DB_FILE_SYSLOG "DB file:"
 #define DOESNT_EXIST_SYSLOG "does not exist"
 #define CANNOT_CONTINUE_SYSLOG "cannot continue"
+#define ENFORCE_STATE_SYSLOG "enforce"
 
 
 #define GARGOYLE_WHITELIST_SHM_NAME "/gargoyle_whitelist_shm"
 #define GARGOYLE_WHITELIST_SHM_SZ 250
 #define GARGOYLE_BLACKLIST_SHM_NAME "/gargoyle_blacklist_shm"
 #define GARGOYLE_BLACKLIST_SHM_SZ 250
+#define GARGOYLE_BLACK_IP_LIST_TABLE_NAME "/gargoyle_black_ip_table_shm"
+#define GARGOYLE_BLACK_IP_LIST_TABLE_SIZE 250
+#define GARGOYLE_DETECTED_HOSTS_TABLE_NAME "/gargoyle_detected_hosts_table_shm"
+#define GARGOYLE_DETECTED_HOSTS_TABLE_SIZE 250
+#define GARGOYLE_HOSTS_PORTS_HITS_TABLE_NAME "/gargoyle_hosts_ports_hits_table_shm"
+#define GARGOYLE_HOSTS_PORTS_HITS_TABLE_SIZE 250
+#define GARGOYLE_HOSTS_TABLE_NAME "/gargoyle_hosts_table_shm"
+#define GARGOYLE_HOSTS_TABLE_SIZE 250
+#define GARGOYLE_IGNORE_IP_LIST_TABLE_NAME "/gargoyle_ignore_ip_list_table_shm"
+#define GARGOYLE_IGNORE_IP_LIST_TABLE_SIZE 250
+
 
 #ifdef __cplusplus
 }
