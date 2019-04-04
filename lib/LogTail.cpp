@@ -4,7 +4,7 @@
  *
  * configuration object for sharing IP addresses between processes
  *
- * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2019, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -67,7 +67,7 @@ bool LogTail::Initialize() {
 	}
 	return true;
 }
-    
+
 bool LogTail::Initialize(const std::string& name) {
 	_name = name;
 	return Initialize();
@@ -159,7 +159,7 @@ bool LogTail::_wait_file(volatile bool & stop) {
 					if (event->mask & follow_mask) {
 						//std::cerr << "follow" << std::endl;
 						struct stat st;
-						if (0==stat(_name.c_str(), &st) && S_ISREG(st.st_mode)) 
+						if (0==stat(_name.c_str(), &st) && S_ISREG(st.st_mode))
 							loc = (loc>st.st_size?0:loc);
 						else loc = 0;
 						done = true;

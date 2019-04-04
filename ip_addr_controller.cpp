@@ -4,7 +4,7 @@
  *
  * controller code for handling ip addr actions
  *
- * Copyright (c) 2017 - 2018, Bayshore Networks, Inc.
+ * Copyright (c) 2017 - 2019, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -67,6 +67,7 @@ int add_ip_to_hosts_table(const std::string &the_ip, const std::string &db_loc, 
 			time_t now = time(nullptr);
 			record.first_seen = now;
 			record.last_seen = now;
+			// Return the state of this operation not the FK of the record if this has been inserted
 			added_host_ix = data_base_shared_memory->hosts->INSERT(record);
 			if(added_host_ix == 0){
 				char result[SMALL_DEST_BUF];

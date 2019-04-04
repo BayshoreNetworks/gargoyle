@@ -4,7 +4,7 @@
  *
  * main dumping periodically shared memory data base to sqlite
  *
- * Copyright (c) 2016 - 2018, Bayshore Networks, Inc.
+ * Copyright (c) 2016 - 2019, Bayshore Networks, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
@@ -62,7 +62,7 @@ bool ENFORCE = true;
 bool DEBUG = false;
 
 char DB_LOCATION[SQL_CMD_MAX+1];
- 
+
 DataBase *data_base_shared_memory = nullptr;
 
 volatile sig_atomic_t stop;
