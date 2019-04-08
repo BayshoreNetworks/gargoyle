@@ -598,6 +598,7 @@ void GargoylePscandHandler::main_port_scan_check(
 
 		if (null_scan_ret == 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "NULL port scan detected");
+			stats_pcap_mode.insert(src_ip + std::string(", 1"));
 			return;
 		}
 
@@ -609,6 +610,7 @@ void GargoylePscandHandler::main_port_scan_check(
 
 		if (fin_scan_ret == 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "FIN port scan detected");
+			stats_pcap_mode.insert(src_ip + std::string(", 2"));
 			return;
 		}
 
@@ -618,9 +620,12 @@ void GargoylePscandHandler::main_port_scan_check(
 
 		if (xmas_scan_ret == 0) {
 			syslog(LOG_INFO | LOG_LOCAL6, "%s - %s", (three_way_check_dat.str()).c_str(), "XMAS port scan detected");
+			stats_pcap_mode.insert(src_ip + std::string(", 3"));
 			return;
 		}
 
+	}else{
+		stats_pcap_mode.insert(src_ip + std::string(", 9"));
 	}
 
 
@@ -1557,6 +1562,13 @@ void GargoylePscandHandler::set_debug (bool b_val) {
 		DEBUG = b_val;
 }
 
+void GargoylePscandHandler::pcap_processing_stats() const{
+	std::cout << std::endl <<  "Violators blocked " << std::endl;
+	std::cout << "\tIP, detection_type " << std::endl;
+	for(auto &ip: stats_pcap_mode){
+		std::cout << "\t" << ip << std::endl;
+	}
+}
 
 bool GargoylePscandHandler::get_debug () {
 	return DEBUG;
@@ -1650,7 +1662,6 @@ int GargoylePscandHandler::packet_handler_pcap(unsigned char *data, size_t len, 
 								_this->add_to_scanned_ports_dict(s_src.c_str(), dst_port);
 
 							}
-							return 0;
 
                         }
                         /////////////////////////////////////////////////////////////////
@@ -1732,6 +1743,7 @@ int GargoylePscandHandler::packet_handler_pcap(unsigned char *data, size_t len, 
                                 _this->three_way_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
 
                             _this->main_port_scan_check(s_src,src_port,s_dst,dst_port,seq_num,ack_num,tcp_flags);
+
                         }
                     }
                 }

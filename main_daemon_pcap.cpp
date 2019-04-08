@@ -642,7 +642,9 @@ int main(int argc, char *argv[]){
     if (cvv.get_vals(config_file) == 0) {
 
         enforce_mode = cvv.get_enforce_mode();
-
+        if(!enforce_mode){
+        	std::cout << std::endl << "enforce_mode = 0. No block action will be simulated" << std::endl;
+        }
         single_ip_scan_threshold = cvv.get_single_ip_scan_threshold();
         single_port_scan_threshold = cvv.get_port_scan_threshold();
 
@@ -826,6 +828,7 @@ int main(int argc, char *argv[]){
     gargoyleHandler.set_debug(DEBUG);
 
     if(pDir == nullptr){
+    	std::cout << std::endl << std::endl << "Processing " << argv[1] << std::endl;
 		pcap_processing::process_messages_in_pcap(fdPcap, gargoyleHandler, DEBUG);
 		pcap_close(fdPcap);
     }else{
@@ -854,7 +857,7 @@ int main(int argc, char *argv[]){
         }
         closedir(pDir);
     }
-
+    gargoyleHandler.pcap_processing_stats();
     graceful_exit(SIGINT);
 
     return 0;

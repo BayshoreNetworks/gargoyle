@@ -77,6 +77,7 @@ class GargoylePscandHandler
 	void set_iptables_supports_xlock(size_t);
 	void set_db_location(const char *);
 	void set_debug(bool);
+	void pcap_processing_stats() const;
 
 	protected:
 
@@ -146,6 +147,8 @@ class GargoylePscandHandler
 	std::set<std::string> BLACK_LISTED_HOSTS;
 
 	std::map< std::string, std::pair <int, int> > SCANNED_PORTS_CNT_DICT;
+
+	std::set<std::string> stats_pcap_mode;
 
 	SharedIpConfig *gargoyle_whitelist_shm = NULL;
 	SharedIpConfig *gargoyle_blacklist_shm = NULL;

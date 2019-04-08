@@ -62,6 +62,7 @@ namespace pcap_processing{
 		struct timespec nanosecondsBetweenPackets;
 		
 		while((ret = pcap_next_ex(fdPcap, &header, &packet)) >= 0){
+			pcapPacketNumber++;
 			if(pcapPacketNumber == 0){
 				// Could be nanosecond precision though pcap_pkthdr maintains struct timeval instead of struct timespec
 				precisionBetweenPackets = pcap_processing::get_pcap_precision(header->ts.tv_usec);
@@ -74,7 +75,7 @@ namespace pcap_processing{
 			packetTimeStamp.tv_usec = precisionBetweenPackets == "microseconds" ? packetTimeStamp.tv_usec : packetTimeStamp.tv_usec/1000;
 
 			if(debug){
-				std::cout << "Extract packet " << ++pcapPacketNumber << " " << setfill('0') << setw(2) << time->tm_hour << ":"
+				std::cout << "Extract packet " << pcapPacketNumber << " " << setfill('0') << setw(2) << time->tm_hour << ":"
 						<< setw(2) << time->tm_min << ":" << setw(2) << time->tm_sec << ":" << setw(3) << packetTimeStamp.tv_usec << std::endl;
 			}
 
@@ -99,6 +100,7 @@ namespace pcap_processing{
 			previousTimeStamp.tv_sec = packetTimeStamp.tv_sec;
 			previousTimeStamp.tv_usec = packetTimeStamp.tv_usec;
 		}
+		std::cout << pcapPacketNumber << " packets analyzed " << std::endl;
 		// According to pcap_next_ex documentation, it returns 1 if the packet was read without problems
 		return ret == 1;
 	}
