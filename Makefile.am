@@ -127,3 +127,7 @@ gargoyle_shared_memory_data_base_to_sqlite_SOURCES = \
 				lib/data_base.cpp \
 				lib/shared_mem.cpp \
 				main_shared_memory_data_base_to_sqlite.cpp
+
+gargoyle_shared_memory_data_base_SOURCES = \
+				lib/data_base.cpp \
+				lib/shared_mem.cpp
