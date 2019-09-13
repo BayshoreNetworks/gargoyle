@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 #include <csignal>
+#include <algorithm>
 
 #include <syslog.h>
 #include <unistd.h>
@@ -38,10 +39,11 @@
 #include "gargoyle_config_vals.h"
 #include "string_functions.h"
 #include "shared_config.h"
-
+#include "data_base.h"
 
 SharedIpConfig *gargoyle_view_whitelist_shm = NULL;
 SharedIpConfig *gargoyle_view_blacklist_shm = NULL;
+DataBase *gargoyle_data_base_shared_memory {nullptr};
 
 
 void signal_handler(int signum) {
@@ -59,6 +61,10 @@ void signal_handler(int signum) {
         //gargoyle_view_blacklist_shm;
     }
 
+    if(gargoyle_data_base_shared_memory != nullptr){
+    	delete gargoyle_data_base_shared_memory;
+    }
+
 	// terminate program
 	exit(0);
 
@@ -71,9 +77,14 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, signal_handler);
 	signal(SIGKILL, signal_handler);
 
+    int32_t status;
+    const int LENGTH_RESULT_QUERY {10000};
+    char result[LENGTH_RESULT_QUERY];
+    std::string query;
+
 	gargoyle_view_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);
 	gargoyle_view_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
-
+	gargoyle_data_base_shared_memory = DataBase::create();
 
 	std::stringstream ss_white;
 	gargoyle_view_whitelist_shm->ToString(ss_white);
@@ -113,6 +124,51 @@ int main(int argc, char *argv[]) {
 		}
 
 	}
+
+	query = "SELECT * FROM hosts_table";
+	cout << endl << query << endl;
+	cout << "ix:host:first_seen:last_seen"<< endl;
+    if(gargoyle_data_base_shared_memory->hosts->SELECT(result, query) != -1){
+    	string outputFormated = result;
+    	std::replace(outputFormated.begin(), outputFormated.end(), '>', '\n');
+    	cout << outputFormated << endl;
+    }
+
+    query = "SELECT * FROM hosts_ports_hits";
+	cout << endl << query << endl;
+	cout << "ix:host_ix:port_number:hit_count"<< endl;
+    if(gargoyle_data_base_shared_memory->hosts_ports_hits->SELECT(result, query) != -1){
+    	string outputFormated = result;
+    	std::replace(outputFormated.begin(), outputFormated.end(), '>', '\n');
+    	cout << outputFormated << endl;
+    }
+
+	query = "SELECT * FROM ignore_ip_list";
+	cout << endl << query << endl;
+	cout << "ix:host_ix:timestamp"<< endl;
+    if(gargoyle_data_base_shared_memory->ignore_ip_list->SELECT(result, query) != -1){
+    	string outputFormated = result;
+    	std::replace(outputFormated.begin(), outputFormated.end(), '>', '\n');
+    	cout << outputFormated << endl;
+    }
+
+	query = "SELECT * FROM black_ip_list";
+    cout << endl << query << endl;
+	cout << "ix:host_ix:timestamp"<< endl;
+    if(gargoyle_data_base_shared_memory->black_ip_list->SELECT(result, query) != -1){
+    	string outputFormated = result;
+    	std::replace(outputFormated.begin(), outputFormated.end(), '>', '\n');
+    	cout << outputFormated << endl;
+    }
+
+    query = "SELECT * FROM detected_hosts";
+	cout << endl << query << endl;
+	cout << "ix:host_ix:timestamp"<< endl;
+    if(gargoyle_data_base_shared_memory->detected_hosts->SELECT(result, query) != -1){
+    	string outputFormated = result;
+    	std::replace(outputFormated.begin(), outputFormated.end(), '>', '\n');
+    	cout << outputFormated << endl;
+    }
 
 	std::cout << std::endl << std::endl;
 

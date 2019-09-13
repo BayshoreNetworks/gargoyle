@@ -762,7 +762,6 @@ int main(int argc, char *argv[]) {
     	std::cerr << std::endl << GARG_ANALYSIS_PROGNAME_META << " - Argument errors, exiting ..." << std::endl << std::endl;
 		usage();
         return 1;
-
     } else if (argc == 2) {
 
     	std::string arg_one = argv[1];

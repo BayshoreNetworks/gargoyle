@@ -244,14 +244,33 @@ int main(int argc, char *argv[])
 						time_t t_now = time(NULL);
 
 						if (t_now > 0) {
-							insert_ignore_ip_table(host_ix, t_now, ip);
-							// reset last_seen to 1972 01/01/1972 00:00:00 UTC -> 63072000
-							reset_last_seen_host_table(host_ix, 63072000);
+
+							size_t tstamp = t_now;
+
+							// add to ignore ip table
+							if(data_base_shared_memory_analysis != nullptr){
+								Ignore_IP_List_Record record;
+								record.host_ix = host_ix;
+								record.timestamp = tstamp;
+								data_base_shared_memory_analysis->ignore_ip_list->INSERT(record);
+							}else{
+								sqlite_add_host_to_ignore(host_ix, tstamp, DB_LOCATION);
+							}
+
+							// reset last_seen to 1972
+							if(data_base_shared_memory_analysis != nullptr){
+								Hosts_Record record;
+								record.ix = host_ix;
+								// 01/01/1972 00:00:00 UTC
+								record.last_seen = 63072000;
+								data_base_shared_memory_analysis->hosts->UPDATE(record);
+							}else{
+								sqlite_update_host_last_seen(host_ix, DB_LOCATION);
+							}
 
 							iptables_delete_rule_from_chain(GARGOYLE_CHAIN_NAME, rule_ix, IPTABLES_SUPPORTS_XLOCK);
 
-							do_unblock_action_output(ip, (int) t_now, ENFORCE);
-
+							do_unblock_action_output(ip, (int) tstamp, ENFORCE);
 						}
 					}
 				}
