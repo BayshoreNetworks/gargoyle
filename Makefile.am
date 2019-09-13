@@ -118,7 +118,8 @@ gargoyle_lscand_bruteforce_detect_SOURCES = main_iptables_bruteforce_detect.c
 gargoyle_view_shared_mem_SOURCES = \
 				lib/shared_config.cpp \
 				lib/shared_mem.cpp \
-				view_shared_mem.cpp
+				view_shared_mem.cpp \
+				lib/data_base.cpp
 
 gargoyle_regex_tester_SOURCES = gargoyle_regex_tester.cpp
 
