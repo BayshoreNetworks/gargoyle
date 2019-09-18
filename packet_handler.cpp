@@ -1313,6 +1313,14 @@ void GargoylePscandHandler::add_block_rules() {
 						ip_tables_entries.insert(the_ip);
 					}
 
+					if (SYSLOG_ALL_DETECTIONS) {
+						do_report_action_output(the_ip, the_port, the_cnt, tstamp, ENFORCE);
+					}
+
+					if (added_host_ix > 0 && !is_white_listed_ip_addr(the_ip)) {
+						add_to_hosts_port_table(the_ip, the_port, the_cnt, DB_LOCATION, get_debug(), gargoyle_data_base_shared_memory);
+					}
+
 					if (is_in_scanned_ports_cnt_dict(current_key)) {
 						SCANNED_PORTS_CNT_DICT.erase(current_key);
 					}
