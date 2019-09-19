@@ -56,6 +56,7 @@ gargoyle_pscand_remove_from_whitelist
 gargoyle_pscand_remove_from_blacklist
 gargoyle_view_shared_mem
 gargoyle_regex_tester
+gargoyle_shared_memory_data_base_to_sqlite
 install-sh
 lib/.deps/
 lib/.dirstamp
