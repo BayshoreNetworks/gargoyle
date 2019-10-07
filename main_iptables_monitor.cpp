@@ -364,6 +364,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	int monitor_port;
+	int sqlite_locked_try_for_time {0};
 	//const char *port_config_file = ".gargoyle_internal_port_config";
 	const char *port_config_file;
 	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
@@ -405,9 +406,14 @@ int main(int argc, char *argv[]) {
 
 		LOCKOUT_TIME = cvv.get_lockout_time();
 		ENFORCE = cvv.get_enforce_mode();
-
+		sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
 	} else {
+		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
 		return 1;
+	}
+
+	if(sqlite_locked_try_for_time > 0){
+		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
 	}
 
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();

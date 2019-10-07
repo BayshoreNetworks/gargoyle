@@ -779,6 +779,7 @@ int main(int argc, char *argv[]) {
     }
 
 	int analysis_port;
+	int sqlite_locked_try_for_time {0};
 	const char *port_config_file;
 	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
 	if (port_config_file == NULL)
@@ -794,7 +795,6 @@ int main(int argc, char *argv[]) {
 
 	if (analysis_port <= 0)
 		return 1;
-
 
 	SingletonProcess singleton(analysis_port);
 	try {
@@ -838,9 +838,14 @@ int main(int argc, char *argv[]) {
 		SINGLE_IP_SCAN_THRESHOLD = cvv.get_single_ip_scan_threshold();
 		OVERALL_PORT_SCAN_THRESHOLD = cvv.get_overall_port_scan_threshold();
 		LAST_SEEN_DELTA = cvv.get_last_seen_delta();
-
+		sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
 	} else {
+		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
 		return 1;
+	}
+
+	if(sqlite_locked_try_for_time > 0){
+		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
 	}
 
 	gargoyle_analysis_whitelist_shm = SharedIpConfig::Create(GARGOYLE_WHITELIST_SHM_NAME, GARGOYLE_WHITELIST_SHM_SZ);

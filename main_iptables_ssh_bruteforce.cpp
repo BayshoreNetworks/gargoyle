@@ -710,7 +710,7 @@ int main(int argc, char *argv[])
     	}
     }
 
-
+	int sqlite_locked_try_for_time {0};
 	int ssh_bf_port = 0;
 	//const char *port_config_file = ".gargoyle_internal_port_config";
 	const char *port_config_file;
@@ -727,6 +727,7 @@ int main(int argc, char *argv[])
 
 	if (ssh_bf_port <= 0)
 		return 1;
+
 
 
 	SingletonProcess singleton(ssh_bf_port);
@@ -768,7 +769,6 @@ int main(int argc, char *argv[])
 		num_seconds = cvv.get_bf_time_frame();
 		ENFORCE = cvv.get_enforce_mode();
 		ENABLED = cv.get_enabled_mode();
-
 	} else {
 		return 1;
 	}
@@ -776,6 +776,22 @@ int main(int argc, char *argv[])
 	if (!ENABLED)
 		return 1;
 
+	const char *config_file;
+	config_file = getenv("GARGOYLE_CONFIG");
+	if (config_file == NULL){
+		config_file = ".gargoyle_config";
+	}
+    ConfigVariables cv_config;
+    if (cv_config.get_vals(config_file) == 0) {
+        sqlite_locked_try_for_time = cv_config.get_sqlite_locked_try_for_time();
+    } else {
+		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
+        return 1;
+    }
+
+	if(sqlite_locked_try_for_time > 0){
+		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
+	}
 	/*
 	std::cout << log_entity << std::endl;
 	std::cout << regex_file << std::endl;

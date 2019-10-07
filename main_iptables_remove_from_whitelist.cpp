@@ -115,6 +115,23 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
+	int sqlite_locked_try_for_time {0};
+	const char *config_file;
+    config_file = getenv("GARGOYLE_CONFIG");
+	if (config_file == NULL){
+		config_file = ".gargoyle_config";
+	}
+	ConfigVariables cvv;
+	if (cvv.get_vals(config_file) == 0) {
+		sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
+	} else {
+		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
+		return 1;
+	}
+	if(sqlite_locked_try_for_time > 0){
+		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
+	}
+
 	if (validate_ip_addr(ip)) {
 
 		if (DEBUG)
