@@ -38,6 +38,9 @@
 #include "sqlite_wrapper_api.h"
 #include "gargoyle_config_vals.h"
 
+void set_sqlite_locked_try_for_time(int time){
+	sqlite_locked_try_for_time = time;
+}
 
 /*
  *
@@ -90,6 +93,7 @@ int sqlite_get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_l
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE ix = ?1", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, the_ix);
@@ -149,6 +153,7 @@ int sqlite_get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst, const char *
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE ix = ?1", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, the_ix);
@@ -202,6 +207,7 @@ int sqlite_get_total_hit_count_one_host_by_ix(int the_ix, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT COUNT(*) FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, the_ix);
@@ -245,6 +251,7 @@ int sqlite_get_one_host_hit_count_all_ports(int ip_addr_ix, const char *db_loc) 
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT hit_count FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -288,6 +295,7 @@ int sqlite_get_host_ix(const char *the_ip, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host = ?1", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_text(stmt, 1, the_ip, -1, 0);
@@ -331,6 +339,7 @@ int sqlite_get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT hit_count FROM %s WHERE host_ix = ?1 AND port_number = ?2", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -372,6 +381,7 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,port_number,hit_count) VALUES (?1,?2,?3)", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -420,6 +430,7 @@ int sqlite_add_host_port_hit_all(int ix, int ip_addr_ix, int the_port, int add_c
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host_ix,port_number,hit_count) VALUES (?1,?2,?3,?4)", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ix);
@@ -473,6 +484,7 @@ int sqlite_add_host(const char *the_ip, const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host,first_seen,last_seen) VALUES (?1,?2,?3)", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_text(stmt, 1, the_ip, -1, 0);
@@ -526,6 +538,8 @@ int sqlite_add_host_all(uint32_t ix, const char *the_ip, time_t first_seen, time
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
+
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host,first_seen,last_seen) VALUES (?1,?2,?3,?4)", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ix);
@@ -576,6 +590,7 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -622,6 +637,7 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE ix = ?1", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, row_ix);
@@ -669,6 +685,7 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -715,6 +732,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -762,6 +780,7 @@ size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *d
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -809,6 +828,7 @@ size_t sqlite_remove_host(size_t ip_addr_ix, const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE ix = ?1", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -858,6 +878,7 @@ int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET hit_count = ?1 WHERE host_ix = ?2 AND port_number = ?3", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, add_cnt);
@@ -911,6 +932,7 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET last_seen = ?1 WHERE ix = ?2", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	// 01/01/1972 00:00:00 UTC
@@ -976,6 +998,7 @@ int sqlite_get_all_host_one_port_threshold(int the_port, int threshold, char *ds
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE port_number = ?1 AND hit_count >= ?2", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, the_port);
@@ -1050,6 +1073,7 @@ int sqlite_get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, cons
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1124,6 +1148,7 @@ int sqlite_get_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1196,6 +1221,7 @@ int sqlite_get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT DISTINCT port_number FROM  %s", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1261,6 +1287,7 @@ size_t sqlite_get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_lo
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1323,6 +1350,7 @@ size_t sqlite_get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	//snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1 AND active = 1 AND processed = 0", DETECTED_HOSTS_TABLE);
 	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
@@ -1374,6 +1402,7 @@ size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_l
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1442,6 +1471,7 @@ int sqlite_get_all_ignore_or_black_ip_list(char *dst, size_t sz_dst, const char 
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", table);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1508,6 +1538,7 @@ size_t sqlite_get_unique_list_of_hosts_ix(char *dst, size_t sz_dst, const char *
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT DISTINCT host_ix FROM  %s", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1574,6 +1605,7 @@ int sqlite_is_host_ignored(int ip_addr_ix, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1617,6 +1649,7 @@ int sqlite_is_host_detected(int ip_addr_ix, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1", DETECTED_HOSTS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1657,6 +1690,7 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1703,6 +1737,7 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", BLACK_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1758,6 +1793,7 @@ size_t sqlite_get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_l
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", BLACK_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1818,6 +1854,7 @@ int sqlite_is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", BLACK_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1858,6 +1895,7 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 		return -1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", BLACK_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ip_addr_ix);
@@ -1915,6 +1953,7 @@ int sqlite_get_black_ip_list_all(char *dst, size_t sz_dst, const char *db_loc){
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", BLACK_LIST_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -1969,6 +2008,7 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_reset_autoincrement]: %s", DB_LOCATION, sqlite3_errmsg(db));
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	// UPDATE SQLITE_SEQUENCE SET SEQ= 'value' WHERE NAME='table_name';
 	snprintf (sql, SQL_CMD_MAX, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?1");
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
@@ -2012,6 +2052,7 @@ size_t sqlite_remove_all(const char *db_loc, const char *table) {
 		return 1;
 	}
 
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s", table);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 
@@ -2057,6 +2098,8 @@ size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, 
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_all_by_table]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
+
+	sqlite3_busy_timeout(db, sqlite_locked_try_for_time);
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host_ix, timestamp) VALUES (?1,?2,?3)", table);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, ix);

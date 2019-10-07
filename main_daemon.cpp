@@ -648,6 +648,7 @@ int main(int argc, char *argv[])
 	size_t single_port_scan_threshold = 0;
 	std::string ports_to_ignore;
 	std::string hot_ports;
+	int sqlite_locked_try_for_time = 0;
 
 	const char *config_file;
 	config_file = getenv("GARGOYLE_CONFIG");
@@ -664,11 +665,14 @@ int main(int argc, char *argv[])
 
 		ports_to_ignore = cvv.get_ports_to_ignore();
 		hot_ports = cvv.get_hot_ports();
-
+		sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
 	} else {
 		return 1;
 	}
 
+	if(sqlite_locked_try_for_time > 0){
+		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
+	}
 	gargoyle_blacklist_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
 
 	// does iptables support xlock

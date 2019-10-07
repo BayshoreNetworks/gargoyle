@@ -57,6 +57,8 @@ using namespace std;
  * 	time_frame
  * 	regex
  * 	enabled
+ * 	shared_memory_data_base_to_sqlite_time
+ * 	sqlite_locked_try_for_time
  */
 
 class ConfigVariables {
@@ -330,6 +332,18 @@ public:
 			return atoi(key_vals[shared_memory_data_base_to_sqlite_time].c_str());
 		}
 	}
+
+	int get_sqlite_locked_try_for_time(){
+
+		string sqlite_locked_try_for_time = "sqlite_locked_try_for_time";
+		if(key_vals.find(sqlite_locked_try_for_time) == key_vals.end()){
+			return -1;
+		} else {
+			return atoi(key_vals[sqlite_locked_try_for_time].c_str());
+		}
+	}
+
+
 private:
 
 	map<string,string> key_vals;

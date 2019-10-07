@@ -54,6 +54,12 @@
 extern "C" {
 #endif
 
+
+// Time in millisecond while the daemon is trying to perform the operation into the database
+static int sqlite_locked_try_for_time = 3000;
+
+void set_sqlite_locked_try_for_time(int time);
+
 ///////////////////////////////////////////////////////////////////////
 // detected_hosts table
 size_t sqlite_add_detected_host(size_t, size_t, const char *);
