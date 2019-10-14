@@ -136,6 +136,8 @@ void signal_handler(int signum) {
 		delete data_base_shared_memory_analysis;
 	}
 
+	delete_sqlite_properties();
+
 	// terminate program
 	exit(ret_code);
 
@@ -710,7 +712,6 @@ int main(int argc, char *argv[])
     	}
     }
 
-	int sqlite_locked_try_for_time {0};
 	int ssh_bf_port = 0;
 	//const char *port_config_file = ".gargoyle_internal_port_config";
 	const char *port_config_file;
@@ -783,15 +784,12 @@ int main(int argc, char *argv[])
 	}
     ConfigVariables cv_config;
     if (cv_config.get_vals(config_file) == 0) {
-        sqlite_locked_try_for_time = cv_config.get_sqlite_locked_try_for_time();
+		set_sqlite_properties(cvv.get_sqlite_locked_try_for_time());
     } else {
 		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
         return 1;
     }
 
-	if(sqlite_locked_try_for_time > 0){
-		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
-	}
 	/*
 	std::cout << log_entity << std::endl;
 	std::cout << regex_file << std::endl;
@@ -904,6 +902,8 @@ int main(int argc, char *argv[])
 		}
 
 	}
+
+	delete_sqlite_properties();
 
 	return ret_code;
 }

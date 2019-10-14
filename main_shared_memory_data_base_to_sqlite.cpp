@@ -74,6 +74,9 @@ void handle_signal(int signum) {
     if(data_base_shared_memory != nullptr){
         delete data_base_shared_memory;
     }
+
+    delete_sqlite_properties();
+
     exit(0);
 }
 
@@ -115,7 +118,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    int sqlite_locked_try_for_time {0};
     // Get config data
     bool enforce_mode = true;
     size_t shared_memory_data_base_to_sqlite_time;
@@ -129,16 +131,12 @@ int main(int argc, char *argv[]) {
     if(cvv.get_vals(config_file) == 0) {
         enforce_mode = cvv.get_enforce_mode();
         shared_memory_data_base_to_sqlite_time = cvv.get_shared_memory_data_base_to_sqlite_time();
-		sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
+		set_sqlite_properties(cvv.get_sqlite_locked_try_for_time());
         if(shared_memory_data_base_to_sqlite_time == -1){
             cerr << "None shared_memory_data_base_to_sqlite_time key in " << config_file << endl;
             exit(1);
         }
     }
-
-	if(sqlite_locked_try_for_time > 0){
-		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
-	}
 
     /*
      * Get location for the DB file

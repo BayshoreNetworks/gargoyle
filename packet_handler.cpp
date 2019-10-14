@@ -292,6 +292,8 @@ int GargoylePscandHandler::packet_handle(struct nflog_g_handle *gh, struct nfgen
 						 * the user wants no activity on the
 						 * specified port
 						 */
+					std::cout << "IP Origen -> " << s_src << " IP Destino " << s_dst << " Source Port " << src_port << " Destination Port " << dst_port << std::endl;
+
 						if (_this->is_in_hot_ports(dst_port)) {
 
 							/*

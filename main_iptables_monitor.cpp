@@ -85,6 +85,8 @@ void handle_signal (int signum) {
 		delete data_base_shared_memory_analysis;
     }
 
+    delete_sqlite_properties();
+
 	syslog(LOG_INFO | LOG_LOCAL6, "%s: %d, %s", SIGNAL_CAUGHT_SYSLOG, signum, PROG_TERM_SYSLOG);
 	exit(0);
 }
@@ -364,7 +366,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	int monitor_port;
-	int sqlite_locked_try_for_time {0};
+	int sqlite_locked_try_for_time {-1};
 	//const char *port_config_file = ".gargoyle_internal_port_config";
 	const char *port_config_file;
 	port_config_file = getenv("GARGOYLE_INTERNAL_PORT_CONFIG");
@@ -412,9 +414,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if(sqlite_locked_try_for_time > 0){
-		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
-	}
+	set_sqlite_properties(sqlite_locked_try_for_time);
 
 	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 
@@ -435,5 +435,6 @@ int main(int argc, char *argv[]) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");
 	}
+	delete_sqlite_properties();
 	return 0;
 }

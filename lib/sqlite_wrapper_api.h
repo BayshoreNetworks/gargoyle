@@ -49,18 +49,12 @@
 #define IGNORE_IP_LIST_TABLE "ignore_ip_list"
 #define BLACK_LIST_TABLE "black_ip_list"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-// Time in millisecond while the daemon is trying to perform the operation into the database
-// If this time is -1, the database only supports a connection
-static int sqlite_locked_try_for_time = -1;
-static pthread_mutex_t single_connection_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-void set_sqlite_locked_try_for_time(int time);
+void set_sqlite_properties(int time);
+void delete_sqlite_properties();
 
 ///////////////////////////////////////////////////////////////////////
 // detected_hosts table

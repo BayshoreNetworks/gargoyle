@@ -130,6 +130,8 @@ void signal_handler(int signum) {
 		delete data_base_shared_memory_analysis;
 	}
 
+	delete_sqlite_properties();
+
 	// terminate program
 	exit(ret_code);
 
@@ -386,7 +388,6 @@ int main(int argc, char *argv[]) {
 			exit(1);
 	}
 
-	int sqlite_locked_try_for_time {0};
 	// default = 6
 	size_t num_hits;
 	// default = 120
@@ -406,7 +407,7 @@ int main(int argc, char *argv[]) {
 			num_seconds = cv.get_bf_time_frame();
 			ENFORCE = cv.get_enforce_mode();
 			ENABLED = cv.get_enabled_mode();
-	        sqlite_locked_try_for_time = cv.get_sqlite_locked_try_for_time();
+			set_sqlite_properties(cv.get_sqlite_locked_try_for_time());
 		} else {
 			return 1;
 		}
@@ -417,10 +418,6 @@ int main(int argc, char *argv[]) {
 
 	if (!ENABLED)
 		return 1;
-
-	if(sqlite_locked_try_for_time > 0){
-		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
-	}
 	/*
 	std::cout << config_file << std::endl;
 	std::cout << log_entity << std::endl;
@@ -463,6 +460,8 @@ int main(int argc, char *argv[]) {
 		lp.Process(stop_processing);
 		// never reached..
 	}
+
+	delete_sqlite_properties();
 
 	// Initialize() failed.
 	return 1;

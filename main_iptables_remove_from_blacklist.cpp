@@ -102,15 +102,11 @@ int main(int argc, char *argv[])
     ConfigVariables cvv;
     if (cvv.get_vals(config_file) == 0) {
         ENFORCE = cvv.get_enforce_mode();
-        sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
+		set_sqlite_properties(cvv.get_sqlite_locked_try_for_time());
     } else {
 		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
         return 1;
     }
-
-    if(sqlite_locked_try_for_time > 0){
- 		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
- 	}
 
  	IPTABLES_SUPPORTS_XLOCK = iptables_supports_xlock();
 	gargoyle_blacklist_removal_shm = SharedIpConfig::Create(GARGOYLE_BLACKLIST_SHM_NAME, GARGOYLE_BLACKLIST_SHM_SZ);
@@ -205,6 +201,8 @@ int main(int argc, char *argv[])
     if(data_base_shared_memory_analysis != nullptr){
 		delete data_base_shared_memory_analysis;
     }
+
+    delete_sqlite_properties();
 
 	return 0;
 }

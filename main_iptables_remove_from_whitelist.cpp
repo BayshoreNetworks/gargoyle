@@ -115,7 +115,6 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
-	int sqlite_locked_try_for_time {0};
 	const char *config_file;
     config_file = getenv("GARGOYLE_CONFIG");
 	if (config_file == NULL){
@@ -123,13 +122,10 @@ int main(int argc, char *argv[])
 	}
 	ConfigVariables cvv;
 	if (cvv.get_vals(config_file) == 0) {
-		sqlite_locked_try_for_time = cvv.get_sqlite_locked_try_for_time();
+		set_sqlite_properties(cvv.get_sqlite_locked_try_for_time());
 	} else {
 		std::cout << std::endl << "File .gargoyle_config not exist in " << config_file << std::endl << std::endl;
 		return 1;
-	}
-	if(sqlite_locked_try_for_time > 0){
-		set_sqlite_locked_try_for_time(sqlite_locked_try_for_time);
 	}
 
 	if (validate_ip_addr(ip)) {
@@ -192,6 +188,8 @@ int main(int argc, char *argv[])
         delete gargoyle_whitelist_removal_shm;
         //gargoyle_whitelist_removal_shm;
     }
+
+    delete_sqlite_properties();
 
 	return 0;
 }
