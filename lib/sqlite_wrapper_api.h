@@ -33,7 +33,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-
+#include <pthread.h>
 
 //#define DB_PATH "/db/port_scan_detect.db"
 #define DB_PATH "/db/gargoyle_attack_detect.db"
@@ -56,7 +56,9 @@ extern "C" {
 
 
 // Time in millisecond while the daemon is trying to perform the operation into the database
-static int sqlite_locked_try_for_time = 3000;
+// If this time is -1, the database only supports a connection
+static int sqlite_locked_try_for_time = -1;
+static pthread_mutex_t single_connection_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void set_sqlite_locked_try_for_time(int time);
 
