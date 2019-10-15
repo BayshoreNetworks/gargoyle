@@ -435,6 +435,6 @@ int main(int argc, char *argv[]) {
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d", "monitor process finishing at", end_time);
 		syslog(LOG_INFO | LOG_LOCAL6, "%s %d %s", "monitor process took", end_time - start_time, "seconds");
 	}
-	delete_sqlite_properties();
+
 	return 0;
 }

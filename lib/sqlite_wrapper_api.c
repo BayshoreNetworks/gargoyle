@@ -50,14 +50,16 @@ struct{
 	// If this time is -1, the database only supports a connection
 	int sqlite_locked_try_for_time;
 	int fd;
+	int lock_is_set;
+	pthread_mutexattr_t attrmutex;;
 	pthread_mutex_t *single_connection_mutex;
 }database_properties;
 
-void set_sqlite_properties(int time){
+int set_sqlite_properties(int time){
+	database_properties.sqlite_locked_try_for_time = time;
 	database_properties.single_connection_mutex = NULL;
-	if(time >= 0){
-		database_properties.sqlite_locked_try_for_time = time;
-	}else{
+	database_properties.lock_is_set = 0;
+	if(time == 0){
 		database_properties.sqlite_locked_try_for_time = -1;
 		database_properties.is_database_single_connection_mutex_creator = 0;
 
@@ -70,7 +72,7 @@ void set_sqlite_properties(int time){
 	    	database_properties.is_database_single_connection_mutex_creator = 1;
 	        if(ftruncate(database_properties.fd, sizeof(pthread_mutex_t)) < 0) {
 	        	syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex (ftruncate) for SQLite DB");
-	            return;
+	            return 1;
 	        }
 	    }
 
@@ -78,30 +80,40 @@ void set_sqlite_properties(int time){
 	    		sizeof(pthread_mutex_t), PROT_READ|PROT_WRITE,MAP_SHARED, database_properties.fd, 0);
 
 	    if(database_properties.is_database_single_connection_mutex_creator){
-	    	if(pthread_mutex_init(database_properties.single_connection_mutex, NULL) != 0){
+			pthread_mutexattr_init(&database_properties.attrmutex);
+			pthread_mutexattr_setpshared(&database_properties.attrmutex, PTHREAD_PROCESS_SHARED);
+	    	if(pthread_mutex_init(database_properties.single_connection_mutex, &database_properties.attrmutex) != 0){
 	        	syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex (pthread_mutex_init) for SQLite DB");
-	            return;
+	            return 1;
 	    	}
-	    }
-
-	    if(database_properties.single_connection_mutex == NULL){
-        	syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex (mmap) for SQLite DB");
-            return;
+			
 	    }
 	}
+	return 0;
 }
 
 void delete_sqlite_properties(){
 	if(database_properties.single_connection_mutex != NULL){
+		if(database_properties.lock_is_set != 0){
+			pthread_mutex_trylock(database_properties.single_connection_mutex);
+			/*
+			 * In this point the mutex will always be locked. lock_is_set is set to false after unlocking
+			 * so it can happen that the mutex is unlock and is_locked is still true. This is the reason
+			 * why pthread_mutex_trylock is called here
+			 */
+			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
+		}
+
 		munmap(database_properties.single_connection_mutex, sizeof(pthread_mutex_t));
-	}
+	
+		if(database_properties.is_database_single_connection_mutex_creator){
+			shm_unlink("/gargoyle_mutex_shm_sqlite");
+		}
 
-	if(database_properties.is_database_single_connection_mutex_creator){
-		shm_unlink("/gargoyle_mutex_shm_sqlite");
-	}
-
-	if(-1 != database_properties.fd){
-		close(database_properties.fd);
+		if(database_properties.fd != -1){
+			close(database_properties.fd);
+		}
 	}
 }
 
@@ -146,25 +158,25 @@ int sqlite_get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_l
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-
+		if(database_properties.single_connection_mutex != NULL){
+			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
+		}
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 
 		free(l_buf);
 		free(sql);
 		free(dest);
-		if(database_properties.single_connection_mutex != NULL){
-			pthread_mutex_unlock(database_properties.single_connection_mutex);
-		}
-
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 
@@ -185,6 +197,7 @@ int sqlite_get_host_by_ix(int the_ix, char *dst, size_t sz_dst, const char *db_l
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	if (dest_set_len+1 > sz_dst) {
@@ -228,19 +241,21 @@ int sqlite_get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst, const char *
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_all_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_all_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE ix = ?1", HOSTS_TABLE);
@@ -260,6 +275,7 @@ int sqlite_get_host_all_by_ix(int the_ix, char *dst, size_t sz_dst, const char *
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	if (dest_set_len+1 > sz_dst) {
@@ -296,21 +312,24 @@ int sqlite_get_total_hit_count_one_host_by_ix(int the_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_total_hit_count_one_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_total_hit_count_one_host_by_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
+
 	snprintf (sql, SQL_CMD_MAX, "SELECT COUNT(*) FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
 	sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL);
 	sqlite3_bind_int(stmt, 1, the_ix);
@@ -324,6 +343,7 @@ int sqlite_get_total_hit_count_one_host_by_ix(int the_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return return_val;
@@ -354,19 +374,21 @@ int sqlite_get_one_host_hit_count_all_ports(int ip_addr_ix, const char *db_loc) 
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_one_host_hit_count_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_one_host_hit_count_all_ports]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT hit_count FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
@@ -382,6 +404,7 @@ int sqlite_get_one_host_hit_count_all_ports(int ip_addr_ix, const char *db_loc) 
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return return_val;
@@ -412,6 +435,7 @@ int sqlite_get_host_ix(const char *the_ip, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -420,11 +444,12 @@ int sqlite_get_host_ix(const char *the_ip, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_ix]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host = ?1", HOSTS_TABLE);
@@ -440,6 +465,7 @@ int sqlite_get_host_ix(const char *the_ip, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return ret;
@@ -470,19 +496,21 @@ int sqlite_get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
 	rc = sqlite3_open(DB_LOCATION, &db);
 	if (rc != SQLITE_OK) {
-		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
-		}
+			database_properties.lock_is_set = 0;
+		}		
+		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_get_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT hit_count FROM %s WHERE host_ix = ?1 AND port_number = ?2", HOSTS_PORTS_HITS_TABLE);
@@ -499,6 +527,7 @@ int sqlite_get_host_port_hit(int ip_addr_ix, int the_port, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return ret;
@@ -526,6 +555,7 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -534,11 +564,12 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,port_number,hit_count) VALUES (?1,?2,?3)", HOSTS_PORTS_HITS_TABLE);
@@ -555,6 +586,7 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
@@ -564,6 +596,7 @@ int sqlite_add_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const ch
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -591,6 +624,7 @@ int sqlite_add_host_port_hit_all(int ix, int ip_addr_ix, int the_port, int add_c
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -599,11 +633,12 @@ int sqlite_add_host_port_hit_all(int ix, int ip_addr_ix, int the_port, int add_c
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host_ix,port_number,hit_count) VALUES (?1,?2,?3,?4)", HOSTS_PORTS_HITS_TABLE);
@@ -621,6 +656,7 @@ int sqlite_add_host_port_hit_all(int ix, int ip_addr_ix, int the_port, int add_c
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
@@ -630,6 +666,7 @@ int sqlite_add_host_port_hit_all(int ix, int ip_addr_ix, int the_port, int add_c
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -661,6 +698,7 @@ int sqlite_add_host(const char *the_ip, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -669,11 +707,12 @@ int sqlite_add_host(const char *the_ip, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host,first_seen,last_seen) VALUES (?1,?2,?3)", HOSTS_TABLE);
@@ -692,6 +731,7 @@ int sqlite_add_host(const char *the_ip, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
@@ -703,6 +743,7 @@ int sqlite_add_host(const char *the_ip, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return ret;
@@ -732,6 +773,7 @@ int sqlite_add_host_all(uint32_t ix, const char *the_ip, time_t first_seen, time
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -740,11 +782,12 @@ int sqlite_add_host_all(uint32_t ix, const char *the_ip, time_t first_seen, time
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host,first_seen,last_seen) VALUES (?1,?2,?3,?4)", HOSTS_TABLE);
@@ -763,6 +806,7 @@ int sqlite_add_host_all(uint32_t ix, const char *the_ip, time_t first_seen, time
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
@@ -772,6 +816,7 @@ int sqlite_add_host_all(uint32_t ix, const char *the_ip, time_t first_seen, time
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return ret;
@@ -799,6 +844,7 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -807,11 +853,12 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", DETECTED_HOSTS_TABLE);
@@ -827,6 +874,7 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -836,6 +884,7 @@ size_t sqlite_add_detected_host(size_t ip_addr_ix, size_t tstamp, const char *db
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -862,6 +911,7 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -870,11 +920,12 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_detected_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE ix = ?1", DETECTED_HOSTS_TABLE);
@@ -889,6 +940,7 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -898,6 +950,7 @@ size_t sqlite_remove_detected_host(size_t row_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -926,6 +979,7 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -934,11 +988,12 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_detected_hosts_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s", DETECTED_HOSTS_TABLE);
@@ -952,6 +1007,7 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -961,6 +1017,7 @@ size_t sqlite_remove_detected_hosts_all(const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -989,6 +1046,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -997,11 +1055,12 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host_ports_all]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
@@ -1017,6 +1076,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -1026,6 +1086,7 @@ size_t sqlite_remove_host_ports_all(size_t ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -1054,6 +1115,7 @@ size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *d
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1062,11 +1124,12 @@ size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *d
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [add_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", IGNORE_IP_LIST_TABLE);
@@ -1082,6 +1145,7 @@ size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *d
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -1091,6 +1155,7 @@ size_t sqlite_add_host_to_ignore(size_t ip_addr_ix, size_t tstamp, const char *d
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -1118,6 +1183,7 @@ size_t sqlite_remove_host(size_t ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1126,11 +1192,12 @@ size_t sqlite_remove_host(size_t ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE ix = ?1", HOSTS_TABLE);
@@ -1145,6 +1212,7 @@ size_t sqlite_remove_host(size_t ip_addr_ix, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -1154,6 +1222,7 @@ size_t sqlite_remove_host(size_t ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -1184,6 +1253,7 @@ int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1192,11 +1262,12 @@ int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_update_host_port_hit]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET hit_count = ?1 WHERE host_ix = ?2 AND port_number = ?3", HOSTS_PORTS_HITS_TABLE);
@@ -1213,6 +1284,7 @@ int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
@@ -1222,6 +1294,7 @@ int sqlite_update_host_port_hit(int ip_addr_ix, int the_port, int add_cnt, const
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 	return 0;
 }
@@ -1250,6 +1323,7 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1262,11 +1336,12 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_update_host_last_seen]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "UPDATE %s SET last_seen = ?1 WHERE ix = ?2", HOSTS_TABLE);
@@ -1283,6 +1358,7 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -1292,6 +1368,7 @@ size_t sqlite_update_host_last_seen(size_t ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -1331,6 +1408,7 @@ int sqlite_get_all_host_one_port_threshold(int the_port, int threshold, char *ds
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1343,11 +1421,12 @@ int sqlite_get_all_host_one_port_threshold(int the_port, int threshold, char *ds
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE port_number = ?1 AND hit_count >= ?2", HOSTS_PORTS_HITS_TABLE);
@@ -1368,6 +1447,7 @@ int sqlite_get_all_host_one_port_threshold(int the_port, int threshold, char *ds
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	//strcpy(dst, final_set);
@@ -1420,6 +1500,7 @@ int sqlite_get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, cons
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1432,11 +1513,12 @@ int sqlite_get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, cons
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s WHERE host_ix = ?1", HOSTS_PORTS_HITS_TABLE);
@@ -1457,6 +1539,7 @@ int sqlite_get_one_host_all_ports(int ip_addr_ix, char *dst, size_t sz_dst, cons
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	//strcpy(dst, final_set);
@@ -1509,6 +1592,7 @@ int sqlite_get_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1521,11 +1605,12 @@ int sqlite_get_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", HOSTS_TABLE);
@@ -1544,6 +1629,7 @@ int sqlite_get_hosts_all(char *dst, size_t sz_dst, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	//strcpy(dst, final_set);
@@ -1596,6 +1682,7 @@ int sqlite_get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1608,11 +1695,12 @@ int sqlite_get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT DISTINCT port_number FROM  %s", HOSTS_PORTS_HITS_TABLE);
@@ -1631,6 +1719,7 @@ int sqlite_get_unique_list_of_ports(char *dst, size_t sz_dst, const char *db_loc
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	//strcpy(dst, final_set);
@@ -1676,6 +1765,7 @@ size_t sqlite_get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_lo
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1688,11 +1778,12 @@ size_t sqlite_get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_lo
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", DETECTED_HOSTS_TABLE);
@@ -1711,6 +1802,7 @@ size_t sqlite_get_detected_hosts_all(char *dst, size_t sz_dst, const char *db_lo
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	if (final_set_len+1 > sz_dst) {
@@ -1754,6 +1846,7 @@ size_t sqlite_get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1764,11 +1857,12 @@ size_t sqlite_get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char
 		free(sql);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	//snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1 AND active = 1 AND processed = 0", DETECTED_HOSTS_TABLE);
@@ -1785,6 +1879,7 @@ size_t sqlite_get_detected_hosts_row_ix_by_host_ix(size_t ip_addr_ix, const char
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	free(sql);
@@ -1817,6 +1912,7 @@ size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_l
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1829,11 +1925,12 @@ size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_l
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", IGNORE_IP_LIST_TABLE);
@@ -1852,6 +1949,7 @@ size_t sqlite_get_hosts_to_ignore_all(char *dst, size_t sz_dst, const char *db_l
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	if (final_set_len+1 > sz_dst) {
@@ -1899,6 +1997,7 @@ int sqlite_get_all_ignore_or_black_ip_list(char *dst, size_t sz_dst, const char 
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1911,11 +2010,12 @@ int sqlite_get_all_ignore_or_black_ip_list(char *dst, size_t sz_dst, const char 
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", table);
@@ -1934,6 +2034,7 @@ int sqlite_get_all_ignore_or_black_ip_list(char *dst, size_t sz_dst, const char 
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	//strcpy(dst, final_set);
@@ -1980,6 +2081,7 @@ size_t sqlite_get_unique_list_of_hosts_ix(char *dst, size_t sz_dst, const char *
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -1992,11 +2094,12 @@ size_t sqlite_get_unique_list_of_hosts_ix(char *dst, size_t sz_dst, const char *
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT DISTINCT host_ix FROM  %s", HOSTS_PORTS_HITS_TABLE);
@@ -2015,6 +2118,7 @@ size_t sqlite_get_unique_list_of_hosts_ix(char *dst, size_t sz_dst, const char *
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	if (final_set_len+1 > sz_dst) {
@@ -2065,6 +2169,7 @@ int sqlite_is_host_ignored(int ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2073,11 +2178,12 @@ int sqlite_is_host_ignored(int ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_is_host_ignored]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLE);
@@ -2093,6 +2199,7 @@ int sqlite_is_host_ignored(int ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return ret;
@@ -2123,6 +2230,7 @@ int sqlite_is_host_detected(int ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2131,11 +2239,12 @@ int sqlite_is_host_detected(int ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_is_host_detected]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT ix FROM %s WHERE host_ix = ?1", DETECTED_HOSTS_TABLE);
@@ -2151,6 +2260,7 @@ int sqlite_is_host_detected(int ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return ret;
@@ -2178,6 +2288,7 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2186,11 +2297,12 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host_to_ignore]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", IGNORE_IP_LIST_TABLE);
@@ -2205,6 +2317,7 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -2214,6 +2327,7 @@ int sqlite_remove_host_to_ignore(int ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -2241,6 +2355,7 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2249,11 +2364,12 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_host_to_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (host_ix,timestamp) VALUES (?1,?2)", BLACK_LIST_TABLE);
@@ -2269,6 +2385,7 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -2278,6 +2395,7 @@ size_t sqlite_add_host_to_blacklist(size_t ip_addr_ix, size_t tstamp, const char
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -2308,6 +2426,7 @@ size_t sqlite_get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_l
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2320,11 +2439,12 @@ size_t sqlite_get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_l
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s", BLACK_LIST_TABLE);
@@ -2343,6 +2463,7 @@ size_t sqlite_get_hosts_blacklist_all(char *dst, size_t sz_dst, const char *db_l
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;	
 	}
 
 	if (final_set_len+1 > sz_dst) {
@@ -2387,6 +2508,7 @@ int sqlite_is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2395,11 +2517,12 @@ int sqlite_is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_is_host_blacklisted]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT host_ix FROM %s WHERE host_ix = ?1", BLACK_LIST_TABLE);
@@ -2415,6 +2538,7 @@ int sqlite_is_host_blacklisted(int ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;	
 	}
 
 	return ret;
@@ -2442,6 +2566,7 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2450,11 +2575,12 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_host_from_blacklist]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s WHERE host_ix = ?1", BLACK_LIST_TABLE);
@@ -2469,6 +2595,7 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -2478,6 +2605,7 @@ int sqlite_remove_host_from_blacklist(int ip_addr_ix, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -2511,6 +2639,7 @@ int sqlite_get_black_ip_list_all(char *dst, size_t sz_dst, const char *db_loc){
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2523,11 +2652,12 @@ int sqlite_get_black_ip_list_all(char *dst, size_t sz_dst, const char *db_loc){
 		free(final_set);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "SELECT * FROM %s", BLACK_LIST_TABLE);
@@ -2546,6 +2676,7 @@ int sqlite_get_black_ip_list_all(char *dst, size_t sz_dst, const char *db_loc){
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;	
 	}
 
 	//strcpy(dst, final_set);
@@ -2586,6 +2717,7 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2594,7 +2726,7 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_reset_autoincrement]: %s", DB_LOCATION, sqlite3_errmsg(db));
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	// UPDATE SQLITE_SEQUENCE SET SEQ= 'value' WHERE NAME='table_name';
@@ -2616,6 +2748,7 @@ void sqlite_reset_autoincrement(const char *table_name, const char *db_loc) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;	
 	}
 }
 
@@ -2641,6 +2774,7 @@ size_t sqlite_remove_all(const char *db_loc, const char *table) {
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2649,11 +2783,12 @@ size_t sqlite_remove_all(const char *db_loc, const char *table) {
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_remove_all]: %s with the table %s", DB_LOCATION, sqlite3_errmsg(db), table);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "DELETE FROM %s", table);
@@ -2667,6 +2802,7 @@ size_t sqlite_remove_all(const char *db_loc, const char *table) {
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+			database_properties.lock_is_set = 0;
 		}
 		return 2;
 	}
@@ -2676,6 +2812,7 @@ size_t sqlite_remove_all(const char *db_loc, const char *table) {
 
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 	}
 
 	return 0;
@@ -2704,6 +2841,7 @@ size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, 
 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
+		database_properties.lock_is_set = 1;
 		pthread_mutex_lock(database_properties.single_connection_mutex);
 	}
 
@@ -2712,11 +2850,12 @@ size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, 
 		syslog(LOG_INFO | LOG_LOCAL6, "ERROR opening SQLite DB '%s' from function [sqlite_add_all_by_table]: %s", DB_LOCATION, sqlite3_errmsg(db));
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 		}
 		return 1;
 	}
 
-	if(database_properties.sqlite_locked_try_for_time >= 0){
+	if(database_properties.sqlite_locked_try_for_time > 0){
 		sqlite3_busy_timeout(db, database_properties.sqlite_locked_try_for_time);
 	}
 	snprintf (sql, SQL_CMD_MAX, "INSERT INTO %s (ix, host_ix, timestamp) VALUES (?1,?2,?3)", table);
@@ -2731,6 +2870,7 @@ size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, 
 		sqlite3_close(db);
 		if(database_properties.single_connection_mutex != NULL){
 			pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;
 		}
 		return -1;
 	}
@@ -2741,6 +2881,7 @@ size_t sqlite_add_all_by_table(uint32_t ix, uint32_t host_ix, time_t timestamp, 
 	// A only connection to the database
 	if(database_properties.single_connection_mutex != NULL){
 		pthread_mutex_unlock(database_properties.single_connection_mutex);
+		database_properties.lock_is_set = 0;	
 	}
 
 	return ret;

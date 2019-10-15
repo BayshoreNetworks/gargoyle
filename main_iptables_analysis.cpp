@@ -857,7 +857,5 @@ int main(int argc, char *argv[]) {
 		sleep(900);
 	}
 
-	delete_sqlite_properties();
-
 	return 0;
 }

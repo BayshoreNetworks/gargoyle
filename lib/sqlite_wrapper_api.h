@@ -53,7 +53,7 @@
 extern "C" {
 #endif
 
-void set_sqlite_properties(int time);
+int set_sqlite_properties(int time);
 void delete_sqlite_properties();
 
 ///////////////////////////////////////////////////////////////////////

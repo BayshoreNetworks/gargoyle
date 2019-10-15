@@ -5,4 +5,5 @@ overall_port_scan_threshold:8
 last_seen_delta:28800
 lockout_time:32400
 shared_memory_data_base_to_sqlite_time:900
-sqlite_locked_try_for_time:3000
+sqlite_locked_try_for_time:0
+
