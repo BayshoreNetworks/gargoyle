@@ -54,7 +54,7 @@ extern "C" {
 #endif
 
 int set_sqlite_properties(int time);
-void delete_sqlite_properties();
+int delete_sqlite_properties();
 
 ///////////////////////////////////////////////////////////////////////
 // detected_hosts table

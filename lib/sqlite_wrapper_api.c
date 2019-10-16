@@ -114,7 +114,6 @@ int set_sqlite_properties(int time){
 					return 1;
 				}
 				// each daemon increases this value
-				printf("%d\n", database_properties.fd_mutex_initialization);
 				if(write(database_properties.fd_mutex_initialization, "1", 1) != 1){
 					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::write /tmp/.gargoyle_initialization] for SQLite DB");
 					return 1;
@@ -128,7 +127,6 @@ int set_sqlite_properties(int time){
 					return 1;
 				}
 				database_properties.lock_is_set = 0;
-				printf("creador inicializa mutex\n");
 			}else{
 				// it is waiting for the mutex is initialized properly
 				do{
@@ -153,7 +151,10 @@ int set_sqlite_properties(int time){
 					return 1;
 				}
 				snprintf(daemons, sizeof(daemons), "%d", ++numbers);
-				lseek(database_properties.fd_mutex_initialization, 0, SEEK_SET);
+				if(lseek(database_properties.fd_mutex_initialization, 0, SEEK_SET) == -1){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::lseek /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
 				if(write(database_properties.fd_mutex_initialization, daemons, strlen(daemons)) != 1){
 					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::write /tmp/.gargoyle_initialization] for SQLite DB");
 					return 1;
@@ -167,35 +168,87 @@ int set_sqlite_properties(int time){
 					return 1;
 				}
 				database_properties.lock_is_set = 0;
-				printf("no creador mutex inicializado por lo que podemos usarlo\n");
 			}
 	}
 	return 0;
 }
 
-void delete_sqlite_properties(){
+int delete_sqlite_properties(){
 	if(database_properties.single_connection_mutex != NULL){
-		if(database_properties.lock_is_set != 0){
-			pthread_mutex_trylock(database_properties.single_connection_mutex);
-			/*
-			 * In this point the mutex will always be locked. lock_is_set is set to false after unlocking
-			 * so it can happen that the mutex is unlock and is_locked is still true. This is the reason
-			 * why pthread_mutex_trylock is called here
-			 */
-			pthread_mutex_unlock(database_properties.single_connection_mutex);
+		if(database_properties.lock_is_set == 1){
+			if(pthread_mutex_trylock(database_properties.single_connection_mutex) != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::pthread_mutex_trylock] for SQLite DB");
+				return 1;
+			}
+		}else{
+			database_properties.lock_is_set == 1;
+			if(pthread_mutex_lock(database_properties.single_connection_mutex) != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::pthread_mutex_lock] for SQLite DB");
+				return 1;
+			}
+			
+		}
+
+		/*
+		 * In this point the mutex will always be locked. lock_is_set is set to false after unlocking
+		 * so it can happen that the mutex is unlock and is_locked is still true. This is the reason
+		 * why pthread_mutex_trylock is called here
+		 */
+		if((database_properties.fd_mutex_initialization = open("/tmp/.gargoyle_initialization", O_RDWR)) == -1){
+			syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::open] for SQLite DB");
+			return 1;
+		}
+
+		char daemons[4];
+		int bytes = read(database_properties.fd_mutex_initialization, daemons, sizeof(daemons));
+		if(bytes == -1){
+			syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [delete_sqlite_properties::read /tmp/.gargoyle_initialization] for SQLite DB");
+			return 1;
+		}
+		daemons[bytes] = '\0';
+		int numbers = strtol(daemons, NULL, 10);
+		if(numbers != 1){
+			snprintf(daemons, sizeof(daemons), "%d", numbers-1);
+			if(lseek(database_properties.fd_mutex_initialization, 0, SEEK_SET) == -1){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [delete_sqlite_properties::lseek /tmp/.gargoyle_initialization] for SQLite DB");
+				return 1;
+			}
+			if(write(database_properties.fd_mutex_initialization, daemons, strlen(daemons)) != 1){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [delete_sqlite_properties::write /tmp/.gargoyle_initialization] for SQLite DB");
+				return 1;
+			}
+			if(pthread_mutex_unlock(database_properties.single_connection_mutex) != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::pthread_mutex_unlock] for SQLite DB");
+				return 1;
+			}
 			database_properties.lock_is_set = 0;
 		}
 
-		munmap(database_properties.single_connection_mutex, sizeof(pthread_mutex_t));
-	
-		if(database_properties.is_database_single_connection_mutex_creator){
-			shm_unlink("/gargoyle_mutex_sqlite");
+		if(munmap(database_properties.single_connection_mutex, sizeof(pthread_mutex_t)) != 0){
+			syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::munmap] for SQLite DB");
+			return 1;
 		}
 
 		if(database_properties.fd_shared_memory != -1){
-			close(database_properties.fd_shared_memory);
+			if(close(database_properties.fd_shared_memory) != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::close] for SQLite DB");
+				return 1;
+			}
+		}
+
+		// it is the last daemon in execution 
+		if(numbers == 1){
+			if(shm_unlink("/gargoyle_mutex_sqlite") != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::shm_unlink] for SQLite DB");
+				return 1;
+			}
+			if(unlink("/tmp/.gargoyle_initialization") != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::shm_unlink] for SQLite DB");
+				return 1;
+			}
 		}
 	}
+	return 0;
 }
 
 /*
