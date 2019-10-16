@@ -49,7 +49,8 @@ struct{
 	// Time in millisecond while the daemon is trying to perform the operation into the database
 	// If this time is -1, the database only supports a connection
 	int sqlite_locked_try_for_time;
-	int fd;
+	int fd_shared_memory;
+	int fd_mutex_initialization;
 	int lock_is_set;
 	pthread_mutexattr_t attrmutex;;
 	pthread_mutex_t *single_connection_mutex;
@@ -59,35 +60,115 @@ int set_sqlite_properties(int time){
 	database_properties.sqlite_locked_try_for_time = time;
 	database_properties.single_connection_mutex = NULL;
 	database_properties.lock_is_set = 0;
-	if(time == 0){
-		database_properties.sqlite_locked_try_for_time = -1;
-		database_properties.is_database_single_connection_mutex_creator = 0;
+		if(time == 0){
+			database_properties.sqlite_locked_try_for_time = -1;
+			database_properties.is_database_single_connection_mutex_creator = 0;
 
-		database_properties.fd = shm_open("/gargoyle_mutex_shm_sqlite", O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-	    if(database_properties.fd < 0 && errno == EEXIST) {
-	    	database_properties.is_database_single_connection_mutex_creator = 0;
-	    	database_properties.fd = shm_open("/gargoyle_mutex_shm_sqlite", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-	    }else if(database_properties.fd > 0) {
-	    	// Creator
-	    	database_properties.is_database_single_connection_mutex_creator = 1;
-	        if(ftruncate(database_properties.fd, sizeof(pthread_mutex_t)) < 0) {
-	        	syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex (ftruncate) for SQLite DB");
-	            return 1;
-	        }
-	    }
+			database_properties.fd_shared_memory = shm_open("/gargoyle_mutex_sqlite", O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+			if(database_properties.fd_shared_memory < 0 && errno == EEXIST) {
+				database_properties.is_database_single_connection_mutex_creator = 0;
+				database_properties.fd_shared_memory = shm_open("/gargoyle_mutex_sqlite", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+				if(database_properties.fd_shared_memory < 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::shm_open] for SQLite DB");
+					return 1;
+				}
 
-	    database_properties.single_connection_mutex = (pthread_mutex_t *)mmap(NULL,
-	    		sizeof(pthread_mutex_t), PROT_READ|PROT_WRITE,MAP_SHARED, database_properties.fd, 0);
+			}else if(database_properties.fd_shared_memory > 0){
+				// Creator
+				database_properties.is_database_single_connection_mutex_creator = 1;
+				if(ftruncate(database_properties.fd_shared_memory, sizeof(pthread_mutex_t)) < 0) {
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::ftruncate] for SQLite DB");
+					return 1;
+				}
+			}else{
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::shm_open] for SQLite DB");
+				return 1;
+			}
 
-	    if(database_properties.is_database_single_connection_mutex_creator){
-			pthread_mutexattr_init(&database_properties.attrmutex);
-			pthread_mutexattr_setpshared(&database_properties.attrmutex, PTHREAD_PROCESS_SHARED);
-	    	if(pthread_mutex_init(database_properties.single_connection_mutex, &database_properties.attrmutex) != 0){
-	        	syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex (pthread_mutex_init) for SQLite DB");
-	            return 1;
-	    	}
-			
-	    }
+			database_properties.single_connection_mutex = (pthread_mutex_t *)mmap(NULL, sizeof(pthread_mutex_t), 
+															PROT_READ|PROT_WRITE,MAP_SHARED, database_properties.fd_shared_memory, 0);
+
+			if(database_properties.single_connection_mutex == MAP_FAILED){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::mmap] for SQLite DB");
+				return 1;
+			}
+
+			if(database_properties.is_database_single_connection_mutex_creator){
+				if(pthread_mutexattr_init(&database_properties.attrmutex) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::pthread_mutexattr_init] for SQLite DB");
+					return 1;
+				}
+				pthread_mutexattr_setpshared(&database_properties.attrmutex, PTHREAD_PROCESS_SHARED);
+				if(pthread_mutex_init(database_properties.single_connection_mutex, &database_properties.attrmutex) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::pthread_mutex_init] for SQLite DB");
+					return 1;
+				}
+				// it indicates the mutex is initialized so it can begin to be used
+				database_properties.lock_is_set = 1;
+				if(pthread_mutex_lock(database_properties.single_connection_mutex) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::pthread_mutex_lock] for SQLite DB");
+					return 1;
+				}
+				if((database_properties.fd_mutex_initialization = open("/tmp/.gargoyle_initialization", O_RDWR | O_CREAT | O_TRUNC, 0777)) == -1){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::open /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
+				// each daemon increases this value
+				printf("%d\n", database_properties.fd_mutex_initialization);
+				if(write(database_properties.fd_mutex_initialization, "1", 1) != 1){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::write /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
+				if(close(database_properties.fd_mutex_initialization) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::close /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
+				if(pthread_mutex_unlock(database_properties.single_connection_mutex) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::pthread_mutex_unlock] for SQLite DB");
+					return 1;
+				}
+				database_properties.lock_is_set = 0;
+				printf("creador inicializa mutex\n");
+			}else{
+				// it is waiting for the mutex is initialized properly
+				do{
+					database_properties.fd_mutex_initialization = open("/tmp/.gargoyle_initialization", O_RDWR);
+				}while(database_properties.fd_mutex_initialization == -1 && errno == ENOENT);
+
+				database_properties.lock_is_set = 1;
+				if(pthread_mutex_lock(database_properties.single_connection_mutex) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::pthread_mutex_lock] for SQLite DB");
+					return 1;
+				}				
+				char daemons[4];
+				int bytes = read(database_properties.fd_mutex_initialization, daemons, sizeof(daemons));
+				if(bytes == -1){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::read /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
+				daemons[bytes] = '\0';
+				int numbers = strtol(daemons, NULL, 10);
+				if(daemons == 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating mutex [set_sqlite_properties::strtol] for SQLite DB");
+					return 1;
+				}
+				snprintf(daemons, sizeof(daemons), "%d", ++numbers);
+				lseek(database_properties.fd_mutex_initialization, 0, SEEK_SET);
+				if(write(database_properties.fd_mutex_initialization, daemons, strlen(daemons)) != 1){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::write /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
+				if(close(database_properties.fd_mutex_initialization) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::close /tmp/.gargoyle_initialization] for SQLite DB");
+					return 1;
+				}
+				if(pthread_mutex_unlock(database_properties.single_connection_mutex) != 0){
+					syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [set_sqlite_properties::pthread_mutex_unlock] for SQLite DB");
+					return 1;
+				}
+				database_properties.lock_is_set = 0;
+				printf("no creador mutex inicializado por lo que podemos usarlo\n");
+			}
 	}
 	return 0;
 }
@@ -108,11 +189,11 @@ void delete_sqlite_properties(){
 		munmap(database_properties.single_connection_mutex, sizeof(pthread_mutex_t));
 	
 		if(database_properties.is_database_single_connection_mutex_creator){
-			shm_unlink("/gargoyle_mutex_shm_sqlite");
+			shm_unlink("/gargoyle_mutex_sqlite");
 		}
 
-		if(database_properties.fd != -1){
-			close(database_properties.fd);
+		if(database_properties.fd_shared_memory != -1){
+			close(database_properties.fd_shared_memory);
 		}
 	}
 }
