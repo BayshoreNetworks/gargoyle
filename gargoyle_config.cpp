@@ -37,7 +37,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
+#include "config_variables.h"
 #include "gargoyle_config_vals.h"
 
 int main () {
@@ -135,5 +137,21 @@ int main () {
 	}
 
 	free(dest);
+
+	config_file = getenv("GARGOYLE_CONFIG");
+	if (config_file == NULL)
+		config_file = ".gargoyle_config";
+
+	ConfigVariables cvv;
+	if (cvv.get_vals(config_file) == 0) {
+		auto time = cvv.get_sqlite_locked_try_for_time();
+		if(time == 0){
+			unlink("/tmp/.gargoyle_initialization");
+			unlink("/dev/shm/gargoyle_mutex_sqlite");
+		}
+	}
+
+	
+
 	return 0;
 }

@@ -112,6 +112,8 @@ Config data:
 
 		- "hot_ports" - comma delimited string of ports for Gargoyle_pscand to immediately create a block action (of the relevant src ip) upon encountering
 
+		- "sqlite_locked_try_for_time" - integer representing milliseconds - SQLite uses different locks to protect the database from race conditions. The default Sqlite locks system allows multiples readers and a writer to access simultaneously. When two or more writers try to write, only one succeeds and the other returns with SQLITE_BUSY without retrying the operation. We can modify this behaviour with this key. If the key is not in the file or is < 0, the default Sqlite behavior occurs. If the key is iqual to 0 only a connection to the database is allowed, so we move on to a model where we only have one writer or one reader. No SQLITE_BUSY in that case. If the key is > 0 and a writer was unsuccessful, it retries the operation until the time specified in this key at most 
+
 	Gargoyle lscand (log file scanner) reads config files inside directory "conf.d". An example is provided, here is the content:
 
 		- enabled:0

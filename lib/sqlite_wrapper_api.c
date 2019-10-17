@@ -217,6 +217,10 @@ int delete_sqlite_properties(){
 				syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [delete_sqlite_properties::write /tmp/.gargoyle_initialization] for SQLite DB");
 				return 1;
 			}
+			if(close(database_properties.fd_mutex_initialization) != 0){
+				syslog(LOG_INFO | LOG_LOCAL6, "ERROR creating shared memory mutex [delete_sqlite_properties::close /tmp/.gargoyle_initialization] for SQLite DB");
+				return 1;
+			}			
 			if(pthread_mutex_unlock(database_properties.single_connection_mutex) != 0){
 				syslog(LOG_INFO | LOG_LOCAL6, "ERROR [delete_sqlite_properties::pthread_mutex_unlock] for SQLite DB");
 				return 1;
