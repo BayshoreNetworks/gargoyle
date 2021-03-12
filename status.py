@@ -13,44 +13,44 @@ BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 
 def blocked(blockedIps):
-    print(R+"Blocked IPs".ljust(24)+ R+"Time Blocked".ljust(28)+ R+"Unblock Time Estimation"+W)
-    print(P+"\n*Note: this does not take into account manual unblocking or adding to white list\n"+W)
-    for ip in blockedIps.keys():
+    print((R+"Blocked IPs".ljust(24)+ R+"Time Blocked".ljust(28)+ R+"Unblock Time Estimation"+W))
+    print((P+"\n*Note: this does not take into account manual unblocking or adding to white list\n"+W))
+    for ip in list(blockedIps.keys()):
         if blockedIps[ip][1] == 0:
-            print ip.ljust(23), blockedIps[ip][0].ljust(27), "When removed from black list"
+            print(ip.ljust(23), blockedIps[ip][0].ljust(27), "When removed from black list")
         else:
-            print ip.ljust(23), blockedIps[ip][0].ljust(27), blockedIps[ip][1]
-    print '\n'
+            print(ip.ljust(23), blockedIps[ip][0].ljust(27), blockedIps[ip][1])
+    print('\n')
 
 def whiteListed(whiteList):
-    print(R+"White Listed IPs".ljust(24) + R+"Time White Listed"+W)
-    for ip in whiteList.keys():
-        print ip.ljust(23) , whiteList[ip]
-    print '\n'
+    print((R+"White Listed IPs".ljust(24) + R+"Time White Listed"+W))
+    for ip in list(whiteList.keys()):
+        print(ip.ljust(23), whiteList[ip])
+    print('\n')
 
 def blackListed(blackList):
-    print(R+"Black Listed IPs".ljust(24) + R+"Time Black Listed"+W)
+    print((R+"Black Listed IPs".ljust(24) + R+"Time Black Listed"+W))
     for ip in blackList:
-        print ip.ljust(23), blackList[ip]
-    print '\n'
+        print(ip.ljust(23), blackList[ip])
+    print('\n')
 
 def daemons(daemonStats):
     
     daemons = ["gargoyle_pscand","gargoyle_pscand_analysis","gargoyle_pscand_monitor","gargoyle_lscand_ssh_bruteforce"]
-    print(R+"Daemon Information:"+W)
+    print((R+"Daemon Information:"+W))
     running = ''.join(daemonStats["runningDaemons"])
     for daemon in daemons:
         if daemon in running:
-            print(daemon+G+' - Running'+W)
+            print((daemon+G+' - Running'+W))
         else:
-            print(daemon+R+' - Not Running'+W)
-    print '\n'
-    print("Last Analysis Process - " + daemonStats["last_analysis"])
-    print("Next Analysis Process - " + daemonStats["next_analysis"])
-    print("Last Monitor Process - " + daemonStats["last_monitor"])
-    print("Next Monitor Process - " + daemonStats["next_monitor"])
+            print((daemon+R+' - Not Running'+W))
+    print('\n')
+    print(("Last Analysis Process - " + daemonStats["last_analysis"]))
+    print(("Next Analysis Process - " + daemonStats["next_analysis"]))
+    print(("Last Monitor Process - " + daemonStats["last_monitor"]))
+    print(("Next Monitor Process - " + daemonStats["next_monitor"]))
     
-    print '\n'
+    print('\n')
 
 def main():
 
@@ -75,20 +75,18 @@ def main():
     daemonStats = daemon_stats()
     
 
-    print (G+"\n******************** Gargoyle Statistics ********************\n"+W)
-    print (G+daemonStats["Active"]+W + '\n')
+    print((G+"\n******************** Gargoyle Statistics ********************\n"+W))
+    print((G+daemonStats["Active"]+W + '\n'))
 
     if os.getuid() != 0:
-        print (R+"Program must be run as root user...exiting\n"+W)
+        print((R+"Program must be run as root user...exiting\n"+W))
         exit(1)
 
     if 'running' in daemonStats['Active']:
-            
-        
         try:
             db_loc = os.environ["GARGOYLE_DB"]
         except Exception as er:
-            print(R+'Error: '+W + er.message+ "\nPlease set an environment variable 'GARGOYLE_DB' to the correct database path.")
+            print((R+'Error: '+W + str(er) + "\nPlease set an environment variable 'GARGOYLE_DB' to the correct database path."))
             exit(1)
 
         try:
@@ -96,7 +94,7 @@ def main():
             whiteList = get_current_white_list()
             blackList = get_current_black_list()
         except Exception as er:
-            print(R+"Error: " + W + er.message + "\nAre you sure you set your envinronment variable GARGOYLE_DB to the correct db path?"+W)
+            print((R+"Error: " + W + str(er) + "\nAre you sure you set your envinronment variable GARGOYLE_DB to the correct db path?"+W))
             exit(1)
    
         if args.blocked == None and args.whitelist == None and args.blacklist == None and args.daemons == None and args.all == None:

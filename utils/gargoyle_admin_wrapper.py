@@ -154,7 +154,7 @@ class _BaseIP(_IPAddrBase):
         return  '%s' % self._string_from_ip_int(self._ip)
 
     def __hash__(self):
-        return hash(hex(long(self._ip)))
+        return hash(hex(int(self._ip)))
 
     def _get_address_key(self):
         return (self._version, self)
@@ -529,7 +529,7 @@ class _BaseNet(_IPAddrBase):
         Raises:
             NetmaskValueError: If the input is not an integer, or out of range.
         """
-        if not isinstance(prefixlen, (int, long)):
+        if not isinstance(prefixlen, int):
             raise NetmaskValueError('%r is not an integer' % prefixlen)
         prefixlen = int(prefixlen)
         if not (0 <= prefixlen <= self._max_prefixlen):
@@ -791,7 +791,7 @@ class _BaseV4(object):
 
         """
         octets = []
-        for _ in xrange(4):
+        for _ in range(4):
             octets.insert(0, str(ip_int & 0xFF))
             ip_int >>= 8
         return '.'.join(octets)
@@ -894,7 +894,7 @@ class IPv4Address(_BaseV4, _BaseIP):
             return
 
         # Efficient constructor from integer.
-        if isinstance(address, (int, long)):
+        if isinstance(address, int):
             self._ip = address
             if address < 0 or address > self._ALL_ONES:
                 raise AddressValueError(address)
@@ -963,7 +963,7 @@ class _BaseV6(object):
         # This indicates that a run of zeroes has been skipped.
         try:
             skip_index, = (
-                [i for i in xrange(1, len(parts) - 1) if not parts[i]] or
+                [i for i in range(1, len(parts) - 1) if not parts[i]] or
                 [None])
         except ValueError:
             # Can't have more than one '::'
@@ -997,12 +997,12 @@ class _BaseV6(object):
 
         try:
             # Now, parse the hextets into a 128-bit integer.
-            ip_int = 0L
-            for i in xrange(parts_hi):
+            ip_int = 0
+            for i in range(parts_hi):
                 ip_int <<= 16
                 ip_int |= self._parse_hextet(parts[i])
             ip_int <<= 16 * parts_skipped
-            for i in xrange(-parts_lo, 0):
+            for i in range(-parts_lo, 0):
                 ip_int <<= 16
                 ip_int |= self._parse_hextet(parts[i])
             return ip_int
@@ -1123,7 +1123,7 @@ class _BaseV6(object):
 
         ip_int = self._ip_int_from_string(ip_str)
         parts = []
-        for i in xrange(self._HEXTET_COUNT):
+        for i in range(self._HEXTET_COUNT):
             parts.append('%04x' % (ip_int & 0xFFFF))
             ip_int >>= 16
         parts.reverse()
@@ -1295,7 +1295,7 @@ class IPv6Address(_BaseV6, _BaseIP):
             return
 
         # Efficient constructor from integer.
-        if isinstance(address, (int, long)):
+        if isinstance(address, int):
             self._ip = address
             if address < 0 or address > self._ALL_ONES:
                 raise AddressValueError(address)
@@ -1388,11 +1388,11 @@ def list_of_ports(list):
 def is_there_conflict(list1, list2):
     """ Is There Conflict?
 
-        Given two lists of ints, determines if tthey have any overlapping numbers.
+        Given two strings of ints, determines if they have any overlapping numbers.
 
         Args:
-            list1: list of ints
-            list2: list of ints
+            list1: string of comma-separated ints/ranges
+            list2: string of comma-separated ints/ranges
 
         Returns:
             1 if there is overlap(conflict) and 0 if there is not.
@@ -1402,9 +1402,9 @@ def is_there_conflict(list1, list2):
 
         Examples:
 
-        >>> is_there_conflict(['1','2','3-5'],['0','4'])
+        >>> is_there_conflict('1,2,3-5','0,4')
         1
-        >>> is_there_conflict(['1-5'],['6','7'])
+        >>> is_there_conflict('1-5','6,7')
         0
     """
     if len(list1) > 0 and len(list2) > 0:
@@ -1500,7 +1500,7 @@ def set_config(objct):
 
     temp = get_current_config()
     current = json.loads(temp)
-    if 'ports_to_ignore' and 'hot_ports' in data.keys():
+    if 'ports_to_ignore' and 'hot_ports' in list(data.keys()):
         if is_there_conflict(data['ports_to_ignore'],data['hot_ports']):
             return 1
 
@@ -1515,7 +1515,7 @@ def set_config(objct):
         if data[key].isalpha():
             return 1
 
-        if key not in current.keys():
+        if key not in list(current.keys()):
             current[key] = data[key]
         elif data[key] != current[key]:
             current[key] = data[key]
@@ -1523,7 +1523,7 @@ def set_config(objct):
     file = open(config_file,'w')
 
     for key in current:
-        if key in data.keys():
+        if key in list(data.keys()):
             file.write(key)
             file.write(':')
             file.write(str(current[key]))
@@ -1662,7 +1662,7 @@ def get_current_white_list():
     db_loc = get_db()
     host_ix_list = {}
     white_listed_ips = {}
-    print db_loc
+    print(db_loc)
     try:
         table = sqlite3.connect(db_loc)
         cursor = table.cursor()
@@ -1679,7 +1679,7 @@ def get_current_white_list():
     for entry in white_listed_entries:
         host_ix_list[entry[1]] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(entry[2])))
 
-    for host_ix in host_ix_list.keys():
+    for host_ix in list(host_ix_list.keys()):
         with table:
             try:
                 cursor.execute("SELECT * FROM hosts_table where ix={}".format(host_ix))
@@ -1876,7 +1876,7 @@ def get_current_black_list():
     for entry in black_listed_entries:
         host_ix_list[entry[1]] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(int(entry[2])))
 
-    for host_ix in host_ix_list.keys():
+    for host_ix in list(host_ix_list.keys()):
         with table:
             try:
                 cursor.execute("SELECT * FROM hosts_table where ix={}".format(host_ix))
@@ -2060,8 +2060,7 @@ def get_current_from_iptables():
     p = Popen(cmd, stdout=PIPE, shell=True)
     out,err = p.communicate()
 
-
-    lines = out.split('\n')
+    lines = out.decode().split('\n')
     for line in lines:
         if len(line) > 0:
             each_line = line.split()
@@ -2132,7 +2131,7 @@ def blocked_time():
     except sqlite3.Error as e:
         raise e
 
-    for ip in blocked_ips.keys():
+    for ip in list(blocked_ips.keys()):
         host_ix = None
         try:
             with table:
@@ -2144,7 +2143,7 @@ def blocked_time():
 
 
         if host_ix:
-            if ip in get_current_black_list().keys():
+            if ip in list(get_current_black_list().keys()):
                 try:
                     with table:
                         cursor.execute("SELECT timestamp FROM black_ip_list WHERE host_ix = '{}'".format(host_ix))
@@ -2200,7 +2199,7 @@ def daemon_stats():
     p = Popen (cmd, stdout=PIPE, shell=True)
     out, err = p.communicate()
 
-    splitOut = out.split('\n')
+    splitOut = out.decode().split('\n')
 
     for x in splitOut:
         if 'Active' in x:
@@ -2212,9 +2211,9 @@ def daemon_stats():
             daemon['Timeline'].append(x.strip())
             '''
         if './gargoyle_' in x:
-            if 'runningDaemons' not in daemon.keys():
+            if 'runningDaemons' not in list(daemon.keys()):
                 daemon['runningDaemons'] = []
-            daemon['runningDaemons'].append(x.strip().decode("utf-8").encode("ascii","ignore").split()[1])
+            daemon['runningDaemons'].append(x.strip().split()[1])
 
     if 'running' in daemon['Active']:
         try:
