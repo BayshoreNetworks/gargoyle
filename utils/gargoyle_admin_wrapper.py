@@ -2057,7 +2057,7 @@ def get_current_from_iptables():
     last_seen = 0
 
     cmd = ['sudo iptables -L GARGOYLE_Input_Chain -n']
-    p = Popen(cmd, stdout=PIPE, shell=True)
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
     out,err = p.communicate()
 
     lines = out.decode().split('\n')
